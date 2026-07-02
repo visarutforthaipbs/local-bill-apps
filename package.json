@@ -1,0 +1,70 @@
+{
+  "name": "billiong-app",
+  "version": "1.1.0",
+  "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icon": "electron make-icon.js",
+    "predist": "electron make-icon.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --mac",
+    "dist:mas": "electron-builder --mac mas"
+  },
+  "keywords": [
+    "billing",
+    "invoice",
+    "receipt",
+    "etax",
+    "desktop-app"
+  ],
+  "author": "Visarut Sankham",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "build": {
+    "appId": "com.visarut.billiong",
+    "productName": "Billiong",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "billing.html",
+      "billiong-logo.png",
+      "fonts/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.finance",
+      "identity": null,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "mas": {
+      "type": "distribution",
+      "category": "public.app-category.finance",
+      "entitlements": "build/entitlements.mas.plist",
+      "entitlementsInherit": "build/entitlements.mas.inherit.plist",
+      "provisioningProfile": "build/embedded.provisionprofile",
+      "target": [
+        "pkg"
+      ]
+    },
+    "dmg": {
+      "title": "Billiong ${version}"
+    }
+  }
+}
