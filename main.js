@@ -396,7 +396,7 @@ async function runAiInference(input) {
       const output = cleanAiOutput(stdout);
       if (!draft && !output) {
         // โมเดลไม่พ่นอะไรเลย (เช่น ctx ไม่พอ / โหลดโมเดลล้มเงียบ) — บอกตรง ๆ ดีกว่าโชว์ค่าว่าง
-        reject(new Error('โมเดลไม่ตอบกลับ — ลองย่อ TOR ให้สั้นลง (เอาเฉพาะส่วนขอบเขตงานและงบประมาณ) แล้วแปลงใหม่'));
+        reject(new Error(`โมเดลไม่ตอบกลับ (fix-299b8df · ได้รับ ${stdout.length} bytes) — ลองย่อ TOR ให้สั้นลงแล้วแปลงใหม่`));
         return;
       }
       resolve({
