@@ -1,8 +1,11 @@
-# Billiong — agent hand-off
+# บิลง่าย / BillNgai — agent hand-off
 
 Local-first quotation / invoice / receipt desktop app with Thai tax handling
-(VAT, หัก ณ ที่จ่าย / 50 ทวิ tracking, e-Tax XML draft, PromptPay QR).
+(VAT, หัก ณ ที่จ่าย / 50 ทวิ tracking, ภ.ง.ด. 90/94 estimates, e-Tax XML draft, PromptPay QR).
 Built for Thai freelancers/small businesses; has real users giving feedback.
+Renamed from **Billiong** in 1.2.0 — `main.js` still contains a one-time
+`migrateFromBilliong()` that copies data from the old `Billiong` app-support folder;
+keep it until the old-name install base is gone.
 
 ## Architecture
 
@@ -53,7 +56,7 @@ Two independent systems:
   2. Add a section to `CHANGELOG.md` (Keep-a-Changelog style, ISO dates)
   3. Bump `version` in `package.json` (SemVer — it names the DMG)
   4. `git add -A && git commit` (descriptive message), then `git tag v<version>`
-  5. `npm run dist` → `dist/Billiong-<version>-universal.dmg` (universal, unsigned —
+  5. `npm run dist` → `dist/BillNgai-<version>-universal.dmg` (universal, unsigned —
      `identity: null`; users right-click → Open past Gatekeeper)
   6. `git push` (tags too: `git push --tags`)
   7. Optionally attach the DMG to a GitHub Release on the tag (`gh release create`)
@@ -69,7 +72,7 @@ Two independent systems:
    `billing.html` via localhost in a browser (Chrome tools work; `file://` is blocked),
    drive it with JS (`wizDone(true)`, push test clients/docs, `renderPaper(...)` assertions),
    and screenshot. **Clear `localStorage` afterwards** — the browser origin keeps test data.
-4. For the desktop app: `npm start` (data lives in `~/Library/Application Support/Billiong` —
+4. For the desktop app: `npm start` (data lives in `~/Library/Application Support/BillNgai` —
    that's the user's REAL data; don't inject test records there).
 
 ## Conventions & cautions

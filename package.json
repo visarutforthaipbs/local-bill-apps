@@ -1,6 +1,6 @@
 {
-  "name": "billiong-app",
-  "version": "1.1.0",
+  "name": "billngai-app",
+  "version": "1.2.0",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
@@ -27,8 +27,8 @@
     "qrcode": "^1.5.4"
   },
   "build": {
-    "appId": "com.visarut.billiong",
-    "productName": "Billiong",
+    "appId": "com.visarut.billngai",
+    "productName": "BillNgai",
     "directories": {
       "output": "dist"
     },
@@ -36,7 +36,7 @@
       "main.js",
       "preload.js",
       "billing.html",
-      "billiong-logo.png",
+      "billngai-logo.png",
       "fonts/**/*",
       "package.json"
     ],
@@ -64,7 +64,7 @@
       ]
     },
     "dmg": {
-      "title": "Billiong ${version}"
+      "title": "BillNgai ${version}"
     }
   }
 }

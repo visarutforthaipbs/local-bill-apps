@@ -3,12 +3,30 @@ const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
 
-app.setName('Billiong');
+app.setName('BillNgai');
 
 let win;
 const USER_DIR     = app.getPath('userData');
 const CONFIG_PATH  = path.join(USER_DIR, 'config.json');
 const DEFAULT_DATA = path.join(USER_DIR, 'billing.json');
+
+// ย้ายข้อมูลครั้งเดียวจากโฟลเดอร์ชื่อเดิม (Billiong) — คัดลอกเท่านั้น ไม่ลบของเดิม
+// เพื่อให้ผู้ใช้เดิมเปิดเวอร์ชันใหม่แล้วเจอข้อมูลครบ และย้อนกลับเวอร์ชันเก่าได้เสมอ
+function migrateFromBilliong() {
+  try {
+    if (fs.existsSync(DEFAULT_DATA) || fs.existsSync(CONFIG_PATH)) return; // มีข้อมูลในโฟลเดอร์ใหม่แล้ว
+    const oldDir = path.join(app.getPath('appData'), 'Billiong');
+    if (!fs.existsSync(oldDir)) return;
+    fs.mkdirSync(USER_DIR, { recursive: true });
+    for (const f of ['billing.json', 'config.json']) {
+      const src = path.join(oldDir, f);
+      if (fs.existsSync(src)) fs.copyFileSync(src, path.join(USER_DIR, f));
+    }
+    const oldBackups = path.join(oldDir, 'backups');
+    if (fs.existsSync(oldBackups)) fs.cpSync(oldBackups, path.join(USER_DIR, 'backups'), { recursive: true });
+    console.log('Migrated data from Billiong →', USER_DIR);
+  } catch (e) { console.error('migration from Billiong failed', e); }
+}
 
 /* ---------------- storage helpers ---------------- */
 // config.json remembers an optional external file (e.g. one in Drive/Dropbox).
@@ -153,7 +171,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 940, minHeight: 600,
     backgroundColor: '#ece7dc',
-    title: 'Billiong',
+    title: 'BillNgai',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -193,6 +211,7 @@ function buildMenu() {
 }
 
 app.whenReady().then(() => {
+  migrateFromBilliong();
   buildMenu();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

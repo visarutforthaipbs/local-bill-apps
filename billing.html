@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Billing · ระบบออกเอกสาร</title>
+<title>บิลง่าย BillNgai · ระบบออกเอกสาร</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
   /* ============================================================
@@ -493,7 +493,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark" id="brandMark"><img src="billiong-logo.png" alt="Billiong"></div>
+      <div class="mark" id="brandMark"><img src="billngai-logo.png" alt="บิลง่าย — BillNgai"></div>
       <div>
         <h1 data-t="ระบบออกเอกสาร">ระบบออกเอกสาร</h1>
         <div class="sub" id="brandSub">Billing</div>
@@ -506,6 +506,7 @@
       <button data-view="wht"><span class="ico" data-ic="receipt"></span> <span data-t="หัก ณ ที่จ่าย (50 ทวิ)">หัก ณ ที่จ่าย (50 ทวิ)</span> <span class="badge" id="navWhtCount" style="display:none">0</span></button>
       <button data-view="clients"><span class="ico" data-ic="users"></span> <span data-t="ลูกค้า">ลูกค้า</span></button>
       <button data-view="report"><span class="ico" data-ic="barChart"></span> <span data-t="สรุปภาษี">สรุปภาษี</span></button>
+      <button data-view="filing"><span class="ico" data-ic="calendar"></span> <span data-t="ยื่นภาษี">ยื่นภาษี</span></button>
       <button data-view="settings"><span class="ico" data-ic="settings"></span> <span data-t="ตั้งค่า">ตั้งค่า</span></button>
     </nav>
     <div class="file-status" id="fileStatus">
@@ -761,6 +762,71 @@ function downloadFile(content, filename, mime){
 }
 function csvCell(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 
+/* ---------- ZIP (STORE, ไม่บีบอัด) — สำหรับชุดส่งออกให้บัญชี ไม่ต้องพึ่งไลบรารี ---------- */
+let CRC_TABLE=null;
+function crc32(bytes){
+  if(!CRC_TABLE){ CRC_TABLE=new Uint32Array(256);
+    for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); CRC_TABLE[i]=c>>>0; } }
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc>>>8);
+  return (crc ^ 0xFFFFFFFF)>>>0;
+}
+// files: [{name, data:string|Uint8Array}] → Uint8Array ของไฟล์ .zip (method 0 = STORE, ชื่อไฟล์ UTF-8)
+function makeZip(files){
+  const enc=new TextEncoder();
+  const now=new Date();
+  const dosTime=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF;
+  const dosDate=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+  const locals=[], centrals=[]; let offset=0;
+  files.forEach(f=>{
+    const name=enc.encode(f.name);
+    const data=typeof f.data==='string'?enc.encode(f.data):f.data;
+    const crc=crc32(data);
+    const head=new Uint8Array(30+name.length);
+    const hv=new DataView(head.buffer);
+    hv.setUint32(0,0x04034b50,true); hv.setUint16(4,20,true); hv.setUint16(6,0x0800,true); hv.setUint16(8,0,true);
+    hv.setUint16(10,dosTime,true); hv.setUint16(12,dosDate,true);
+    hv.setUint32(14,crc,true); hv.setUint32(18,data.length,true); hv.setUint32(22,data.length,true);
+    hv.setUint16(26,name.length,true); hv.setUint16(28,0,true);
+    head.set(name,30);
+    locals.push(head,data);
+    const cen=new Uint8Array(46+name.length);
+    const cv=new DataView(cen.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true); cv.setUint16(8,0x0800,true); cv.setUint16(10,0,true);
+    cv.setUint16(12,dosTime,true); cv.setUint16(14,dosDate,true);
+    cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true); cv.setUint32(24,data.length,true);
+    cv.setUint16(28,name.length,true);
+    cv.setUint32(42,offset,true);
+    cen.set(name,46);
+    centrals.push(cen);
+    offset += head.length + data.length;
+  });
+  const cenSize=centrals.reduce((s,c)=>s+c.length,0);
+  const eocd=new Uint8Array(22);
+  const ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);
+  ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cenSize,true); ev.setUint32(16,offset,true);
+  const parts=[...locals,...centrals,eocd];
+  const out=new Uint8Array(parts.reduce((s,p)=>s+p.length,0));
+  let pos=0; parts.forEach(p=>{ out.set(p,pos); pos+=p.length; });
+  return out;
+}
+// ปุ่มเดียวรวมทุกไฟล์ที่นักบัญชีต้องใช้ของปีภาษีที่เลือก
+function exportAccountantZip(year){
+  const {docs} = taxYearAgg(year);
+  if(!docs.length){ toast(tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(year)),'err'); return; }
+  const y=displayYear(year);
+  const zip=makeZip([
+    {name:'summary-'+y+'.csv',     data:buildSummaryCSV(year)},
+    {name:'tax-summary-'+y+'.csv', data:buildReportCSV(year)},
+    {name:'wht-50tawi-'+y+'.csv',  data:buildWhtCSV(year)},
+    {name:'clients.csv',           data:buildClientsCSV()}
+  ]);
+  downloadFile(zip,'accountant-'+y+'-'+todayISO()+'.zip','application/zip');
+  toast(tr('ส่งออกชุดข้อมูลสำหรับนักบัญชีแล้ว'),'ok');
+}
+
 // Phase 3 — documents CSV for the accountant
 function exportCSV(){
   if(!DB.documents.length){ toast(tr('ยังไม่มีเอกสาร'),'err'); return; }
@@ -776,17 +842,27 @@ function exportCSV(){
     'billing-documents-'+todayISO()+'.csv','text/csv;charset=utf-8');
   toast(tr('ส่งออก CSV แล้ว'),'ok');
 }
-// 50 ทวิ CSV
-function exportWhtCSV(){
-  const list=whtTrackedDocs(); if(!list.length){ toast(tr('ไม่มีรายการ'),'err'); return; }
+// 50 ทวิ CSV — builder คืนสตริง (ใช้ซ้ำในชุดส่งออกให้บัญชี); year=null = ทุกปี
+function buildWhtCSV(year){
+  let list=whtTrackedDocs();
+  if(year!=null) list=list.filter(d=> new Date(d.paidDate||d.issueDate).getFullYear()===year);
   const head=['เอกสาร','ลูกค้า','เลขภาษีลูกค้า','วันที่รับเงิน','ฐานภาษี','อัตรา%','ภาษีถูกหัก','ได้รับใบ50ทวิ','เลขที่ใบ50ทวิ','วันที่ใบรับรอง'].map(s=>tr(s));
   const rows=list.map(d=>{ const cl=clientById(d.clientId); const t=compute(d);
     return [d.number,cl?cl.name:'',cl?cl.taxId||'':'',d.paidDate||d.issueDate||'',t.subtotal.toFixed(2),t.whtRate,
       t.whtAmount.toFixed(2),d.whtCertReceived?tr('ใช่'):tr('ยังไม่ได้รับ'),d.whtCertNo||'',d.whtCertDate||''].map(csvCell).join(',');
   });
-  downloadFile('﻿'+[head.map(csvCell).join(','),...rows].join('\r\n'),
-    'wht-50tawi-'+todayISO()+'.csv','text/csv;charset=utf-8');
+  return '﻿'+[head.map(csvCell).join(','),...rows].join('\r\n');
+}
+function exportWhtCSV(){
+  if(!whtTrackedDocs().length){ toast(tr('ไม่มีรายการ'),'err'); return; }
+  downloadFile(buildWhtCSV(null),'wht-50tawi-'+todayISO()+'.csv','text/csv;charset=utf-8');
   toast(tr('ส่งออก CSV (50 ทวิ) แล้ว'),'ok');
+}
+// รายชื่อลูกค้าพร้อมเลขภาษี — สำหรับชุดส่งออกให้บัญชี
+function buildClientsCSV(){
+  const head=['ชื่อลูกค้า','เลขผู้เสียภาษี','ผู้ติดต่อ','อีเมล','โทรศัพท์','ที่อยู่'].map(s=>tr(s));
+  const rows=DB.clients.map(cl=>[cl.name||'',cl.taxId||'',cl.contactPerson||'',cl.email||'',cl.phone||'',cl.address||''].map(csvCell).join(','));
+  return '﻿'+[head.map(csvCell).join(','),...rows].join('\r\n');
 }
 
 // RD e-Tax Invoice draft (XML, ETDA / UN-CEFACT style). Starting point for an e-Tax service / accountant.
@@ -955,6 +1031,38 @@ const I18N_EN = {
   'ลูกค้า':'Clients',
   'สรุปภาษี':'Tax summary',
   'ตั้งค่า':'Settings',
+  // --- ยื่นภาษี (ภ.ง.ด. 90/94) & ชุดส่งออกให้บัญชี ---
+  'ยื่นภาษี':'Tax filing',
+  'ยื่นภาษี (ภ.ง.ด. 90/94)':'Tax filing (PND 90/94)',
+  'งวดครึ่งปี ม.ค.–มิ.ย. {y}':'Half-year Jan–Jun {y}',
+  'ทั้งปี ม.ค.–ธ.ค. {y}':'Full year Jan–Dec {y}',
+  'กำหนดยื่น':'Filing deadline',
+  'อีก {d} วัน':'{d} days left',
+  'เงินได้พึงประเมิน (ก่อน VAT, รวมเทียบเท่าบาท)':'Assessable income (pre-VAT, incl. THB equivalent)',
+  'หักค่าใช้จ่ายเหมา 50% (ไม่เกิน 100,000)':'Standard expense deduction 50% (max 100,000)',
+  'ลดหย่อนส่วนตัว':'Personal allowance',
+  'เงินได้สุทธิ':'Net taxable income',
+  'ภาษีตามขั้นบันได':'Tax per progressive brackets',
+  'ถูกหัก ณ ที่จ่ายแล้ว (เครดิตภาษี)':'Withholding already deducted (tax credit)',
+  'ประมาณการภาษีที่ต้องชำระเพิ่ม':'Estimated additional tax due',
+  'ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}':'Withheld more than the estimated tax — a refund of about {x} may be claimable',
+  '{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น':'{n} document(s) missing an FX rate — the figures above exclude that income',
+  'จากเอกสารรายรับ':'From income documents',
+  '(คิดจากใบเสร็จ/ใบกำกับภาษีที่ออกแล้ว — ภ.ง.ด.94 นับเฉพาะรายรับ ม.ค.–มิ.ย.)':'(based on issued receipts/tax invoices — PND 94 counts Jan–Jun income only)',
+  'สมมติฐานที่ใช้ประมาณการ':'Assumptions used',
+  'เงินได้ตามมาตรา 40(2) หักค่าใช้จ่ายเหมา 50% ไม่เกิน 100,000 บาท และลดหย่อนส่วนตัว 60,000 บาท (ภ.ง.ด.94 ใช้ 30,000 บาท) ยังไม่รวมลดหย่อนอื่น เช่น ประกัน กองทุน บุตร':'Section 40(2) income with the 50% standard expense deduction (max 100,000 THB) and the 60,000 THB personal allowance (30,000 for PND 94); other allowances (insurance, funds, children) are not included',
+  'ภ.ง.ด.94 ใช้กับเงินได้ตามมาตรา 40(5)–(8) เท่านั้น — ฟรีแลนซ์ที่มีแต่เงินได้ 40(2) ยื่นเฉพาะ ภ.ง.ด.90 ปลายปี':'PND 94 applies to section 40(5)–(8) income only — freelancers with only 40(2) income file just PND 90 at year end',
+  'ตัวเลขทั้งหมดเป็นการประมาณการเบื้องต้น ไม่ใช่คำแนะนำทางภาษี — โปรดตรวจกับนักบัญชีหรือระบบ RD e-Filing ก่อนยื่นจริง':'All figures are rough estimates, not tax advice — verify with your accountant or RD e-Filing before actually filing',
+  'วันนี้เป็นวันสุดท้ายของการยื่น {f}':'Today is the last day to file {f}',
+  'อีก {d} วันถึงกำหนดยื่น {f}':'{f} is due in {d} days',
+  '(ยื่นออนไลน์ผ่าน RD e-Filing ได้ถึงประมาณ 8 วันหลังกำหนด)':'(online filing via RD e-Filing runs roughly 8 days past the deadline)',
+  'ดูตัวเลขสำหรับยื่น':'View filing numbers',
+  'ส่งออกชุดให้บัญชี':'Export for accountant',
+  'ส่งออกชุดข้อมูลสำหรับนักบัญชีแล้ว':'Accountant bundle exported',
+  'ชื่อลูกค้า':'Client name',
+  'ธุรกิจ':'Business',
+  'จำนวนเอกสารรายรับ':'Income documents',
+  'เอกสารต่างประเทศที่ยังไม่ระบุอัตราแลกเปลี่ยน':'Foreign documents missing an FX rate',
   // --- statuses ---
   'ร่าง':'Draft',
   'ส่งแล้ว':'Sent',
@@ -1377,6 +1485,7 @@ const ICONS = {
   barChart:'<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
   sparkles:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
   arrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  calendar:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
   arrowRight:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'
 };
 function ic(name,size){ size=size||16; return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
@@ -1702,7 +1811,7 @@ document.getElementById('nav').addEventListener('click',e=>{
   const b = e.target.closest('button[data-view]'); if(b) setView(b.dataset.view);
 });
 
-const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปภาษี',settings:'ตั้งค่า'};
+const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปภาษี',filing:'ยื่นภาษี (ภ.ง.ด. 90/94)',settings:'ตั้งค่า'};
 
 function render(){
   applyUiLang();
@@ -1726,6 +1835,7 @@ function render(){
   else if(currentView==='wht'){ renderWht(c,ta); }
   else if(currentView==='clients'){ renderClients(c,ta); }
   else if(currentView==='report'){ renderReport(c,ta); }
+  else if(currentView==='filing'){ renderFiling(c,ta); }
   else if(currentView==='settings'){ renderSettings(c,ta); }
   else if(currentView==='docview'){ renderDocView(c,ta); }
   updateFileStatus();
@@ -1779,6 +1889,7 @@ function renderDashboard(c,ta){
     ${demoBanner()}
     ${!DB.clients.length && !DB.documents.length ? welcomeBanner() : ''}
     ${backupReminder()}
+    ${filingReminder()}
     ${due.length?`<div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878">${ic('repeat')} ${tr('มีรายการประจำถึงกำหนด {n} รายการ').replace('{n}',`<b style="margin:0 3px">${due.length}</b>`)} <button class="btn btn-sm btn-primary" style="margin-left:8px" onclick="setView('recurring')">${tr('ดูและสร้าง')}</button></div>`:''}
     <div class="pillars">
       <div class="pillar owed${overdueCount?' pulse':''}"><div class="accent-bar"></div>
@@ -2371,8 +2482,9 @@ function reportYears(){
 function setReportYear(y){ reportYear = Number(y); render(); }
 function displayYear(g){ return DB.business.yearMode==='be' ? g+543 : g; }
 
-function renderReport(c,ta){
-  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===reportYear);
+// รวมยอดรายรับทั้งปี — ใช้ร่วมกันระหว่างหน้าสรุปภาษี หน้ายื่นภาษี และชุดส่งออกให้บัญชี
+function taxYearAgg(year){
+  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===year);
   const thb = docs.filter(d=> docCurrency(d)==='THB');
   const agg = {subtotal:0,vat:0,wht:0,grand:0,net:0,count:thb.length};
   const byMonth = Array.from({length:12},()=>0);
@@ -2394,6 +2506,11 @@ function renderReport(c,ta){
   });
   const foreignThb = Object.values(foreign).reduce((s,f)=>s+f.thb,0);
   const foreignMissing = Object.values(foreign).reduce((s,f)=>s+f.missing,0);
+  return {docs, agg, byMonth, byClient, foreign, foreignThb, foreignMissing};
+}
+
+function renderReport(c,ta){
+  const {docs, agg, byMonth, byClient, foreign, foreignThb, foreignMissing} = taxYearAgg(reportYear);
 
   // outstanding (unpaid invoices) issued this year — informational
   let outstanding=0;
@@ -2403,7 +2520,8 @@ function renderReport(c,ta){
     .forEach(d=> outstanding += compute(d).netPayable);
 
   const years = reportYears();
-  ta.innerHTML = `<button class="btn" onclick="exportReportCSV()">${ic('download')} ${tr('ส่งออก CSV ปีนี้')}</button>`;
+  ta.innerHTML = `<button class="btn" onclick="exportReportCSV()">${ic('download')} ${tr('ส่งออก CSV ปีนี้')}</button>
+    <button class="btn" onclick="exportAccountantZip(reportYear)">${ic('download')} ${tr('ส่งออกชุดให้บัญชี')}</button>`;
 
   const maxMonth = Math.max(1, ...byMonth);
   const clientRows = Object.entries(byClient).sort((a,b)=>b[1]-a[1]);
@@ -2455,8 +2573,8 @@ function renderReport(c,ta){
     </div>`}
   `;
 }
-function exportReportCSV(){
-  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===reportYear)
+function buildReportCSV(year){
+  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===year)
     .sort((a,b)=> docTaxDate(a).localeCompare(docTaxDate(b)));
   const head=['เลขที่','ประเภท','วันที่','ลูกค้า','เลขผู้เสียภาษี','สกุลเงิน','ก่อนVAT','VAT','รวม','หักณที่จ่าย','สุทธิ','อัตราแลกเปลี่ยน','เทียบเท่าบาท'].map(s=>tr(s));
   const rows=docs.map(d=>{ const t=compute(d); const cl=clientById(d.clientId);
@@ -2466,7 +2584,140 @@ function exportReportCSV(){
       t.subtotal.toFixed(2),t.vatAmount.toFixed(2),t.grandTotal.toFixed(2),t.whtAmount.toFixed(2),t.netPayable.toFixed(2),
       rate,thbEq].map(csvCell).join(',');
   });
-  downloadFile('﻿'+[head.join(','),...rows].join('\n'), 'tax-summary-'+displayYear(reportYear)+'.csv', 'text/csv;charset=utf-8');
+  return '﻿'+[head.join(','),...rows].join('\n');
+}
+function exportReportCSV(){
+  downloadFile(buildReportCSV(reportYear), 'tax-summary-'+displayYear(reportYear)+'.csv', 'text/csv;charset=utf-8');
+}
+// สรุปยอดรวมทั้งปีแบบ key/value — แผ่นแรกของชุดส่งออกให้บัญชี (รวม VAT ที่เก็บทั้งปี)
+function buildSummaryCSV(year){
+  const {docs, agg, foreignThb, foreignMissing} = taxYearAgg(year);
+  const b=DB.business;
+  const rows=[
+    [tr('ธุรกิจ'), b.businessName||''],
+    [tr('เลขประจำตัวผู้เสียภาษี'), b.taxId||''],
+    [tr('ปีภาษี'), displayYear(year)],
+    [tr('จำนวนเอกสารรายรับ'), docs.length],
+    [tr('รายรับก่อน VAT'), agg.subtotal.toFixed(2)],
+    [tr('VAT ขาย (ออกให้ลูกค้า)'), agg.vat.toFixed(2)],
+    [tr('ยอดรวมทั้งสิ้น'), agg.grand.toFixed(2)],
+    [tr('ถูกหัก ณ ที่จ่าย'), agg.wht.toFixed(2)],
+    [tr('รับสุทธิเข้าบัญชี'), agg.net.toFixed(2)],
+    [tr('รายรับต่างประเทศ (เทียบเท่าบาท)'), foreignThb.toFixed(2)],
+    [tr('เอกสารต่างประเทศที่ยังไม่ระบุอัตราแลกเปลี่ยน'), foreignMissing]
+  ];
+  return '﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+}
+
+/* ---------- ยื่นภาษี — ผู้ช่วย ภ.ง.ด. 90/94 ---------- */
+// รวมรายรับตามช่วงเดือน (mFrom..mTo, 0-11) ของปีภาษี — ต่างสกุลเงินเทียบบาทด้วย fxRate รายเอกสาร
+function filingIncome(year, mFrom, mTo){
+  const res={grossThb:0, wht:0, foreignThb:0, foreignMissing:0, count:0};
+  realizedDocs().forEach(d=>{
+    const ds=docTaxDate(d); if(!ds) return;
+    const dt=parseDate(ds);
+    if(dt.getFullYear()!==year) return;
+    const m=dt.getMonth(); if(m<mFrom||m>mTo) return;
+    // เงินได้พึงประเมินไม่รวม VAT — ภาษีขายเก็บแทนสรรพากร ไม่ใช่เงินได้
+    const t=compute(d); res.count++;
+    if(t.currency==='THB'){ res.grossThb+=t.subtotal; res.wht+=t.whtAmount; }
+    else { const r=Number(d.fxRate)||0; if(r>0) res.foreignThb+=t.subtotal*r; else res.foreignMissing++; }
+  });
+  return res;
+}
+// ภาษีเงินได้บุคคลธรรมดา — ขั้นบันไดปัจจุบัน (เงินได้สุทธิ)
+const PIT_BRACKETS=[[150000,0],[300000,.05],[500000,.10],[750000,.15],[1000000,.20],[2000000,.25],[4000000,.30],[Infinity,.35]];
+function pitProgressive(taxable){
+  let tax=0, prev=0;
+  for(const [cap,rate] of PIT_BRACKETS){
+    if(taxable<=prev) break;
+    tax += (Math.min(taxable,cap)-prev)*rate;
+    prev=cap;
+  }
+  return round2(tax);
+}
+// ประมาณการอย่างง่าย: เงินได้ 40(2) หักค่าใช้จ่ายเหมา 50% ไม่เกิน 100,000 + ลดหย่อนส่วนตัว (ภ.ง.ด.94 ใช้ครึ่งหนึ่ง)
+function pitEstimate(gross, half){
+  const expense=round2(Math.min(gross*0.5, 100000));
+  const allowance=half?30000:60000;
+  const taxable=Math.max(0, round2(gross-expense-allowance));
+  return {expense, allowance, taxable, tax:pitProgressive(taxable)};
+}
+function filingDeadlines(year){
+  return [
+    {form:'ภ.ง.ด.94', periodTh:'งวดครึ่งปี ม.ค.–มิ.ย. {y}', mFrom:0, mTo:5, due:year+'-09-30', half:true},
+    {form:'ภ.ง.ด.90', periodTh:'ทั้งปี ม.ค.–ธ.ค. {y}', mFrom:0, mTo:11, due:(year+1)+'-03-31', half:false}
+  ];
+}
+// แบนเนอร์เตือนกำหนดยื่น — ดูจากวันนี้จริง ๆ ไม่ผูกกับปีที่เลือกในหน้ารายงาน
+function filingReminder(){
+  if(DB.meta && DB.meta.demo) return '';
+  const nowY = parseDate(todayISO()).getFullYear();
+  // งวดที่กำหนดยื่นตกในปีนี้: ภ.ง.ด.90 ของปีที่แล้ว (สิ้น มี.ค.) และ ภ.ง.ด.94 ของปีนี้ (สิ้น ก.ย.)
+  const candidates = [
+    Object.assign({year:nowY-1}, filingDeadlines(nowY-1)[1]),
+    Object.assign({year:nowY},   filingDeadlines(nowY)[0])
+  ];
+  for(const f of candidates){
+    const days = Math.round((parseDate(f.due)-parseDate(todayISO()))/DAY);
+    if(days<0 || days>60) continue;
+    if(!filingIncome(f.year, f.mFrom, f.mTo).count) continue;   // ไม่มีรายรับในงวด — ไม่ต้องเตือน
+    const msg = days===0
+      ? tr('วันนี้เป็นวันสุดท้ายของการยื่น {f}').replace('{f}',f.form)
+      : tr('อีก {d} วันถึงกำหนดยื่น {f}').replace('{d}',days).replace('{f}',f.form);
+    return `<div class="banner" style="background:#faf4e3;border-color:#ecdcb4;color:#7a5a1a">
+      ${ic('calendar')} <span style="flex:1"><b>${msg}</b> ${tr('(ยื่นออนไลน์ผ่าน RD e-Filing ได้ถึงประมาณ 8 วันหลังกำหนด)')}</span>
+      <button class="btn btn-sm btn-primary" onclick="setView('filing')">${ic('barChart')} ${tr('ดูตัวเลขสำหรับยื่น')}</button>
+    </div>`;
+  }
+  return '';
+}
+function renderFiling(c,ta){
+  const years = reportYears();
+  ta.innerHTML = `<button class="btn btn-primary" onclick="exportAccountantZip(reportYear)">${ic('download')} ${tr('ส่งออกชุดให้บัญชี')}</button>`;
+  const cards = filingDeadlines(reportYear).map(f=>{
+    const inc = filingIncome(reportYear, f.mFrom, f.mTo);
+    const gross = round2(inc.grossThb + inc.foreignThb);
+    const est = pitEstimate(gross, f.half);
+    const owe = Math.max(0, round2(est.tax - inc.wht));
+    const refund = inc.wht>est.tax ? round2(inc.wht-est.tax) : 0;
+    const days = Math.round((parseDate(f.due)-parseDate(todayISO()))/DAY);
+    const dueChip = (days>=0 && days<=60) ? ` <span style="color:var(--amber);font-weight:600">· ${tr('อีก {d} วัน').replace('{d}',days)}</span>` : '';
+    return `<div class="chart-card">
+      <div class="ch-title">${f.form} — ${tr(f.periodTh).replace('{y}',displayYear(reportYear))}</div>
+      <table class="rclient"><tbody>
+        <tr><td>${tr('กำหนดยื่น')}</td><td class="num">${fmtDate(f.due,true)}${dueChip}</td></tr>
+        <tr><td>${tr('เงินได้พึงประเมิน (ก่อน VAT, รวมเทียบเท่าบาท)')}</td><td class="num">${fmtMoneyC(gross,'THB')}</td></tr>
+        <tr><td>${tr('หักค่าใช้จ่ายเหมา 50% (ไม่เกิน 100,000)')}</td><td class="num">−${fmtMoneyC(est.expense,'THB')}</td></tr>
+        <tr><td>${tr('ลดหย่อนส่วนตัว')}</td><td class="num">−${fmtMoneyC(est.allowance,'THB')}</td></tr>
+        <tr><td>${tr('เงินได้สุทธิ')}</td><td class="num">${fmtMoneyC(est.taxable,'THB')}</td></tr>
+        <tr><td>${tr('ภาษีตามขั้นบันได')}</td><td class="num">${fmtMoneyC(est.tax,'THB')}</td></tr>
+        <tr><td>${tr('ถูกหัก ณ ที่จ่ายแล้ว (เครดิตภาษี)')}</td><td class="num">−${fmtMoneyC(inc.wht,'THB')}</td></tr>
+        <tr><td><b>${tr('ประมาณการภาษีที่ต้องชำระเพิ่ม')}</b></td><td class="num"><b>${fmtMoneyC(owe,'THB')}</b></td></tr>
+        ${refund?`<tr><td colspan="2" style="color:var(--accent)">${tr('ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}').replace('{x}',fmtMoneyC(refund,'THB'))}</td></tr>`:''}
+        ${inc.foreignMissing?`<tr><td colspan="2" style="color:var(--amber)">${ic('alert',12)} ${tr('{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น').replace('{n}',inc.foreignMissing)}</td></tr>`:''}
+        <tr><td class="muted">${tr('จากเอกสารรายรับ')}</td><td class="num muted">${inc.count}</td></tr>
+      </tbody></table>
+    </div>`;
+  }).join('');
+  c.innerHTML = `
+    ${filingReminder()}
+    <div class="report-head">
+      <div class="year-pick">
+        <span>${tr('ปีภาษี')}</span>
+        <select onchange="setReportYear(this.value)">
+          ${years.map(y=>`<option value="${y}" ${y===reportYear?'selected':''}>${displayYear(y)}</option>`).join('')}
+        </select>
+        <span class="muted" style="font-size:11.5px">${tr('(คิดจากใบเสร็จ/ใบกำกับภาษีที่ออกแล้ว — ภ.ง.ด.94 นับเฉพาะรายรับ ม.ค.–มิ.ย.)')}</span>
+      </div>
+    </div>
+    <div class="report-grid">${cards}</div>
+    <div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878;margin-top:16px;display:block">
+      <b>${tr('สมมติฐานที่ใช้ประมาณการ')}</b> — ${tr('เงินได้ตามมาตรา 40(2) หักค่าใช้จ่ายเหมา 50% ไม่เกิน 100,000 บาท และลดหย่อนส่วนตัว 60,000 บาท (ภ.ง.ด.94 ใช้ 30,000 บาท) ยังไม่รวมลดหย่อนอื่น เช่น ประกัน กองทุน บุตร')}<br>
+      ${tr('ภ.ง.ด.94 ใช้กับเงินได้ตามมาตรา 40(5)–(8) เท่านั้น — ฟรีแลนซ์ที่มีแต่เงินได้ 40(2) ยื่นเฉพาะ ภ.ง.ด.90 ปลายปี')}<br>
+      <b>${tr('ตัวเลขทั้งหมดเป็นการประมาณการเบื้องต้น ไม่ใช่คำแนะนำทางภาษี — โปรดตรวจกับนักบัญชีหรือระบบ RD e-Filing ก่อนยื่นจริง')}</b>
+    </div>
+  `;
 }
 
 /* ---------- SETTINGS ---------- */

@@ -1,7 +1,31 @@
 # Changelog
 
-All notable changes to Billiong are documented here.
+All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
+
+## [1.2.0] — 2026-07-04
+
+### Added
+- **ผู้ช่วยยื่นภาษี ภ.ง.ด. 90/94** — new ยื่นภาษี view splits the year's realized income into
+  the two official filing periods (ภ.ง.ด.94: ม.ค.–มิ.ย., due 30 ก.ย. · ภ.ง.ด.90: full year,
+  due 31 มี.ค. of the next year) and shows the numbers a freelancer needs when filing:
+  assessable income (with THB equivalents for foreign-currency docs), withholding-tax credit,
+  and an estimated tax owed from the progressive brackets (standard 50%/100k expense
+  deduction + personal allowance, with assumptions and a clear "not tax advice" disclaimer).
+- **Deadline reminders** — dashboard banner when a filing deadline is within 60 days
+  ("อีก 45 วันถึงกำหนดยื่น ภ.ง.ด.94"), shown only when the period actually has income.
+- **Export for accountant (ส่งออกชุดให้บัญชี)** — one button (สรุปภาษี and ยื่นภาษี views)
+  bundles the selected tax year into a single ZIP: year summary with total VAT collected,
+  the per-document tax-summary CSV, the 50 ทวิ withholding-certificate list, and the client
+  list with tax IDs. Built-in ZIP writer — still zero runtime dependencies.
+
+### Changed
+- **Rebrand: Billiong → บิลง่าย / BillNgai.** New name is pronounceable in both languages and
+  says what the app does — easy billing. The billing and tax app built for Thai freelancers —
+  not a global SaaS translated into Thai; your data stays on your machine.
+- App data moves to the new `BillNgai` folder automatically on first launch (one-time copy —
+  the old `Billiong` folder is left untouched, so downgrading is always safe). External
+  data files (Drive/Dropbox) keep working unchanged.
 
 ## [1.1.0] — 2026-07-02
 
