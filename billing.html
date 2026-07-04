@@ -10,16 +10,17 @@
      DESIGN TOKENS
      ============================================================ */
   :root{
-    --bg:#ece7dc;
-    --surface:#fcfbf7;
-    --surface-2:#f4f1e8;
-    --surface-3:#e9e3d6;
-    --border:#dcd5c5;
-    --border-soft:#e7e1d3;
-    --text:#26221a;
-    --text-dim:#5f594c;
-    --text-faint:#968d7b;
-    --accent:#1f5d43;
+    /* โทนสีตาม BRAND.md — ครีมอุ่น + ส้มแบรนด์ (แก้ที่นี่ = แก้ทั้งแอป) */
+    --bg:#FFF9F3;
+    --surface:#ffffff;
+    --surface-2:#faf3ea;
+    --surface-3:#f3e9dc;
+    --border:#e8dccb;
+    --border-soft:#f0e6d8;
+    --text:#2D3436;
+    --text-dim:#645d54;
+    --text-faint:#9c9184;
+    --accent:#FF6B00;
     /* every brand-tinted surface derives from --accent, so changing it
        (Settings → สีองค์กร) re-themes the whole app + every document */
     --accent-dim:color-mix(in srgb,var(--accent),#000 30%);
@@ -32,6 +33,7 @@
     --accent-soft-2:color-mix(in srgb,var(--accent) 5%,transparent);
     --accent-sel:color-mix(in srgb,var(--accent) 18%,transparent);
     --accent-glow:color-mix(in srgb,var(--accent) 16%,transparent);
+    --accent-ink:color-mix(in srgb,var(--accent),#000 30%); /* ตัวหนังสือสีแบรนด์บนพื้นสว่าง */
     --green:#1f7a4d;
     --green-bg:#e3efe5;
     --blue:#35607f;
@@ -42,14 +44,15 @@
     --red-bg:#f6e7e3;
     --amber:#956414;
     --amber-bg:#f4ebd6;
-    --radius:13px;
-    --radius-sm:9px;
-    --shadow:0 10px 34px -12px rgba(60,48,24,.30),0 2px 6px -2px rgba(60,48,24,.10);
-    --shadow-sm:0 1px 2px rgba(60,48,24,.07);
+    --radius:8px;        /* master template: clean, lightly rounded panels */
+    --radius-sm:6px;     /* buttons, inputs, compact controls */
+    --radius-lg:12px;    /* dialogs */
+    --shadow:0 14px 34px -28px rgba(45,52,54,.24);
+    --shadow-sm:none;
     --ring:0 0 0 3px var(--accent-glow);
-    --font:"IBM Plex Sans Thai","IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun",sans-serif;
-    /* Fraunces covers Latin/numerals; Noto Serif Thai gives Thai headings the same editorial serif voice */
-    --font-display:"Fraunces","Noto Serif Thai","IBM Plex Sans Thai",Georgia,serif;
+    /* Inter จับ Latin/ตัวเลข, LINE Seed Sans TH จับสระ-วรรณยุกต์ไทย — ห้าม thin (BRAND.md) */
+    --font:"Inter","LINE Seed Sans TH",-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun",sans-serif;
+    --font-display:var(--font);
     --spring:cubic-bezier(.34,1.45,.5,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -66,9 +69,7 @@
   /* warm paper atmosphere + faint grain */
   body::before{
     content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-    background:
-      radial-gradient(1100px 520px at 78% -8%,var(--accent-soft),transparent 60%),
-      radial-gradient(900px 600px at -6% 100%,rgba(149,100,20,.06),transparent 55%);
+    background:none;
   }
   body::after{
     content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.04;mix-blend-mode:multiply;
@@ -76,7 +77,7 @@
   }
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
   input,select,textarea{font-family:inherit;font-size:14px}
-  a{color:var(--accent);text-decoration:none}
+  a{color:var(--accent-ink);text-decoration:none}
   .ic{display:inline-block;vertical-align:-.18em;flex:0 0 auto}
   .empty .big .ic,.nav .ico .ic{vertical-align:middle}
   ::selection{background:var(--accent-sel)}
@@ -93,7 +94,7 @@
   .stamp-fx .st{
     font-weight:800;font-size:58px;letter-spacing:3px;line-height:1;
     color:#b23a2c;border:6px double #b23a2c;border-radius:16px;padding:16px 42px 18px;
-    background:rgba(252,251,247,.6);backdrop-filter:blur(1px);
+    background:rgba(252,251,247,.86);
     box-shadow:0 24px 60px -18px rgba(178,58,44,.45);
     animation:stampIn .5s cubic-bezier(.2,1.5,.4,1) both,stampOut .35s ease-in 1s forwards;
   }
@@ -113,9 +114,8 @@
     border:3px double rgba(178,58,44,.72);border-radius:10px;padding:6px 16px;
   }
   /* heartbeat on the "owed" pillar bar when something is overdue */
-  .pillar.owed.pulse .accent-bar{animation:owedPulse 2.2s ease-in-out infinite}
-  @keyframes owedPulse{0%,100%{box-shadow:0 0 0 0 rgba(178,58,44,0)}50%{box-shadow:0 0 14px 2px rgba(178,58,44,.55)}}
-  .pillar.owed.pulse .accent-bar{background:var(--red)}
+  .pillar.owed.pulse .label::before{animation:owedPulse 2.2s ease-in-out infinite}
+  @keyframes owedPulse{0%,100%{box-shadow:0 0 0 0 rgba(178,58,44,0)}50%{box-shadow:0 0 0 4px rgba(178,58,44,.14)}}
 
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -127,7 +127,7 @@
   .app{display:flex;min-height:100vh;position:relative;z-index:1}
   .sidebar{
     width:244px;flex-shrink:0;
-    background:linear-gradient(180deg,#fbfaf5,#f5f1e7);
+    background:var(--surface);
     border-right:1px solid var(--border);
     display:flex;flex-direction:column;
     position:sticky;top:0;height:100vh;
@@ -143,26 +143,26 @@
   .nav{padding:12px 12px;flex:1}
   .nav button{
     display:flex;align-items:center;gap:11px;width:100%;
-    padding:10px 12px;border-radius:10px;position:relative;
+    padding:10px 12px;border-radius:var(--radius-sm);position:relative;
     color:var(--text-dim);font-size:13.5px;font-weight:500;
     margin-bottom:3px;text-align:left;transition:.16s cubic-bezier(.2,.7,.2,1);
   }
   .nav button:hover{background:var(--accent-soft);color:var(--text)}
-  .nav button.active{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:var(--shadow-sm)}
-  .nav button.active::before{content:"";position:absolute;left:-2px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--accent)}
+  .nav button.active{background:var(--accent-tint);color:var(--text);font-weight:700;border:1px solid var(--accent-tint-bd)}
+  .nav button.active::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);position:static;flex:0 0 auto;order:-1}
   .nav button .ico{width:18px;text-align:center;font-size:15px;opacity:.85}
   .nav .badge{margin-left:auto;font-size:11px;background:var(--accent);color:#fff;
     border-radius:20px;padding:1px 7px;font-weight:600;min-width:20px;text-align:center;font-variant-numeric:tabular-nums}
   .file-status{padding:13px 18px;border-top:1px solid var(--border-soft);font-size:11.5px;color:var(--text-faint)}
   .file-status .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grey);margin-right:7px;vertical-align:middle;box-shadow:0 0 0 3px rgba(165,156,137,.18)}
-  .file-status.connected .dot{background:var(--green);box-shadow:0 0 0 3px rgba(31,122,77,.16)}
+  .file-status.connected .dot{background:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
   .file-status.unsaved .dot{background:var(--amber);box-shadow:0 0 0 3px rgba(149,100,20,.16)}
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column}
   .topbar{
     display:flex;align-items:center;gap:14px;padding:17px 30px;
     border-bottom:1px solid var(--border-soft);position:sticky;top:0;
-    background:rgba(236,231,220,.78);backdrop-filter:blur(12px) saturate(1.2);z-index:20;
+    background:var(--bg);z-index:20;
   }
   .topbar h2{font-family:var(--font-display);font-size:21px;font-weight:600;letter-spacing:-.2px}
   .topbar .spacer{flex:1}
@@ -173,15 +173,15 @@
      ============================================================ */
   .btn{
     display:inline-flex;align-items:center;gap:7px;
-    padding:9px 15px;border-radius:10px;
+    padding:9px 15px;border-radius:var(--radius-sm);
     font-size:13px;font-weight:600;transition:transform .28s var(--spring),box-shadow .22s ease,border-color .16s ease,background .16s ease;
     background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:var(--shadow-sm);
   }
-  .btn:hover{border-color:#cdc4b0;transform:translateY(-1.5px);box-shadow:0 4px 12px -4px rgba(60,48,24,.18)}
+  .btn:hover{border-color:#cdc4b0;transform:translateY(-1px);box-shadow:none}
   .btn:active{transform:translateY(0)}
-  .btn-primary{background:linear-gradient(160deg,var(--accent-bright),var(--accent-strong));color:#f6f1e4;border-color:transparent;
-    box-shadow:0 4px 14px -5px rgba(28,86,64,.55),inset 0 1px 0 rgba(255,255,255,.14)}
-  .btn-primary:hover{background:linear-gradient(160deg,color-mix(in srgb,var(--accent),#fff 26%),var(--accent));border-color:transparent}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);
+    box-shadow:none}
+  .btn-primary:hover{background:var(--accent-strong);border-color:transparent}
   .btn-ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--text-dim)}
   .btn-ghost:hover{background:var(--surface-3);color:var(--text);transform:none;box-shadow:none}
   .btn-danger{color:var(--red)}
@@ -194,7 +194,7 @@
      ============================================================ */
   .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:28px}
   .pillar{
-    background:var(--surface);border:1px solid var(--border-soft);
+    background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);padding:22px 22px;position:relative;overflow:hidden;
     box-shadow:var(--shadow-sm);animation:fadeUp .5s cubic-bezier(.2,.7,.2,1) both;
   }
@@ -203,28 +203,50 @@
   .pillar .label{font-size:12px;color:var(--text-dim);font-weight:600;display:flex;align-items:center;gap:7px}
   .pillar .val{font-family:var(--font-display);font-size:36px;font-weight:600;margin-top:12px;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}
   .pillar .sub{font-size:11.5px;color:var(--text-faint);margin-top:8px;line-height:1.5}
-  .pillar .accent-bar{position:absolute;left:0;top:0;bottom:0;width:4px}
-  .pillar.owed .accent-bar{background:var(--amber)}
-  .pillar.received .accent-bar{background:var(--green)}
-  /* the surprisal: a single inverted ink card */
-  .pillar.wht{background:linear-gradient(155deg,#23332b,#16241d);border-color:#16241d;
-    box-shadow:0 14px 36px -14px rgba(15,36,28,.6)}
-  .pillar.wht .accent-bar{background:#caa45a}
-  .pillar.wht .val{color:#e6c477}
-  .pillar.wht .label{color:#b7c8bd}
-  .pillar.wht .sub{color:#8ba093}
+  .pillar .accent-bar{display:none}
+  .pillar .label::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;flex:0 0 auto}
+  .pillar.received .label::before{background:var(--green)}
+  .pillar.owed.pulse .label::before{background:var(--red)}
+  .pillar.wht{background:var(--surface);border-color:var(--border)}
+  .pillar.wht .val{color:var(--accent-ink)}
+  .pillar.wht .label{color:var(--text-dim)}
+  .pillar.wht .sub{color:var(--text-faint)}
 
   .section-title{font-size:11.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;
     letter-spacing:1.2px;margin:26px 0 13px}
+  .brand-snapshot{
+    display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:center;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow-sm);overflow:hidden;position:relative;
+    animation:fadeUp .48s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .brand-snapshot::before{display:none}
+  .brand-snapshot .kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-ink);margin-bottom:8px}
+  .brand-snapshot h3{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:0;line-height:1.15;margin-bottom:8px}
+  .brand-snapshot p{font-size:13px;color:var(--text-dim);max-width:520px}
+  .brand-snapshot .brand-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:17px}
+  .brand-snapshot .brand-art{position:relative;min-height:170px;border-radius:var(--radius);
+    background:var(--bg);border:1px solid var(--border);overflow:hidden}
+  .brand-snapshot .brand-art::before,.brand-snapshot .brand-art::after{
+    content:"";position:absolute;border-radius:999px;background:var(--accent);opacity:.95;
+  }
+  .brand-snapshot .brand-art::before{width:8px;height:8px;left:28px;top:30px}
+  .brand-snapshot .brand-art::after{width:5px;height:5px;right:34px;top:36px}
+  .brand-snapshot .character{position:absolute;right:28px;bottom:-1px;width:154px;max-height:160px;object-fit:contain}
+  @media(max-width:860px){
+    .brand-snapshot{grid-template-columns:1fr;padding:20px}
+    .brand-snapshot .brand-art{min-height:150px}
+    .brand-snapshot .character{right:50%;transform:translateX(50%)}
+  }
   .mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:8px}
-  .mini-stat{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:15px 16px;box-shadow:var(--shadow-sm);transition:transform .3s var(--spring),border-color .16s ease,box-shadow .22s ease}
-  .mini-stat:hover{border-color:var(--border);transform:translateY(-2px);box-shadow:0 6px 16px -8px rgba(60,48,24,.22)}
+  .mini-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow-sm);transition:transform .3s var(--spring),border-color .16s ease}
+  .mini-stat:hover{border-color:#cdc4b0;transform:translateY(-1px);box-shadow:none}
   .mini-stat .v{font-family:var(--font-display);font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
   .mini-stat .l{font-size:11.5px;color:var(--text-faint);margin-top:3px}
   .fx-row{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 4px}
-  .fx-chip{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border-soft);
-    border-radius:var(--radius-sm);padding:11px 16px;box-shadow:var(--shadow-sm);font-size:13px;font-variant-numeric:tabular-nums}
-  .fx-chip .fx-cur{font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:14px;letter-spacing:.3px}
+  .fx-chip{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:11px 16px;box-shadow:var(--shadow-sm);font-size:13px;font-variant-numeric:tabular-nums}
+  .fx-chip .fx-cur{font-family:var(--font-display);font-weight:700;color:var(--accent-ink);font-size:14px;letter-spacing:.3px}
   .fx-chip .fx-pair .fx-l{color:var(--text-faint);font-size:11px;margin-right:5px}
   /* report / tax summary */
   .report-head{margin-bottom:18px}
@@ -232,43 +254,70 @@
   .year-pick select{font-family:var(--font-display);font-size:16px;font-weight:600;padding:6px 12px;border-radius:8px;
     border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
   .report-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
-  .report-cards .rc{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-sm);
+  .report-cards .rc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:16px 18px;box-shadow:var(--shadow-sm)}
   .report-cards .rc.accent{background:var(--accent-tint);border-color:var(--accent-tint-bd)}
-  .report-cards .rc.net{background:#26221a;border-color:#3a352b}
-  .report-cards .rc.net .rl,.report-cards .rc.net .rs{color:#bcae93}
-  .report-cards .rc.net .rv{color:#cfe7d8}
+  .report-cards .rc.net{background:var(--surface);border-color:var(--accent-tint-bd)}
+  .report-cards .rc.net .rl,.report-cards .rc.net .rs{color:var(--text-faint)}
+  .report-cards .rc.net .rv{color:var(--accent-ink)}
   .report-cards .rl{font-size:11.5px;color:var(--text-faint)}
   .report-cards .rv{font-family:var(--font-display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin:5px 0 3px}
   .report-cards .rs{font-size:11px;color:var(--text-faint);line-height:1.4}
   .report-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:16px}
+  .filing-guide{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:18px;align-items:center;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px}
+  .filing-guide .kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent-ink);margin-bottom:7px}
+  .filing-guide h3{font-size:22px;line-height:1.2;margin-bottom:7px}
+  .filing-guide p{font-size:13px;color:var(--text-dim);max-width:620px}
+  .filing-guide .guide-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .filing-guide .guide-art{height:145px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-soft);border-radius:var(--radius);background:var(--bg)}
+  .filing-guide .guide-art img{max-width:175px;max-height:126px;object-fit:contain}
+  .filing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+  .filing-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+  .filing-card .filing-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+  .filing-card h3{font-size:15.5px;font-weight:700;line-height:1.35}
+  .filing-card .period{font-size:11.5px;color:var(--text-faint);margin-top:3px}
+  .filing-card .due{font-size:12px;font-weight:700;text-align:right;white-space:nowrap;color:var(--text-dim)}
+  .filing-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .filing-summary .cell{border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;background:var(--bg)}
+  .filing-summary .label{font-size:10.5px;color:var(--text-faint);margin-bottom:4px}
+  .filing-summary .value{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .filing-detail{margin-top:10px}
+  .filing-detail table{border:none;border-radius:0;box-shadow:none}
+  .filing-detail tbody td{padding:8px 4px}
+  .filing-note{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-top:16px;color:var(--text-dim);font-size:12.5px;line-height:1.75}
+  .filing-note b{color:var(--text)}
   .rmonths{display:flex;align-items:flex-end;gap:6px;height:170px;padding-top:8px}
   .rmonth{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
   .rbar-wrap{flex:1;width:100%;display:flex;align-items:flex-end}
-  .rbar{width:100%;background:linear-gradient(180deg,var(--accent-bright),var(--accent));border-radius:4px 4px 0 0;min-height:2px;transition:.2s}
+  .rbar{width:100%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:.2s}
   .rm-l{font-size:9.5px;color:var(--text-faint)}
   .rclient{width:100%;border-collapse:collapse;box-shadow:none;background:transparent}
   .rclient td{padding:8px 4px;border-bottom:1px solid var(--border-soft);font-size:12.5px}
   .rclient td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-  @media(max-width:760px){.report-cards{grid-template-columns:1fr 1fr}.report-grid{grid-template-columns:1fr}}
+  @media(max-width:760px){
+    .report-cards{grid-template-columns:1fr 1fr}
+    .report-grid,.filing-grid,.filing-guide{grid-template-columns:1fr}
+    .filing-summary{grid-template-columns:1fr}
+  }
 
   /* ============================================================
      TABLE / LIST
      ============================================================ */
-  .tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--border-soft)}
-  .tabs button{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-faint);
-    border-bottom:2px solid transparent;margin-bottom:-1px;transition:.16s}
-  .tabs button:hover{color:var(--text)}
-  .tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border-soft);padding-bottom:8px}
+  .tabs button{padding:8px 12px;font-size:13px;font-weight:600;color:var(--text-dim);
+    border:1px solid transparent;border-radius:var(--radius-sm);transition:.16s}
+  .tabs button:hover{color:var(--text);background:var(--surface-2);border-color:var(--border-soft)}
+  .tabs button.active{color:var(--text);background:var(--accent-tint);border-color:var(--accent-tint-bd)}
 
   .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px}
   .search{flex:1;max-width:340px;position:relative}
   .search input{width:100%;background:var(--surface);border:1px solid var(--border);
-    border-radius:10px;padding:9px 13px 9px 34px;color:var(--text);transition:.16s;box-shadow:var(--shadow-sm)}
+    border-radius:var(--radius-sm);padding:9px 13px 9px 34px;color:var(--text);transition:.16s;box-shadow:var(--shadow-sm)}
   .search input:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
   .search .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-faint)}
 
-  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border-soft);
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
   thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;
     color:var(--text-faint);font-weight:700;padding:11px 14px;border-bottom:1px solid var(--border-soft);background:var(--surface-2)}
@@ -278,27 +327,34 @@
   tbody tr:hover{background:var(--accent-soft-2)}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   th.num{text-align:right}
-  .doc-no{font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .doc-no{font-weight:600;font-variant-numeric:tabular-nums;color:var(--accent-ink)}
   .muted{color:var(--text-faint)}
 
-  .badge-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
-    padding:3px 10px;border-radius:20px}
-  .badge-status .d{width:6px;height:6px;border-radius:50%}
-  .s-draft{background:var(--grey-bg);color:#6b6354}.s-draft .d{background:var(--grey)}
-  .s-sent{background:var(--blue-bg);color:#2f5878}.s-sent .d{background:var(--blue)}
-  .s-paid,.s-accepted,.s-issued{background:var(--green-bg);color:#176b41}.s-paid .d,.s-accepted .d,.s-issued .d{background:var(--green)}
-  .s-overdue,.s-declined{background:var(--red-bg);color:#9c3022}.s-overdue .d,.s-declined .d{background:var(--red)}
+  .badge-status{display:inline-flex;align-items:center;gap:6px;min-height:24px;box-sizing:border-box;
+    max-width:100%;white-space:nowrap;word-break:keep-all;font-size:11.5px;font-weight:700;line-height:1;
+    padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);
+    color:var(--text-dim);vertical-align:middle}
+  .badge-status .d{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .s-draft{background:var(--surface-3);color:var(--text-dim);border-color:var(--border)}.s-draft .d{background:var(--grey)}
+  .s-sent{background:var(--surface);color:var(--blue);border-color:#cdd9e2}.s-sent .d{background:var(--blue)}
+  .s-paid,.s-accepted,.s-issued{background:var(--surface);color:var(--green);border-color:#c9dccf}.s-paid .d,.s-accepted .d,.s-issued .d{background:var(--green)}
+  .s-overdue,.s-declined{background:var(--surface);color:var(--red);border-color:#e6c5bd}.s-overdue .d,.s-declined .d{background:var(--red)}
 
   .empty{text-align:center;padding:64px 20px;color:var(--text-faint);background:var(--surface);
-    border:1px dashed var(--border);border-radius:var(--radius)}
+    border:1px solid var(--border);border-radius:var(--radius)}
   .empty .big{font-size:38px;margin-bottom:12px;opacity:.5}
+  .empty.brand-empty{padding:42px 22px}
+  .empty.brand-empty .brand-empty-art{min-height:138px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center}
+  .empty.brand-empty .brand-empty-art img{max-height:136px;max-width:260px;object-fit:contain;display:block}
+  .empty.brand-empty .brand-empty-title{color:var(--text-dim);font-weight:600}
+  .empty.brand-empty .brand-empty-sub{font-size:12px;margin-top:4px;color:var(--text-faint)}
 
   /* client cards */
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
-  .client-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);
+  .client-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:18px;cursor:pointer;transition:transform .3s var(--spring),box-shadow .22s ease,border-color .16s ease;box-shadow:var(--shadow-sm);
     animation:fadeUp .45s cubic-bezier(.2,.7,.2,1) both}
-  .client-card:hover{border-color:#cdc4b0;transform:translateY(-3px);box-shadow:0 10px 26px -12px rgba(60,48,24,.28)}
+  .client-card:hover{border-color:#cdc4b0;transform:translateY(-1px);box-shadow:none}
   .client-card h3{font-size:15px;font-weight:600}
   .client-card .meta{font-size:12px;color:var(--text-faint);margin-top:7px;line-height:1.8}
   .client-card .tax{font-variant-numeric:tabular-nums}
@@ -308,16 +364,16 @@
   /* ============================================================
      MODAL
      ============================================================ */
-  .overlay{position:fixed;inset:0;background:rgba(38,32,22,.42);backdrop-filter:blur(3px);
+  .overlay{position:fixed;inset:0;background:rgba(38,32,22,.42);
     z-index:100;display:none;align-items:flex-start;justify-content:center;padding:32px;overflow-y:auto}
   .overlay.open{display:flex}
-  .modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
     width:100%;max-width:840px;box-shadow:var(--shadow);margin:auto;animation:modalIn .3s cubic-bezier(.2,.8,.2,1)}
   .modal-head{display:flex;align-items:center;padding:20px 24px;border-bottom:1px solid var(--border-soft)}
   .modal-head h3{font-size:17px;font-weight:600}
   .modal-head .spacer{flex:1}
   .modal-body{padding:24px}
-  .modal-foot{display:flex;gap:10px;padding:17px 24px;border-top:1px solid var(--border-soft);justify-content:flex-end;background:var(--surface-2);border-radius:0 0 18px 18px}
+  .modal-foot{display:flex;gap:10px;padding:17px 24px;border-top:1px solid var(--border-soft);justify-content:flex-end;background:var(--surface-2);border-radius:0 0 var(--radius-lg) var(--radius-lg)}
   .x{font-size:21px;color:var(--text-faint);width:32px;height:32px;border-radius:8px;transition:.16s}
   .x:hover{background:var(--surface-3);color:var(--text)}
 
@@ -326,7 +382,7 @@
   .field label{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:7px}
   .field input,.field select,.field textarea{
     width:100%;background:var(--surface-2);border:1px solid var(--border);
-    border-radius:10px;padding:10px 13px;color:var(--text);transition:.16s}
+    border-radius:var(--radius-sm);padding:10px 13px;color:var(--text);transition:.16s}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:var(--ring)}
   .field textarea{resize:vertical;min-height:66px}
   .field .hint{font-size:11px;color:var(--text-faint);margin-top:5px}
@@ -338,20 +394,20 @@
   .items-table th{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px;text-align:left;padding:6px 8px;font-weight:700;background:transparent;border:none}
   .items-table td{padding:4px 6px;border:none}
   .items-table input{width:100%;background:var(--surface-2);border:1px solid var(--border);
-    border-radius:8px;padding:8px 10px;color:var(--text);transition:.16s}
+    border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);transition:.16s}
   .items-table input:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:var(--ring)}
   .items-table .del{color:var(--text-faint);font-size:16px;padding:5px 9px;border-radius:7px;transition:.16s}
   .items-table .del:hover{color:var(--red);background:var(--red-bg)}
 
   /* tax ladder */
-  .ladder{background:linear-gradient(160deg,#f6f3ea,#efeadd);border:1px solid var(--border-soft);border-radius:var(--radius);
+  .ladder{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:18px 20px;font-variant-numeric:tabular-nums;box-shadow:var(--shadow-sm)}
   .ladder .row{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px}
   .ladder .row .lbl{color:var(--text-dim)}
   .ladder .row.sub{border-top:1px solid var(--border);margin-top:5px;padding-top:10px;font-weight:600}
   .ladder .row.minus .amt{color:var(--red)}
-  .ladder .row.net{border-top:2px solid var(--accent-dim);margin-top:7px;padding-top:12px;font-size:18px;font-weight:700}
-  .ladder .row.net .amt{color:var(--accent);font-family:var(--font-display)}
+  .ladder .row.net{border-top:1px solid var(--border);margin-top:7px;padding-top:12px;font-size:18px;font-weight:700}
+  .ladder .row.net .amt{color:var(--accent-ink);font-family:var(--font-display)}
   .ladder .row.grand{font-weight:700}
 
   /* ============================================================
@@ -360,18 +416,18 @@
   .doc-actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
   .doc-trail{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:-6px 0 18px;font-size:12px;color:var(--text-faint)}
   .doc-trail .trail-l{display:inline-flex;align-items:center;gap:3px}
-  .doc-trail .trail-chip{cursor:pointer;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;
+  .doc-trail .trail-chip{cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
     padding:4px 10px;color:var(--text-dim);transition:.15s;text-decoration:none}
-  .doc-trail .trail-chip:hover{border-color:var(--accent);color:var(--accent)}
+  .doc-trail .trail-chip:hover{border-color:var(--accent);color:var(--accent-ink)}
   .doc-trail .trail-chip b{font-variant-numeric:tabular-nums}
   .doc-trail .trail-sep{width:1px;height:16px;background:var(--border)}
   /* แถบความคืบหน้าการแบ่งงวด (บนใบเสนอราคาที่แบ่งแล้ว) */
-  .split-progress{max-width:820px;margin:0 auto 18px;background:var(--surface-2);border:1px solid var(--border);
-    border-radius:10px;padding:14px 16px}
+  .split-progress{max-width:820px;margin:0 auto 18px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:14px 16px}
   .split-progress .sp-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;font-size:12.5px}
   .split-progress .sp-head b{font-size:13px}
   .split-progress .sp-track{height:10px;border-radius:6px;background:var(--border-soft);overflow:hidden;display:flex}
-  .split-progress .sp-paid{height:100%;background:linear-gradient(90deg,var(--accent-bright),var(--accent));transition:.2s}
+  .split-progress .sp-paid{height:100%;background:var(--accent);transition:.2s}
   .split-progress .sp-billed{height:100%;background:var(--accent);opacity:.32;transition:.2s}
   .split-progress .sp-stats{display:flex;gap:18px;margin-top:9px;font-size:12px;color:var(--text-dim);flex-wrap:wrap}
   .split-progress .sp-stats b{font-variant-numeric:tabular-nums}
@@ -383,26 +439,26 @@
   .split-rows .num-col{width:88px}
   .split-rows .amt-col{width:120px}
   .split-rows .date-col{width:140px}
-  .split-rows .bal{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent)}
-  .paper{background:#fff;color:#1f1c17;border-radius:10px;padding:52px 54px;
-    max-width:820px;margin:0 auto;box-shadow:var(--shadow);font-size:13px;line-height:1.55;
-    border:1px solid var(--border-soft);animation:fadeUp .45s cubic-bezier(.2,.7,.2,1) both}
+  .split-rows .bal{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent-ink)}
+  .paper{background:#fff;color:#1f1c17;border-radius:var(--radius);padding:52px 54px;
+    max-width:820px;margin:0 auto;box-shadow:none;font-size:13px;line-height:1.55;
+    border:1px solid var(--border);animation:fadeUp .45s cubic-bezier(.2,.7,.2,1) both}
   .paper .doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;
     padding-bottom:22px;border-bottom:2px solid var(--accent)}
   .paper .biz-name{font-family:var(--font-display);font-size:21px;font-weight:700;color:#16140f;letter-spacing:-.2px}
   .paper .biz-meta{font-size:11.5px;color:#5c574d;margin-top:6px;line-height:1.75}
   .paper .doc-title-box{text-align:right}
-  .paper .doc-title{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-.2px}
+  .paper .doc-title{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--accent-ink);letter-spacing:-.2px}
   .paper .doc-title .en{font-family:var(--font-display);font-size:13px;font-weight:500;color:#8a8576;display:block;margin-top:2px;font-style:italic}
   .paper .doc-meta{font-size:12px;color:#4a463d;margin-top:12px;line-height:2}
   .paper .doc-meta b{color:#16140f;font-variant-numeric:tabular-nums}
   .paper .parties{display:flex;gap:26px;margin-bottom:26px}
-  .paper .party{flex:1;background:#f8f6f0;border:1px solid #ece8dd;border-radius:9px;padding:15px 17px}
+  .paper .party{flex:1;background:#fff;border:1px solid #ece8dd;border-radius:var(--radius);padding:15px 17px}
   .paper .party .h{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#8a8576;font-weight:700;margin-bottom:7px}
   .paper .party .nm{font-weight:700;font-size:14.5px;color:#16140f}
   .paper .party .dt{font-size:11.5px;color:#5c574d;margin-top:5px;line-height:1.75}
   .paper table.lines{width:100%;border-collapse:collapse;margin-bottom:20px;background:transparent;border:none;box-shadow:none;border-radius:0}
-  .paper table.lines th{background:var(--accent);color:#f3ecd8;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+  .paper table.lines th{background:var(--accent);color:#fff;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
     padding:11px 13px;text-align:left;font-weight:600}
   .paper table.lines th.r,.paper table.lines td.r{text-align:right}
   .paper table.lines td{padding:11px 13px;border-bottom:1px solid #efece4;font-size:12.5px;vertical-align:top;font-variant-numeric:tabular-nums}
@@ -412,11 +468,11 @@
   .paper .totals .box{width:320px;font-variant-numeric:tabular-nums}
   .paper .totals .tr{display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px}
   .paper .totals .tr .l{color:#5c574d}
-  .paper .totals .tr.grand{border-top:2px solid var(--accent);margin-top:6px;padding-top:10px;font-weight:700;font-size:15px;color:#16140f}
+  .paper .totals .tr.grand{border-top:1px solid #ded7c9;margin-top:6px;padding-top:10px;font-weight:700;font-size:15px;color:#16140f}
   .paper .totals .tr.wht .v{color:#b23a2c}
   .paper .totals .tr.net{background:var(--accent-tint);border:1px solid var(--accent-tint-bd);border-radius:8px;padding:11px 13px;margin-top:8px;font-weight:700;font-size:15px}
-  .paper .totals .tr.net .l{color:var(--accent-strong)}
-  .paper .totals .tr.net .v{color:var(--accent);font-family:var(--font-display)}
+  .paper .totals .tr.net .l{color:var(--accent-ink)}
+  .paper .totals .tr.net .v{color:var(--accent-ink);font-family:var(--font-display)}
   .paper .totals .baht-words{text-align:right;font-size:11px;color:#5c574d;padding:2px 0 5px}
   .paper .footer-grid{display:flex;gap:30px;margin-top:26px;padding-top:22px;border-top:1px solid #efece4}
   .paper .footer-grid .col{flex:1}
@@ -432,9 +488,9 @@
   .paper .pay-qr .qr-img{width:118px;height:118px;flex:0 0 auto;border:1px solid #ece8dd;border-radius:8px;padding:5px;background:#fff;box-sizing:content-box}
   .paper .pay-qr .qr-img svg{display:block;width:100%;height:100%}
   .paper .pay-qr .qr-cap{font-size:11.5px;color:#3a362d;line-height:1.7}
-  .paper .pay-qr .qr-cap b{color:var(--accent);font-size:13px}
+  .paper .pay-qr .qr-cap b{color:var(--accent-ink);font-size:13px}
   .paper .note-box{font-size:11.5px;color:#7a5a1a;background:#faf4e3;border:1px solid #ecdcb4;border-radius:8px;padding:11px 14px;margin-top:16px}
-  .paper .tax-stamp{display:inline-block;border:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:11px;
+  .paper .tax-stamp{display:inline-block;border:2px solid var(--accent-ink);color:var(--accent-ink);font-weight:700;font-size:11px;
     padding:4px 11px;border-radius:6px;letter-spacing:.5px;margin-top:7px}
   .paper .logo-img{max-height:56px;max-width:185px;margin-bottom:12px;display:block}
 
@@ -449,35 +505,33 @@
     border-radius:50%;background:#fff;transition:.2s cubic-bezier(.2,.8,.2,1);box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .toggle input:checked+.track{background:var(--accent);border-color:var(--accent)}
   .toggle input:checked+.track::after{transform:translateX(19px)}
-  .card-block{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);
+  .card-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:22px 24px;margin-bottom:18px;box-shadow:var(--shadow-sm);animation:fadeUp .45s cubic-bezier(.2,.7,.2,1) both}
   .card-block h4{font-size:14.5px;font-weight:600;margin-bottom:5px}
   .card-block .desc{font-size:12px;color:var(--text-faint);margin-bottom:17px;line-height:1.6}
   .asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .asset{display:flex;flex-direction:column;gap:9px}
-  .asset-prev{height:74px;display:flex;align-items:center;justify-content:center;background:#fff;
-    border:1px solid var(--border);border-radius:8px;padding:6px;
-    background-image:linear-gradient(45deg,#f0ece2 25%,transparent 25%,transparent 75%,#f0ece2 75%),linear-gradient(45deg,#f0ece2 25%,transparent 25%,transparent 75%,#f0ece2 75%);
-    background-size:14px 14px;background-position:0 0,7px 7px}
+  .asset-prev{height:74px;display:flex;align-items:center;justify-content:center;background:var(--bg);
+    border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px}
   .asset-prev img{max-height:62px;max-width:100%;object-fit:contain}
   .asset-prev .muted{font-size:11px}
   .asset-btns{display:flex;gap:7px}
 
   .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);
-    background:#26221a;border:1px solid #3a352b;color:#f3ecd8;border-radius:11px;
-    padding:12px 20px;font-size:13px;font-weight:500;box-shadow:var(--shadow);opacity:0;transition:.28s cubic-bezier(.2,.8,.2,1);z-index:200;pointer-events:none}
+    background:var(--text);border:1px solid var(--accent);color:#fff;border-radius:var(--radius);
+    padding:12px 20px;font-size:13px;font-weight:600;box-shadow:0 18px 34px -24px rgba(45,52,54,.5);opacity:0;transition:.28s cubic-bezier(.2,.8,.2,1);z-index:200;pointer-events:none}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .toast.err{border-color:#7a3328;background:#3a201b;color:#f3c9c0}
-  .toast.ok{border-color:#2c6048;background:#1d4232;color:#cfe7d8}
+  .toast.err{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+  .toast.ok{border-color:var(--accent);background:var(--text);color:#fff}
 
-  .banner{background:linear-gradient(120deg,#f7efd9,#f2ead4);border:1px solid #e7d8a8;color:#7a5a1a;padding:13px 17px;
-    border-radius:11px;font-size:12.5px;margin-bottom:20px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow-sm)}
+  .banner{background:var(--amber-bg);border:1px solid #e7d8a8;color:#7a5a1a;padding:13px 17px;
+    border-radius:var(--radius);font-size:12.5px;margin-bottom:20px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow-sm)}
 
   .pill-select{display:flex;gap:6px;flex-wrap:wrap}
   .pill-select button{padding:7px 13px;border-radius:20px;font-size:12.5px;font-weight:600;
     background:var(--surface-2);border:1px solid var(--border);color:var(--text-dim);transition:.16s}
   .pill-select button:hover{border-color:#cdc4b0}
-  .pill-select button.on{background:var(--accent);border-color:var(--accent);color:#f6f1e4;box-shadow:0 2px 8px -3px rgba(28,86,64,.5)}
+  .pill-select button.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px -3px var(--accent-glow)}
 
   /* ============================================================
      PRINT
@@ -512,7 +566,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark" id="brandMark"><img src="billngai-logo.png" alt="บิลง่าย — BillNgai"></div>
+      <div class="mark" id="brandMark"><img src="logo.svg" alt="บิลง่าย — BillNgai"></div>
       <div>
         <h1 data-t="ระบบออกเอกสาร">ระบบออกเอกสาร</h1>
         <div class="sub" id="brandSub">Billing</div>
@@ -605,7 +659,7 @@ function blankDB(){
       logo: '',
       signature: '',       // dataURL — scanned signature shown above the issuer line
       stamp: '',           // dataURL — company stamp (ตราประทับ) overlaid near signature
-      brandColor: '#1f5d43',  // corporate brand color — themes the app UI + every document
+      brandColor: '#ff6b00',  // corporate brand color — themes the app UI + every document
       isVatRegistered: true,
       defaultVatRate: 7,
       defaultWhtRate: 3,
@@ -966,6 +1020,8 @@ function migrate(data){
   merged.documents.forEach(d=>{ if(d.number && /[{}]/.test(d.number)) d.number = d.number.replace(/[{}]/g,''); });
   // older documents predate per-document currency — inherit the business currency.
   merged.documents.forEach(d=>{ if(!d.currency) d.currency = merged.business.currency || 'THB'; });
+  // rebrand 1.4.0: ผู้ใช้ที่ยังใช้สีเขียวค่าเริ่มต้นเดิม (ไม่เคยเลือกเอง) ย้ายมาส้มแบรนด์ใหม่
+  if((merged.business.brandColor||'').toLowerCase()==='#1f5d43') merged.business.brandColor = '#ff6b00';
   return merged;
 }
 
@@ -1077,6 +1133,14 @@ const I18N_EN = {
   '(ยื่นออนไลน์ผ่าน RD e-Filing ได้ถึงประมาณ 8 วันหลังกำหนด)':'(online filing via RD e-Filing runs roughly 8 days past the deadline)',
   'ดูตัวเลขสำหรับยื่น':'View filing numbers',
   'ส่งออกชุดให้บัญชี':'Export for accountant',
+  'ยังไม่มีรายรับสำหรับยื่นภาษีปีนี้':'No income to file for this tax year yet',
+  'เมื่อออกใบเสร็จหรือใบกำกับภาษี ตัวเลขสำหรับ ภ.ง.ด.90/94 จะสรุปให้ที่นี่โดยอัตโนมัติ':'Once receipts or tax invoices are issued, PND 90/94 numbers will summarize here automatically',
+  '+ เพิ่มเอกสารรายรับ':'+ Add income document',
+  'ดูสรุปภาษี':'View tax summary',
+  'รายละเอียดจะเปิดเมื่อมีเอกสารรายรับในงวดนี้':'Details appear once this period has income documents',
+  'เงินได้':'Income',
+  'เครดิตภาษี':'Tax credit',
+  'ต้องชำระเพิ่ม':'Amount due',
   'ส่งออกชุดข้อมูลสำหรับนักบัญชีแล้ว':'Accountant bundle exported',
   'ชื่อลูกค้า':'Client name',
   'ธุรกิจ':'Business',
@@ -1226,6 +1290,13 @@ const I18N_EN = {
   'รายรับ (สุทธิจากใบเสร็จ)':'Income (net, from receipts)',
   'รายรับรายเดือน':'Monthly income',
   'รายรับตามลูกค้า (สูงสุด 6)':'Income by client (top 6)',
+  'ออกบิลไว เก็บเงินง่าย':'Bill fast, get paid easily',
+  'เลือกงานถัดไปจากแดชบอร์ด แล้วส่งเอกสารให้ลูกค้าได้ทันที':'Pick the next task from the dashboard and send documents right away',
+  'ดูเอกสาร':'View documents',
+  'เริ่มจากใบเสนอราคา แล้วแปลงเป็นใบแจ้งหนี้ได้ต่อทันที':'Start with a quotation, then turn it into an invoice',
+  'ลองเปลี่ยนตัวกรองหรือคำค้นหา':'Try another filter or search term',
+  'เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้':'Save client details for reuse on quotations and invoices',
+  'รายงานจะเริ่มขึ้นเมื่อมีใบเสร็จหรือใบกำกับภาษี':'Reports start once receipts or tax invoices exist',
   // --- welcome & setup wizard ---
   'ยินดีต้อนรับ! ตั้งค่าข้อมูลธุรกิจแบบไว 3 ขั้นตอน — หรือดูตัวอย่างการใช้งานก่อนก็ได้':'Welcome! Set up your business in 3 quick steps — or explore sample data first',
   'ลองดูข้อมูลตัวอย่าง':'Try sample data',
@@ -1531,7 +1602,7 @@ const ICONS = {
   calendar:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
   arrowRight:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'
 };
-function ic(name,size){ size=size||16; return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
+function ic(name,size){ size=size||16; return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
 
 function money(n){
   n = Number(n)||0;
@@ -1886,10 +1957,9 @@ function render(){
   applyTheme();
 }
 
-// Drive the whole palette from one corporate brand color. Everything that was
-// hardcoded green now reads var(--accent), so setting it here re-themes the app
-// UI and every printed document at once. Falls back to the default green.
-const DEFAULT_BRAND = '#1f5d43';
+// Drive the whole palette from one corporate brand color. Brand-tinted UI reads
+// var(--accent), so setting it here re-themes the app and every printed document.
+const DEFAULT_BRAND = '#ff6b00';
 function applyTheme(color){
   const c = (color!=null ? color : (DB && DB.business && DB.business.brandColor)) || DEFAULT_BRAND;
   document.documentElement.style.setProperty('--accent', c);
@@ -1901,6 +1971,44 @@ function updateBrand(){
   const name = (b.businessName || b.businessNameEn || '').trim();
   const sub = document.getElementById('brandSub');
   if(sub) sub.textContent = name ? 'Billing · ' + name : 'Billing';
+}
+
+// เพิ่ม key ใหม่ที่นี่ = ต้องเพิ่ม path เดียวกันใน package.json build.files ด้วย
+// (DMG ไม่ได้แพ็กทั้ง assets/brand — ส่งเฉพาะไฟล์ที่แอปใช้จริง)
+const BRAND_ASSET = {
+  characterWorking: 'assets/brand/characters/set-1-01-freelancer-on-laptop.png',
+  characterInvoice: 'assets/brand/characters/set-1-02-freelancer-holding-invoice.png',
+  characterReview: 'assets/brand/characters/set-1-08-client-reviewing-bill.png',
+  characterReady: 'assets/brand/characters/set-1-10-creator-giving-thumbs-up.png',
+  objectLaptop: 'assets/brand/objects/set-1-01-laptop.png',
+  objectEnvelope: 'assets/brand/objects/set-1-23-envelope.png',
+  objectFolder: 'assets/brand/objects/set-1-24-folder.png'
+};
+function brandImg(key, alt='', cls=''){
+  return `<img${cls?` class="${cls}"`:''} src="${BRAND_ASSET[key]}" alt="${attr(alt)}" loading="lazy">`;
+}
+function brandSnapshot(){
+  return `<section class="brand-snapshot" aria-label="BillNgai">
+    <div>
+      <div class="kicker">BillNgai</div>
+      <h3>${tr('ออกบิลไว เก็บเงินง่าย')}</h3>
+      <p>${tr('เลือกงานถัดไปจากแดชบอร์ด แล้วส่งเอกสารให้ลูกค้าได้ทันที')}</p>
+      <div class="brand-actions">
+        <button class="btn btn-sm btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>
+        <button class="btn btn-sm" onclick="setView('documents')">${tr('ดูเอกสาร')}</button>
+      </div>
+    </div>
+    <div class="brand-art" aria-hidden="true">
+      ${brandImg('characterReady','', 'character')}
+    </div>
+  </section>`;
+}
+function brandEmpty(assetKey, title, sub=''){
+  return `<div class="empty brand-empty">
+    <div class="brand-empty-art">${brandImg(assetKey,'')}</div>
+    <div class="brand-empty-title">${title}</div>
+    ${sub?`<div class="brand-empty-sub">${sub}</div>`:''}
+  </div>`;
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -1934,6 +2042,7 @@ function renderDashboard(c,ta){
     ${backupReminder()}
     ${filingReminder()}
     ${due.length?`<div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878">${ic('repeat')} ${tr('มีรายการประจำถึงกำหนด {n} รายการ').replace('{n}',`<b style="margin:0 3px">${due.length}</b>`)} <button class="btn btn-sm btn-primary" style="margin-left:8px" onclick="setView('recurring')">${tr('ดูและสร้าง')}</button></div>`:''}
+    ${brandSnapshot()}
     <div class="pillars">
       <div class="pillar owed${overdueCount?' pulse':''}"><div class="accent-bar"></div>
         <div class="label">${ic('clock')} ${tr('ยอดค้างรับ (สุทธิ)')}</div>
@@ -1969,7 +2078,7 @@ function renderDashboard(c,ta){
     ${chartsBlock()}
 
     <div class="section-title">${tr('เอกสารล่าสุด')}</div>
-    ${recent.length ? docTable(recent) : `<div class="empty"><div class="big">${ic('fileText',38)}</div>${tr('ยังไม่มีเอกสาร — กด “เอกสารใหม่” เพื่อเริ่ม')}</div>`}
+    ${recent.length ? docTable(recent) : brandEmpty('characterInvoice', tr('ยังไม่มีเอกสาร — กด “เอกสารใหม่” เพื่อเริ่ม'), tr('เริ่มจากใบเสนอราคา แล้วแปลงเป็นใบแจ้งหนี้ได้ต่อทันที'))}
   `;
   animateCounts(c);
 }
@@ -2019,17 +2128,17 @@ function chartsBlock(){
   return `
   <style>
     .charts{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:8px}
-    .chart-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:16px 18px}
+    .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
     .chart-card .ch-title{font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:14px}
     .cbars{display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:6px}
     .cbar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-    .cbar{width:60%;max-width:34px;background:linear-gradient(180deg,var(--accent-bright),var(--accent-strong));border-radius:5px 5px 0 0;transition:.2s}
+    .cbar{width:60%;max-width:34px;background:var(--accent);border-radius:5px 5px 0 0;transition:.2s}
     .cbar-val{font-size:9.5px;color:var(--text-faint);margin-bottom:4px;font-variant-numeric:tabular-nums}
     .cbar-lbl{font-size:10px;color:var(--text-dim);margin-top:7px;text-align:center;line-height:1.2}
     .hbar-row{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;margin-bottom:11px}
     .hbar-name{font-size:12px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .hbar-track{height:9px;background:var(--surface-3);border-radius:6px;overflow:hidden}
-    .hbar-fill{height:100%;background:linear-gradient(90deg,var(--accent-strong),var(--accent-bright));border-radius:6px}
+    .hbar-fill{height:100%;background:var(--accent);border-radius:6px}
     .hbar-val{font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--text)}
     @media(max-width:760px){.charts{grid-template-columns:1fr}}
   </style>
@@ -2083,7 +2192,7 @@ function wizPickAsset(key){
   }; inp.click();
 }
 function wizSetBrand(hex){ wizCollect(); DB.business.brandColor=hex; applyTheme(hex); drawWizard(); }
-const WIZ_BRANDS = ['#1f5d43','#0c8a5f','#2456c8','#0e7490','#6d4fc2','#be3455','#c2410c','#26221a'];
+const WIZ_BRANDS = ['#ff6b00','#c2410c','#1f5d43','#0c8a5f','#6d4fc2','#be3455','#7a5a1a','#2d3436'];
 function drawWizard(){
   const b=DB.business;
   const m=document.getElementById('modal');
@@ -2242,7 +2351,7 @@ function drawDocList(q){
   });
   const wrap = document.getElementById('docListWrap');
   wrap.innerHTML = list.length ? docTable(list)
-    : `<div class="empty"><div class="big">${ic('fileText',38)}</div>${tr('ไม่พบเอกสาร')}</div>`;
+    : brandEmpty('characterInvoice', tr('ไม่พบเอกสาร'), tr('ลองเปลี่ยนตัวกรองหรือคำค้นหา'));
 }
 // One-click next step, right in the list row (mark paid / issue receipt).
 function docQuickAction(d, st){
@@ -2296,7 +2405,7 @@ function renderWht(c,ta){
   list.forEach(d=>{ const w=compute(d).whtAmount; expected+=w; if(d.whtCertReceived) got+=w; });
   ta.innerHTML = list.length?`<button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('ส่งออก CSV (50 ทวิ)')}</button>`:'';
   if(!list.length){
-    c.innerHTML = `<div class="empty"><div class="big">${ic('receipt',38)}</div>${tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย')}<br><span style="font-size:12px">${tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ')}</span></div>`;
+    c.innerHTML = brandEmpty('objectEnvelope', tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย'), tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ'));
     return;
   }
   c.innerHTML = `
@@ -2321,7 +2430,7 @@ function renderWht(c,ta){
         <td class="muted">${fmtDate(d.paidDate||d.issueDate)}</td>
         <td class="num">${money(t.subtotal)}</td>
         <td class="num">${t.whtRate}%</td>
-        <td class="num" style="color:var(--accent);font-weight:600">${money(t.whtAmount)}</td>
+        <td class="num" style="color:var(--accent-ink);font-weight:600">${money(t.whtAmount)}</td>
         <td>${d.whtCertReceived
           ? `<span class="badge-status s-paid"><span class="d"></span>${tr('ได้รับแล้ว')}${d.whtCertNo?' · '+escapeHtml(d.whtCertNo):''}</span>`
           : `<span class="badge-status s-draft"><span class="d"></span>${tr('ยังไม่ได้รับ')}</span>`}</td>
@@ -2369,7 +2478,7 @@ function renderRecurring(c,ta){
   ta.innerHTML = DB.clients.length?`<button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button>`:'';
   const due = dueRecurring();
   if(!DB.recurring.length){
-    c.innerHTML = `<div class="empty"><div class="big">${ic('repeat',38)}</div>${tr('ยังไม่มีรายการประจำ')}<br><span style="font-size:12px">${tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว')}</span>${DB.clients.length?`<br><br><button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button>`:`<br><br><span class="muted">${tr('เพิ่มลูกค้าก่อน')}</span>`}</div>`;
+    c.innerHTML = `${brandEmpty('objectFolder', tr('ยังไม่มีรายการประจำ'), tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว'))}${DB.clients.length?`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button></div>`:`<div style="text-align:center;margin-top:16px"><span class="muted">${tr('เพิ่มลูกค้าก่อน')}</span></div>`}`;
     return;
   }
   c.innerHTML = `
@@ -2382,7 +2491,7 @@ function renderRecurring(c,ta){
       return `<tr style="cursor:default;${isDue?'background:var(--blue-bg)':''}">
         <td><b style="cursor:pointer" onclick="openRecurringEditor('${r.id}')">${cl?escapeHtml(cl.name):'—'}</b>${r.project?`<div class="muted" style="font-size:11.5px">${escapeHtml(r.project)}</div>`:''}</td>
         <td>${tr(FREQ_LABEL[r.frequency])}</td>
-        <td class="${isDue?'':'muted'}" style="${isDue?'color:var(--accent);font-weight:600':''}">${fmtDate(r.nextDate)}</td>
+        <td class="${isDue?'':'muted'}" style="${isDue?'color:var(--accent-ink);font-weight:600':''}">${fmtDate(r.nextDate)}</td>
         <td class="num">${fmtMoney(t.grandTotal)}</td>
         <td>${r.active!==false?`<span class="badge-status s-sent"><span class="d"></span>${tr('ทำงาน')}</span>`:`<span class="badge-status s-draft"><span class="d"></span>${tr('หยุด')}</span>`}</td>
         <td style="text-align:right;white-space:nowrap">
@@ -2493,7 +2602,7 @@ function generateRecurring(id){
 function renderClients(c,ta){
   ta.innerHTML = `<button class="btn btn-primary" onclick="openClientEditor()">${tr('+ เพิ่มลูกค้า')}</button>`;
   if(!DB.clients.length){
-    c.innerHTML = `<div class="empty"><div class="big">${ic('users',38)}</div>${tr('ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร')}</div>`;
+    c.innerHTML = brandEmpty('characterReview', tr('ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร'), tr('เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้'));
     return;
   }
   c.innerHTML = `<div class="cards">${DB.clients.map(cl=>{
@@ -2580,7 +2689,7 @@ function renderReport(c,ta){
       </div>
     </div>
 
-    ${!docs.length ? `<div class="empty"><div class="big">${ic('barChart',38)}</div>${tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(reportYear))}</div>` : `
+    ${!docs.length ? brandEmpty('objectLaptop', tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(reportYear)), tr('รายงานจะเริ่มขึ้นเมื่อมีใบเสร็จหรือใบกำกับภาษี')) : `
     <div class="report-cards">
       <div class="rc"><div class="rl">${tr('รายรับก่อน VAT')}</div><div class="rv">${fmtMoneyC(agg.subtotal,'THB')}</div><div class="rs">${tr('ฐานเงินได้ ({n} ใบเสร็จ)').replace('{n}',agg.count)}</div></div>
       <div class="rc"><div class="rl">${tr('VAT ขาย (ออกให้ลูกค้า)')}</div><div class="rv">${fmtMoneyC(agg.vat,'THB')}</div><div class="rs">${tr('ภาษีขายที่เก็บแทนสรรพากร')}</div></div>
@@ -2718,7 +2827,7 @@ function filingReminder(){
 function renderFiling(c,ta){
   const years = reportYears();
   ta.innerHTML = `<button class="btn btn-primary" onclick="exportAccountantZip(reportYear)">${ic('download')} ${tr('ส่งออกชุดให้บัญชี')}</button>`;
-  const cards = filingDeadlines(reportYear).map(f=>{
+  const filingData = filingDeadlines(reportYear).map(f=>{
     const inc = filingIncome(reportYear, f.mFrom, f.mTo);
     const gross = round2(inc.grossThb + inc.foreignThb);
     const est = pitEstimate(gross, f.half);
@@ -2726,9 +2835,11 @@ function renderFiling(c,ta){
     const refund = inc.wht>est.tax ? round2(inc.wht-est.tax) : 0;
     const days = Math.round((parseDate(f.due)-parseDate(todayISO()))/DAY);
     const dueChip = (days>=0 && days<=60) ? ` <span style="color:var(--amber);font-weight:600">· ${tr('อีก {d} วัน').replace('{d}',days)}</span>` : '';
-    return `<div class="chart-card">
-      <div class="ch-title">${f.form} — ${tr(f.periodTh).replace('{y}',displayYear(reportYear))}</div>
-      <table class="rclient"><tbody>
+    return { f, inc, gross, est, owe, refund, dueChip };
+  });
+  const hasIncome = filingData.some(x=>x.inc.count || x.gross || x.inc.foreignMissing);
+  const cards = filingData.map(({f, inc, gross, est, owe, refund, dueChip})=>{
+    const detail = hasIncome ? `<div class="filing-detail"><table class="rclient"><tbody>
         <tr><td>${tr('กำหนดยื่น')}</td><td class="num">${fmtDate(f.due,true)}${dueChip}</td></tr>
         <tr><td>${tr('เงินได้พึงประเมิน (ก่อน VAT, รวมเทียบเท่าบาท)')}</td><td class="num">${fmtMoneyC(gross,'THB')}</td></tr>
         <tr><td>${tr('หักค่าใช้จ่ายเหมา 50% (ไม่เกิน 100,000)')}</td><td class="num">−${fmtMoneyC(est.expense,'THB')}</td></tr>
@@ -2737,14 +2848,40 @@ function renderFiling(c,ta){
         <tr><td>${tr('ภาษีตามขั้นบันได')}</td><td class="num">${fmtMoneyC(est.tax,'THB')}</td></tr>
         <tr><td>${tr('ถูกหัก ณ ที่จ่ายแล้ว (เครดิตภาษี)')}</td><td class="num">−${fmtMoneyC(inc.wht,'THB')}</td></tr>
         <tr><td><b>${tr('ประมาณการภาษีที่ต้องชำระเพิ่ม')}</b></td><td class="num"><b>${fmtMoneyC(owe,'THB')}</b></td></tr>
-        ${refund?`<tr><td colspan="2" style="color:var(--accent)">${tr('ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}').replace('{x}',fmtMoneyC(refund,'THB'))}</td></tr>`:''}
+        ${refund?`<tr><td colspan="2" style="color:var(--accent-ink)">${tr('ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}').replace('{x}',fmtMoneyC(refund,'THB'))}</td></tr>`:''}
         ${inc.foreignMissing?`<tr><td colspan="2" style="color:var(--amber)">${ic('alert',12)} ${tr('{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น').replace('{n}',inc.foreignMissing)}</td></tr>`:''}
         <tr><td class="muted">${tr('จากเอกสารรายรับ')}</td><td class="num muted">${inc.count}</td></tr>
-      </tbody></table>
+      </tbody></table></div>` : `<div class="muted" style="font-size:12px">${tr('รายละเอียดจะเปิดเมื่อมีเอกสารรายรับในงวดนี้')}</div>`;
+    return `<div class="filing-card">
+      <div class="filing-head">
+        <div>
+          <h3>${f.form}</h3>
+          <div class="period">${tr(f.periodTh).replace('{y}',displayYear(reportYear))}</div>
+        </div>
+        <div class="due">${fmtDate(f.due,true)}${dueChip}</div>
+      </div>
+      <div class="filing-summary">
+        <div class="cell"><div class="label">${tr('เงินได้')}</div><div class="value">${fmtMoneyC(gross,'THB')}</div></div>
+        <div class="cell"><div class="label">${tr('เครดิตภาษี')}</div><div class="value">−${fmtMoneyC(inc.wht,'THB')}</div></div>
+        <div class="cell"><div class="label">${tr('ต้องชำระเพิ่ม')}</div><div class="value">${fmtMoneyC(owe,'THB')}</div></div>
+      </div>
+      ${detail}
     </div>`;
   }).join('');
   c.innerHTML = `
     ${filingReminder()}
+    ${!hasIncome ? `<section class="filing-guide">
+      <div>
+        <div class="kicker">BillNgai Tax</div>
+        <h3>${tr('ยังไม่มีรายรับสำหรับยื่นภาษีปีนี้')}</h3>
+        <p>${tr('เมื่อออกใบเสร็จหรือใบกำกับภาษี ตัวเลขสำหรับ ภ.ง.ด.90/94 จะสรุปให้ที่นี่โดยอัตโนมัติ')}</p>
+        <div class="guide-actions">
+          <button class="btn btn-primary" onclick="openDocEditor('receipt')">${tr('+ เพิ่มเอกสารรายรับ')}</button>
+          <button class="btn" onclick="setView('report')">${tr('ดูสรุปภาษี')}</button>
+        </div>
+      </div>
+      <div class="guide-art" aria-hidden="true">${brandImg('objectLaptop','')}</div>
+    </section>` : ''}
     <div class="report-head">
       <div class="year-pick">
         <span>${tr('ปีภาษี')}</span>
@@ -2754,8 +2891,8 @@ function renderFiling(c,ta){
         <span class="muted" style="font-size:11.5px">${tr('(คิดจากใบเสร็จ/ใบกำกับภาษีที่ออกแล้ว — ภ.ง.ด.94 นับเฉพาะรายรับ ม.ค.–มิ.ย.)')}</span>
       </div>
     </div>
-    <div class="report-grid">${cards}</div>
-    <div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878;margin-top:16px;display:block">
+    <div class="filing-grid">${cards}</div>
+    <div class="filing-note">
       <b>${tr('สมมติฐานที่ใช้ประมาณการ')}</b> — ${tr('เงินได้ตามมาตรา 40(2) หักค่าใช้จ่ายเหมา 50% ไม่เกิน 100,000 บาท และลดหย่อนส่วนตัว 60,000 บาท (ภ.ง.ด.94 ใช้ 30,000 บาท) ยังไม่รวมลดหย่อนอื่น เช่น ประกัน กองทุน บุตร')}<br>
       ${tr('ภ.ง.ด.94 ใช้กับเงินได้ตามมาตรา 40(5)–(8) เท่านั้น — ฟรีแลนซ์ที่มีแต่เงินได้ 40(2) ยื่นเฉพาะ ภ.ง.ด.90 ปลายปี')}<br>
       <b>${tr('ตัวเลขทั้งหมดเป็นการประมาณการเบื้องต้น ไม่ใช่คำแนะนำทางภาษี — โปรดตรวจกับนักบัญชีหรือระบบ RD e-Filing ก่อนยื่นจริง')}</b>
@@ -2858,20 +2995,20 @@ function renderSettings(c,ta){
       <h4>${tr('สีองค์กร / แบรนด์')}</h4>
       <div class="desc">${tr('เลือกสีหลักให้ตรงกับแบรนด์ของคุณ — จะปรับสีทั้งแอปและสีบนเอกสารทุกฉบับ (หัวตาราง หัวข้อ ยอดสุทธิ ตราใบกำกับภาษี ฯลฯ) พร้อมกัน')}</div>
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <input type="color" id="s_brand" value="${attr(b.brandColor||'#1f5d43')}" oninput="previewBrand(this.value)"
+        <input type="color" id="s_brand" value="${attr(b.brandColor||'#ff6b00')}" oninput="previewBrand(this.value)"
           style="width:54px;height:40px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;padding:3px">
-        <input id="s_brandHex" value="${attr(b.brandColor||'#1f5d43')}" maxlength="7" spellcheck="false"
+        <input id="s_brandHex" value="${attr(b.brandColor||'#ff6b00')}" maxlength="7" spellcheck="false"
           oninput="previewBrand(this.value)" style="width:110px;font-family:var(--font-display);letter-spacing:.5px;text-transform:uppercase">
         <div class="pill-select" id="brandPresets">
           ${BRAND_PRESETS.map(p=>`<button type="button" title="${p.name}" onclick="setBrandPreset('${p.hex}')"
-            style="width:26px;height:26px;padding:0;border-radius:50%;background:${p.hex};border:2px solid ${ (b.brandColor||'#1f5d43').toLowerCase()===p.hex.toLowerCase() ? 'var(--text)' : 'var(--border)'}"></button>`).join('')}
+            style="width:26px;height:26px;padding:0;border-radius:50%;background:${p.hex};border:2px solid ${ (b.brandColor||'#ff6b00').toLowerCase()===p.hex.toLowerCase() ? 'var(--text)' : 'var(--border)'}"></button>`).join('')}
         </div>
-        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset('#1f5d43')">${tr('คืนค่าเริ่มต้น')}</button>
+        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset('#ff6b00')">${tr('คืนค่าเริ่มต้น')}</button>
       </div>
       <div class="hint" style="margin-top:12px">${tr('ตัวอย่างสด:')}
         <span class="badge-status s-paid" style="margin:0 4px"><span class="d"></span>${tr('ปุ่ม/แท็ก')}</span>
-        <span style="display:inline-block;width:84px;height:10px;border-radius:6px;background:linear-gradient(90deg,var(--accent-strong),var(--accent-bright));vertical-align:middle"></span>
-        <span style="color:var(--accent);font-weight:700"> ${tr('ตัวอักษรเน้น')}</span>
+        <span style="display:inline-block;width:84px;height:10px;border-radius:6px;background:var(--accent);vertical-align:middle"></span>
+        <span style="color:var(--accent-ink);font-weight:700"> ${tr('ตัวอักษรเน้น')}</span>
       </div>
     </div>
 
@@ -2953,7 +3090,8 @@ function renderSettings(c,ta){
 }
 /* ---------- brand color (corporate theming) ---------- */
 const BRAND_PRESETS = [
-  {name:'เขียวมรกต (ค่าเริ่มต้น)',hex:'#1f5d43'},
+  {name:'ส้มบิลง่าย (ค่าเริ่มต้น)',hex:'#ff6b00'},
+  {name:'เขียวมรกต',hex:'#1f5d43'},
   {name:'เขียวสด',hex:'#0c8a5f'},
   {name:'น้ำเงินโคบอลต์',hex:'#2456c8'},
   {name:'น้ำเงินเข้ม',hex:'#1f4e79'},
@@ -3007,7 +3145,7 @@ function previewPromptpay(val){
   const el=document.getElementById('ppHint'); if(!el) return;
   const payload = promptpayPayload(val, null);
   el.innerHTML = payload
-    ? `<div style="width:84px;height:84px">${qrSvg(payload,84)}</div><span style="color:var(--accent)">${ic('check')} ${tr('ใช้ได้ — QR นี้จะแสดงบนใบแจ้งหนี้ (สกุลเงินบาท)')}</span>`
+    ? `<div style="width:84px;height:84px">${qrSvg(payload,84)}</div><span style="color:var(--accent-ink)">${ic('check')} ${tr('ใช้ได้ — QR นี้จะแสดงบนใบแจ้งหนี้ (สกุลเงินบาท)')}</span>`
     : (val.replace(/\D/g,'') ? `<span style="color:var(--amber)">${ic('alert')} ${tr('ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลข 13 หลัก')}</span>` : '');
 }
 function saveSettings(){
@@ -3019,8 +3157,8 @@ function saveSettings(){
   b.bankNameEn=v('s_bankNameEn').value; b.swiftCode=v('s_swift').value.trim().toUpperCase();
   b.bankAccountNameEn=v('s_bankAccNameEn').value; b.bankAddress=v('s_bankAddr').value;
   b.promptpayId=v('s_promptpay').value.trim();
-  const brand=(v('s_brand')&&v('s_brand').value)||b.brandColor||'#1f5d43';
-  b.brandColor = validHex(brand) ? brand.toLowerCase() : '#1f5d43';
+  const brand=(v('s_brand')&&v('s_brand').value)||b.brandColor||'#ff6b00';
+  b.brandColor = validHex(brand) ? brand.toLowerCase() : '#ff6b00';
   b.isVatRegistered=v('s_vat').checked;
   b.defaultVatRate=Number(v('s_vatRate').value)||0; b.defaultWhtRate=Number(v('s_whtRate').value)||0;
   b.currency=v('s_cur').value; b.defaultTerms=v('s_terms').value; b.defaultTermsEn=v('s_termsEn').value;

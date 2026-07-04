@@ -3,6 +3,46 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [1.4.0] — 2026-07-04
+
+### Added
+- **BillNgai brand identity across the app** — orange primary (default `#FF6B00`,
+  still user-overridable per business), warm cream background, charcoal text, new
+  circular logo (`logo.svg`) and regenerated app icon. Users still on the old default
+  green are migrated to the new orange automatically; custom brand colors are kept.
+- **Brand fonts bundled offline**: Inter (Latin/numerals) + LINE Seed Sans TH (Thai),
+  weights 400/600/700, replacing IBM Plex Sans Thai + Fraunces.
+- **Brand guardian docs**: `BRAND.md` (single source of truth for tokens, color rules,
+  typography, voice) and `AGENTS.md` (AI/dev rules) — UI work must follow them.
+- App-ready BillNgai brand asset library under `assets/brand`, generated from the master
+  guideline package with reproducible logo, UI icon, object, character, pattern, and sheet
+  exports (dev library; only the images the app uses ship in the DMG).
+
+### Changed
+- Refreshed the full app UI around the master brand system: warm paper background,
+  flatter white panels, thin peach borders, restrained shadows, tighter radii, and
+  orange-only primary emphasis.
+- Redesigned `ยื่นภาษี (ภ.ง.ด. 90/94)` into guided filing cards with clearer period
+  summaries, branded empty states, and a quieter assumptions note.
+- Cleaned up dashboard and empty-state styling so illustration panels feel consistent
+  with the new BillNgai visual language.
+
+### Fixed
+- Adjusted brand asset crops for laptop, folder, envelope, and empty-state illustrations.
+- Removed empty-state text overlap and the recurring visual stripe/eyebrow treatment that
+  conflicted with the master brand style.
+- Replaced the old green success toast and connected-file indicator with the BillNgai
+  orange/charcoal feedback treatment.
+- Restyled status badges into compact one-line token-based chips that fit the BillNgai UI.
+- Brand-orange text on light backgrounds now uses a darker `--accent-ink` tone
+  (#FF6B00 on white is only 2.9:1 contrast and fades on B/W printing) — document titles,
+  totals, tax stamp, links and amounts stay legible; the document header keeps its
+  2px brand accent rule. Fills (buttons, table heads) stay full brand orange.
+- Packaging safety: `npm run dist` no longer regenerates brand assets implicitly
+  (`npm run assets` is a manual dev step that now refuses to run — deleting nothing —
+  when the master asset package or ImageMagick is missing), and the DMG ships only
+  the brand images the app actually uses instead of the full 15 MB library.
+
 ## [1.3.0] — 2026-07-04
 
 ### Added

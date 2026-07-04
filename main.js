@@ -170,7 +170,7 @@ ipcMain.handle('data:import', async () => {
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 940, minHeight: 600,
-    backgroundColor: '#ece7dc',
+    backgroundColor: '#FFF9F3',
     title: 'BillNgai',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

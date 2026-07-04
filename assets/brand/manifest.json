@@ -1,0 +1,1738 @@
+{
+  "generatedAt": "2026-07-04T04:48:47.766Z",
+  "source": "/Users/visarutsankham/Downloads/BillNgai_Master_All_Assets",
+  "logo": [
+    {
+      "name": "logo-32",
+      "size": 32,
+      "path": "assets/brand/logo/logo-32.png"
+    },
+    {
+      "name": "logo-64",
+      "size": 64,
+      "path": "assets/brand/logo/logo-64.png"
+    },
+    {
+      "name": "logo-128",
+      "size": 128,
+      "path": "assets/brand/logo/logo-128.png"
+    },
+    {
+      "name": "logo-256",
+      "size": 256,
+      "path": "assets/brand/logo/logo-256.png"
+    },
+    {
+      "name": "logo-512",
+      "size": 512,
+      "path": "assets/brand/logo/logo-512.png"
+    },
+    {
+      "name": "logo-1024",
+      "size": 1024,
+      "path": "assets/brand/logo/logo-1024.png"
+    }
+  ],
+  "icons": [
+    {
+      "name": "Dashboard",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-01-dashboard.png"
+    },
+    {
+      "name": "Invoice",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-02-invoice.png"
+    },
+    {
+      "name": "Client",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-03-client.png"
+    },
+    {
+      "name": "Send",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-04-send.png"
+    },
+    {
+      "name": "Paid",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-05-paid.png"
+    },
+    {
+      "name": "Draft",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-06-draft.png"
+    },
+    {
+      "name": "Reminder",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-07-reminder.png"
+    },
+    {
+      "name": "Download",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-08-download.png"
+    },
+    {
+      "name": "Edit",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-09-edit.png"
+    },
+    {
+      "name": "Delete",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-10-delete.png"
+    },
+    {
+      "name": "Wallet",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-11-wallet.png"
+    },
+    {
+      "name": "Payment",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-12-payment.png"
+    },
+    {
+      "name": "Tax",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-13-tax.png"
+    },
+    {
+      "name": "Report",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-14-report.png"
+    },
+    {
+      "name": "Settings",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-15-settings.png"
+    },
+    {
+      "name": "Search",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-16-search.png"
+    },
+    {
+      "name": "Filter",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-17-filter.png"
+    },
+    {
+      "name": "Upload",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-18-upload.png"
+    },
+    {
+      "name": "Calendar",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-19-calendar.png"
+    },
+    {
+      "name": "Notification",
+      "category": "icons",
+      "set": "set-1",
+      "path": "assets/brand/icons/set-1-20-notification.png"
+    },
+    {
+      "name": "Home",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-01-home.png"
+    },
+    {
+      "name": "List",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-02-list.png"
+    },
+    {
+      "name": "Grid",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-03-grid.png"
+    },
+    {
+      "name": "Plus",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-04-plus.png"
+    },
+    {
+      "name": "Check",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-05-check.png"
+    },
+    {
+      "name": "Close",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-06-close.png"
+    },
+    {
+      "name": "Arrow Right",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-07-arrow-right.png"
+    },
+    {
+      "name": "Arrow Left",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-08-arrow-left.png"
+    },
+    {
+      "name": "Arrow Up",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-09-arrow-up.png"
+    },
+    {
+      "name": "Arrow Down",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-10-arrow-down.png"
+    },
+    {
+      "name": "Attachment",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-11-attachment.png"
+    },
+    {
+      "name": "Email",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-12-email.png"
+    },
+    {
+      "name": "Phone",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-13-phone.png"
+    },
+    {
+      "name": "Message",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-14-message.png"
+    },
+    {
+      "name": "File",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-15-file.png"
+    },
+    {
+      "name": "Folder",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-16-folder.png"
+    },
+    {
+      "name": "User",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-17-user.png"
+    },
+    {
+      "name": "Team",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-18-team.png"
+    },
+    {
+      "name": "Clock",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-19-clock.png"
+    },
+    {
+      "name": "Help",
+      "category": "icons",
+      "set": "set-2",
+      "path": "assets/brand/icons/set-2-20-help.png"
+    },
+    {
+      "name": "Analytics",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-01-analytics.png"
+    },
+    {
+      "name": "Bookmark",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-02-bookmark.png"
+    },
+    {
+      "name": "Star",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-03-star.png"
+    },
+    {
+      "name": "Heart",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-04-heart.png"
+    },
+    {
+      "name": "Share",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-05-share.png"
+    },
+    {
+      "name": "Copy",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-06-copy.png"
+    },
+    {
+      "name": "Duplicate",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-07-duplicate.png"
+    },
+    {
+      "name": "Archive",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-08-archive.png"
+    },
+    {
+      "name": "Pin",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-09-pin.png"
+    },
+    {
+      "name": "Tag",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-10-tag.png"
+    },
+    {
+      "name": "Link",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-11-link.png"
+    },
+    {
+      "name": "Eye",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-12-eye.png"
+    },
+    {
+      "name": "Eye Off",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-13-eye-off.png"
+    },
+    {
+      "name": "Lock",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-14-lock.png"
+    },
+    {
+      "name": "Unlock",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-15-unlock.png"
+    },
+    {
+      "name": "Shield",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-16-shield.png"
+    },
+    {
+      "name": "Info",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-17-info.png"
+    },
+    {
+      "name": "Logout",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-18-logout.png"
+    },
+    {
+      "name": "Refresh",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-19-refresh.png"
+    },
+    {
+      "name": "Sync",
+      "category": "icons",
+      "set": "set-3",
+      "path": "assets/brand/icons/set-3-20-sync.png"
+    },
+    {
+      "name": "Globe",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-01-globe.png"
+    },
+    {
+      "name": "Language",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-02-language.png"
+    },
+    {
+      "name": "Location",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-03-location.png"
+    },
+    {
+      "name": "Map Pin",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-04-map-pin.png"
+    },
+    {
+      "name": "Camera",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-05-camera.png"
+    },
+    {
+      "name": "Image",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-06-image.png"
+    },
+    {
+      "name": "Video",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-07-video.png"
+    },
+    {
+      "name": "Microphone",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-08-microphone.png"
+    },
+    {
+      "name": "Print",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-09-print.png"
+    },
+    {
+      "name": "QR Scan",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-10-qr-scan.png"
+    },
+    {
+      "name": "Receipt",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-11-receipt.png"
+    },
+    {
+      "name": "History",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-12-history.png"
+    },
+    {
+      "name": "Sort",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-13-sort.png"
+    },
+    {
+      "name": "More",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-14-more.png"
+    },
+    {
+      "name": "Expand",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-15-expand.png"
+    },
+    {
+      "name": "Collapse",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-16-collapse.png"
+    },
+    {
+      "name": "Dark Mode",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-17-dark-mode.png"
+    },
+    {
+      "name": "Light Mode",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-18-light-mode.png"
+    },
+    {
+      "name": "Security",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-19-security.png"
+    },
+    {
+      "name": "Verified",
+      "category": "icons",
+      "set": "set-4",
+      "path": "assets/brand/icons/set-4-20-verified.png"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Laptop",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-01-laptop.png"
+    },
+    {
+      "name": "Smartphone",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-02-smartphone.png"
+    },
+    {
+      "name": "Tablet",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-03-tablet.png"
+    },
+    {
+      "name": "Desktop Monitor",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-04-desktop-monitor.png"
+    },
+    {
+      "name": "Keyboard",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-05-keyboard.png"
+    },
+    {
+      "name": "Mouse",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-06-mouse.png"
+    },
+    {
+      "name": "Trackpad",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-07-trackpad.png"
+    },
+    {
+      "name": "Camera",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-08-camera.png"
+    },
+    {
+      "name": "Headphones",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-09-headphones.png"
+    },
+    {
+      "name": "Coffee Mug",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-10-coffee-mug.png"
+    },
+    {
+      "name": "Takeaway Coffee Cup",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-11-takeaway-coffee-cup.png"
+    },
+    {
+      "name": "Potted Plant",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-12-potted-plant.png"
+    },
+    {
+      "name": "Desk Lamp",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-13-desk-lamp.png"
+    },
+    {
+      "name": "Notebook",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-14-notebook.png"
+    },
+    {
+      "name": "Pencil",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-15-pencil.png"
+    },
+    {
+      "name": "Pen",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-16-pen.png"
+    },
+    {
+      "name": "Ruler",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-17-ruler.png"
+    },
+    {
+      "name": "Scissors",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-18-scissors.png"
+    },
+    {
+      "name": "Tape Roll",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-19-tape-roll.png"
+    },
+    {
+      "name": "Paper Clip",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-20-paper-clip.png"
+    },
+    {
+      "name": "Stapler",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-21-stapler.png"
+    },
+    {
+      "name": "Push Pin",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-22-push-pin.png"
+    },
+    {
+      "name": "Envelope",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-23-envelope.png"
+    },
+    {
+      "name": "Folder",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-24-folder.png"
+    },
+    {
+      "name": "Backpack",
+      "category": "objects",
+      "set": "set-1",
+      "path": "assets/brand/objects/set-1-25-backpack.png"
+    },
+    {
+      "name": "Object 1",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-01-object-1.png"
+    },
+    {
+      "name": "Object 2",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-02-object-2.png"
+    },
+    {
+      "name": "Object 3",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-03-object-3.png"
+    },
+    {
+      "name": "Object 4",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-04-object-4.png"
+    },
+    {
+      "name": "Object 5",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-05-object-5.png"
+    },
+    {
+      "name": "Object 6",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-06-object-6.png"
+    },
+    {
+      "name": "Object 7",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-07-object-7.png"
+    },
+    {
+      "name": "Object 8",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-08-object-8.png"
+    },
+    {
+      "name": "Object 9",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-09-object-9.png"
+    },
+    {
+      "name": "Object 10",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-10-object-10.png"
+    },
+    {
+      "name": "Object 11",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-11-object-11.png"
+    },
+    {
+      "name": "Object 12",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-12-object-12.png"
+    },
+    {
+      "name": "Object 13",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-13-object-13.png"
+    },
+    {
+      "name": "Object 14",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-14-object-14.png"
+    },
+    {
+      "name": "Object 15",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-15-object-15.png"
+    },
+    {
+      "name": "Object 16",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-16-object-16.png"
+    },
+    {
+      "name": "Object 17",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-17-object-17.png"
+    },
+    {
+      "name": "Object 18",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-18-object-18.png"
+    },
+    {
+      "name": "Object 19",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-19-object-19.png"
+    },
+    {
+      "name": "Object 20",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-20-object-20.png"
+    },
+    {
+      "name": "Object 21",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-21-object-21.png"
+    },
+    {
+      "name": "Object 22",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-22-object-22.png"
+    },
+    {
+      "name": "Object 23",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-23-object-23.png"
+    },
+    {
+      "name": "Object 24",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-24-object-24.png"
+    },
+    {
+      "name": "Object 25",
+      "category": "objects",
+      "set": "set-2",
+      "path": "assets/brand/objects/set-2-25-object-25.png"
+    },
+    {
+      "name": "Object 1",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-01-object-1.png"
+    },
+    {
+      "name": "Object 2",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-02-object-2.png"
+    },
+    {
+      "name": "Object 3",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-03-object-3.png"
+    },
+    {
+      "name": "Object 4",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-04-object-4.png"
+    },
+    {
+      "name": "Object 5",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-05-object-5.png"
+    },
+    {
+      "name": "Object 6",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-06-object-6.png"
+    },
+    {
+      "name": "Object 7",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-07-object-7.png"
+    },
+    {
+      "name": "Object 8",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-08-object-8.png"
+    },
+    {
+      "name": "Object 9",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-09-object-9.png"
+    },
+    {
+      "name": "Object 10",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-10-object-10.png"
+    },
+    {
+      "name": "Object 11",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-11-object-11.png"
+    },
+    {
+      "name": "Object 12",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-12-object-12.png"
+    },
+    {
+      "name": "Object 13",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-13-object-13.png"
+    },
+    {
+      "name": "Object 14",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-14-object-14.png"
+    },
+    {
+      "name": "Object 15",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-15-object-15.png"
+    },
+    {
+      "name": "Object 16",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-16-object-16.png"
+    },
+    {
+      "name": "Object 17",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-17-object-17.png"
+    },
+    {
+      "name": "Object 18",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-18-object-18.png"
+    },
+    {
+      "name": "Object 19",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-19-object-19.png"
+    },
+    {
+      "name": "Object 20",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-20-object-20.png"
+    },
+    {
+      "name": "Object 21",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-21-object-21.png"
+    },
+    {
+      "name": "Object 22",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-22-object-22.png"
+    },
+    {
+      "name": "Object 23",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-23-object-23.png"
+    },
+    {
+      "name": "Object 24",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-24-object-24.png"
+    },
+    {
+      "name": "Object 25",
+      "category": "objects",
+      "set": "set-3",
+      "path": "assets/brand/objects/set-3-25-object-25.png"
+    },
+    {
+      "name": "Object 1",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-01-object-1.png"
+    },
+    {
+      "name": "Object 2",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-02-object-2.png"
+    },
+    {
+      "name": "Object 3",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-03-object-3.png"
+    },
+    {
+      "name": "Object 4",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-04-object-4.png"
+    },
+    {
+      "name": "Object 5",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-05-object-5.png"
+    },
+    {
+      "name": "Object 6",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-06-object-6.png"
+    },
+    {
+      "name": "Object 7",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-07-object-7.png"
+    },
+    {
+      "name": "Object 8",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-08-object-8.png"
+    },
+    {
+      "name": "Object 9",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-09-object-9.png"
+    },
+    {
+      "name": "Object 10",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-10-object-10.png"
+    },
+    {
+      "name": "Object 11",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-11-object-11.png"
+    },
+    {
+      "name": "Object 12",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-12-object-12.png"
+    },
+    {
+      "name": "Object 13",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-13-object-13.png"
+    },
+    {
+      "name": "Object 14",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-14-object-14.png"
+    },
+    {
+      "name": "Object 15",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-15-object-15.png"
+    },
+    {
+      "name": "Object 16",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-16-object-16.png"
+    },
+    {
+      "name": "Object 17",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-17-object-17.png"
+    },
+    {
+      "name": "Object 18",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-18-object-18.png"
+    },
+    {
+      "name": "Object 19",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-19-object-19.png"
+    },
+    {
+      "name": "Object 20",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-20-object-20.png"
+    },
+    {
+      "name": "Object 21",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-21-object-21.png"
+    },
+    {
+      "name": "Object 22",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-22-object-22.png"
+    },
+    {
+      "name": "Object 23",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-23-object-23.png"
+    },
+    {
+      "name": "Object 24",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-24-object-24.png"
+    },
+    {
+      "name": "Object 25",
+      "category": "objects",
+      "set": "set-4",
+      "path": "assets/brand/objects/set-4-25-object-25.png"
+    }
+  ],
+  "characters": [
+    {
+      "name": "Freelancer on Laptop",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-01-freelancer-on-laptop.png"
+    },
+    {
+      "name": "Freelancer Holding Invoice",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-02-freelancer-holding-invoice.png"
+    },
+    {
+      "name": "Designer Sketching",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-03-designer-sketching.png"
+    },
+    {
+      "name": "Developer Coding",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-04-developer-coding.png"
+    },
+    {
+      "name": "Photographer with Camera",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-05-photographer-with-camera.png"
+    },
+    {
+      "name": "Cafe Owner with Tablet",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-06-cafe-owner-with-tablet.png"
+    },
+    {
+      "name": "Consultant on Phone",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-07-consultant-on-phone.png"
+    },
+    {
+      "name": "Client Reviewing Bill",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-08-client-reviewing-bill.png"
+    },
+    {
+      "name": "Small Business Owner at Desk",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-09-small-business-owner-at-desk.png"
+    },
+    {
+      "name": "Creator Giving Thumbs Up",
+      "category": "characters",
+      "set": "set-1",
+      "path": "assets/brand/characters/set-1-10-creator-giving-thumbs-up.png"
+    },
+    {
+      "name": "Character 1",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-01-character-1.png"
+    },
+    {
+      "name": "Character 2",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-02-character-2.png"
+    },
+    {
+      "name": "Character 3",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-03-character-3.png"
+    },
+    {
+      "name": "Character 4",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-04-character-4.png"
+    },
+    {
+      "name": "Character 5",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-05-character-5.png"
+    },
+    {
+      "name": "Character 6",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-06-character-6.png"
+    },
+    {
+      "name": "Character 7",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-07-character-7.png"
+    },
+    {
+      "name": "Character 8",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-08-character-8.png"
+    },
+    {
+      "name": "Character 9",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-09-character-9.png"
+    },
+    {
+      "name": "Character 10",
+      "category": "characters",
+      "set": "set-2",
+      "path": "assets/brand/characters/set-2-10-character-10.png"
+    },
+    {
+      "name": "Character 1",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-01-character-1.png"
+    },
+    {
+      "name": "Character 2",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-02-character-2.png"
+    },
+    {
+      "name": "Character 3",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-03-character-3.png"
+    },
+    {
+      "name": "Character 4",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-04-character-4.png"
+    },
+    {
+      "name": "Character 5",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-05-character-5.png"
+    },
+    {
+      "name": "Character 6",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-06-character-6.png"
+    },
+    {
+      "name": "Character 7",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-07-character-7.png"
+    },
+    {
+      "name": "Character 8",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-08-character-8.png"
+    },
+    {
+      "name": "Character 9",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-09-character-9.png"
+    },
+    {
+      "name": "Character 10",
+      "category": "characters",
+      "set": "set-3",
+      "path": "assets/brand/characters/set-3-10-character-10.png"
+    },
+    {
+      "name": "Character 1",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-01-character-1.png"
+    },
+    {
+      "name": "Character 2",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-02-character-2.png"
+    },
+    {
+      "name": "Character 3",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-03-character-3.png"
+    },
+    {
+      "name": "Character 4",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-04-character-4.png"
+    },
+    {
+      "name": "Character 5",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-05-character-5.png"
+    },
+    {
+      "name": "Character 6",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-06-character-6.png"
+    },
+    {
+      "name": "Character 7",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-07-character-7.png"
+    },
+    {
+      "name": "Character 8",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-08-character-8.png"
+    },
+    {
+      "name": "Character 9",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-09-character-9.png"
+    },
+    {
+      "name": "Character 10",
+      "category": "characters",
+      "set": "set-4",
+      "path": "assets/brand/characters/set-4-10-character-10.png"
+    },
+    {
+      "name": "Character 1",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-01-character-1.png"
+    },
+    {
+      "name": "Character 2",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-02-character-2.png"
+    },
+    {
+      "name": "Character 3",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-03-character-3.png"
+    },
+    {
+      "name": "Character 4",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-04-character-4.png"
+    },
+    {
+      "name": "Character 5",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-05-character-5.png"
+    },
+    {
+      "name": "Character 6",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-06-character-6.png"
+    },
+    {
+      "name": "Character 7",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-07-character-7.png"
+    },
+    {
+      "name": "Character 8",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-08-character-8.png"
+    },
+    {
+      "name": "Character 9",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-09-character-9.png"
+    },
+    {
+      "name": "Character 10",
+      "category": "characters",
+      "set": "set-5",
+      "path": "assets/brand/characters/set-5-10-character-10.png"
+    }
+  ],
+  "patterns": [
+    {
+      "name": "Pattern 1",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-01-pattern-1.png"
+    },
+    {
+      "name": "Pattern 2",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-02-pattern-2.png"
+    },
+    {
+      "name": "Pattern 3",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-03-pattern-3.png"
+    },
+    {
+      "name": "Pattern 4",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-04-pattern-4.png"
+    },
+    {
+      "name": "Pattern 5",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-05-pattern-5.png"
+    },
+    {
+      "name": "Pattern 6",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-06-pattern-6.png"
+    },
+    {
+      "name": "Pattern 7",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-07-pattern-7.png"
+    },
+    {
+      "name": "Pattern 8",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-08-pattern-8.png"
+    },
+    {
+      "name": "Pattern 9",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-09-pattern-9.png"
+    },
+    {
+      "name": "Pattern 10",
+      "category": "patterns",
+      "set": "set-1",
+      "path": "assets/brand/patterns/set-1-10-pattern-10.png"
+    },
+    {
+      "name": "Pattern 1",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-01-pattern-1.png"
+    },
+    {
+      "name": "Pattern 2",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-02-pattern-2.png"
+    },
+    {
+      "name": "Pattern 3",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-03-pattern-3.png"
+    },
+    {
+      "name": "Pattern 4",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-04-pattern-4.png"
+    },
+    {
+      "name": "Pattern 5",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-05-pattern-5.png"
+    },
+    {
+      "name": "Pattern 6",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-06-pattern-6.png"
+    },
+    {
+      "name": "Pattern 7",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-07-pattern-7.png"
+    },
+    {
+      "name": "Pattern 8",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-08-pattern-8.png"
+    },
+    {
+      "name": "Pattern 9",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-09-pattern-9.png"
+    },
+    {
+      "name": "Pattern 10",
+      "category": "patterns",
+      "set": "set-2",
+      "path": "assets/brand/patterns/set-2-10-pattern-10.png"
+    },
+    {
+      "name": "Pattern 1",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-01-pattern-1.png"
+    },
+    {
+      "name": "Pattern 2",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-02-pattern-2.png"
+    },
+    {
+      "name": "Pattern 3",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-03-pattern-3.png"
+    },
+    {
+      "name": "Pattern 4",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-04-pattern-4.png"
+    },
+    {
+      "name": "Pattern 5",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-05-pattern-5.png"
+    },
+    {
+      "name": "Pattern 6",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-06-pattern-6.png"
+    },
+    {
+      "name": "Pattern 7",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-07-pattern-7.png"
+    },
+    {
+      "name": "Pattern 8",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-08-pattern-8.png"
+    },
+    {
+      "name": "Pattern 9",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-09-pattern-9.png"
+    },
+    {
+      "name": "Pattern 10",
+      "category": "patterns",
+      "set": "set-3",
+      "path": "assets/brand/patterns/set-3-10-pattern-10.png"
+    }
+  ],
+  "sheets": [
+    {
+      "name": "a_clean_brand_illustration_style_guide_poster_layo",
+      "path": "assets/brand/sheets/a-clean-brand-illustration-style-guide-poster-layo.webp"
+    },
+    {
+      "name": "a_clean_high_resolution_brand_guideline_presentat",
+      "path": "assets/brand/sheets/a-clean-high-resolution-brand-guideline-presentat.webp"
+    },
+    {
+      "name": "a_clean_high_resolution_brand_guideline_style_g",
+      "path": "assets/brand/sheets/a-clean-high-resolution-brand-guideline-style-g.webp"
+    },
+    {
+      "name": "01_Doodle_Objects_Set_1",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-01-doodle-objects-set-1.webp"
+    },
+    {
+      "name": "02_Doodle_Objects_Set_2",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-02-doodle-objects-set-2.webp"
+    },
+    {
+      "name": "03_UI_Icons_Set_1",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-03-ui-icons-set-1.webp"
+    },
+    {
+      "name": "04_UI_Icons_Set_2",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-04-ui-icons-set-2.webp"
+    },
+    {
+      "name": "05_Character_Poses_Set_1",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-05-character-poses-set-1.webp"
+    },
+    {
+      "name": "06_Character_Poses_Set_2",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-06-character-poses-set-2.webp"
+    },
+    {
+      "name": "07_Pattern_Systems_Set_1",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-07-pattern-systems-set-1.webp"
+    },
+    {
+      "name": "08_Pattern_Systems_Set_2",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-08-pattern-systems-set-2.webp"
+    },
+    {
+      "name": "09_Editorial_Compositions_Set_1",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-09-editorial-compositions-set-1.webp"
+    },
+    {
+      "name": "10_Editorial_Compositions_Set_2",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-01-10-editorial-compositions-set-2.webp"
+    },
+    {
+      "name": "11_Doodle_Objects_Set_3",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-11-doodle-objects-set-3.webp"
+    },
+    {
+      "name": "12_Doodle_Objects_Set_4",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-12-doodle-objects-set-4.webp"
+    },
+    {
+      "name": "13_UI_Icons_Set_3",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-13-ui-icons-set-3.webp"
+    },
+    {
+      "name": "14_UI_Icons_Set_4",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-14-ui-icons-set-4.webp"
+    },
+    {
+      "name": "15_Character_Poses_Set_3",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-15-character-poses-set-3.webp"
+    },
+    {
+      "name": "16_Character_Poses_Set_4",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-16-character-poses-set-4.webp"
+    },
+    {
+      "name": "17_Character_Poses_Set_5",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-17-character-poses-set-5.webp"
+    },
+    {
+      "name": "18_Pattern_Systems_Set_3",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-18-pattern-systems-set-3.webp"
+    },
+    {
+      "name": "19_Editorial_Compositions_Set_3",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-19-editorial-compositions-set-3.webp"
+    },
+    {
+      "name": "20_Editorial_Compositions_Set_4",
+      "path": "assets/brand/sheets/billngai-asset-library-batch-02-20-editorial-compositions-set-4.webp"
+    },
+    {
+      "name": "21_Master_Brand_Book_Cover_System_Overview",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-21-master-brand-book-cover-system-overview.webp"
+    },
+    {
+      "name": "22_Master_Asset_Library_Objects_Icons_Characters",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-22-master-asset-library-objects-icons-characters.webp"
+    },
+    {
+      "name": "23_Social_Media_Communication_System",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-23-social-media-communication-system.webp"
+    },
+    {
+      "name": "24_Website_Landing_Page_System",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-24-website-landing-page-system.webp"
+    },
+    {
+      "name": "25_App_Onboarding_Empty_States",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-25-app-onboarding-empty-states.webp"
+    },
+    {
+      "name": "26_Email_Invoice_CRM_Communication_Materials",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-26-email-invoice-crm-communication-materials.webp"
+    },
+    {
+      "name": "27_Sales_Presentation_Materials",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-27-sales-presentation-materials.webp"
+    },
+    {
+      "name": "28_Stickers_Merch_Packaging",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-28-stickers-merch-packaging.webp"
+    },
+    {
+      "name": "29_Campaign_Visuals_Ad_System",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-29-campaign-visuals-ad-system.webp"
+    },
+    {
+      "name": "30_Application_Ecosystem_Master_Brand_Book_Summary",
+      "path": "assets/brand/sheets/billngai-brand-application-batch-03-30-application-ecosystem-master-brand-book-summary.webp"
+    }
+  ]
+}
