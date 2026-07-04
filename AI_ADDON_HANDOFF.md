@@ -269,8 +269,10 @@ Completed 2026-07-04 (second pass):
 
 Remaining:
 
-1. Generate production Ed25519 keypair; re-embed public key in main.js;
-   re-sign shipped add-on packages.
+1. ~~Generate production Ed25519 keypair~~ — done 2026-07-05: new keypair in
+   git-ignored `secrets/ai-signing-key.pem`, public key embedded in main.js,
+   add-on PKG re-signed and re-installed. Old dev-signed packages are now
+   rejected by the app (by design).
 2. Windows add-on story (paths + llama-cli build are macOS-only today).
 3. Optional: auto-suggest แบ่งงวด from `installments` after the quotation
    is created.

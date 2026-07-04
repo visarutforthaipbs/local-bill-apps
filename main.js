@@ -15,7 +15,7 @@ const USER_AI_DIR  = path.join(USER_DIR, 'ai');
 const SYSTEM_AI_DIR = '/Library/Application Support/BillNgai/ai';
 const AI_DIRS      = [USER_AI_DIR, SYSTEM_AI_DIR];
 const AI_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAWcP8m6RvZUtYRonssiCR/F4xIoQyOVFR30THux48hTk=
+MCowBQYDK2VwAyEAAwXFS9Dak1ag+iOqxPcFJlYKHqqCxeOFzXwpzR3SlJI=
 -----END PUBLIC KEY-----`;
 
 // ย้ายข้อมูลครั้งเดียวจากโฟลเดอร์ชื่อเดิม (Billiong) — คัดลอกเท่านั้น ไม่ลบของเดิม

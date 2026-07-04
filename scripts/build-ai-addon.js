@@ -5,13 +5,13 @@ const { spawnSync } = require('child_process');
 
 const DEFAULT_KEY_PATHS = [
   process.env.BILLNGAI_AI_PRIVATE_KEY,
-  path.join(__dirname, '..', 'secrets', 'ai-dev-signing-key.pem')
+  path.join(__dirname, '..', 'secrets', 'ai-signing-key.pem')
 ].filter(Boolean);
 function loadPrivateKey() {
   for (const p of DEFAULT_KEY_PATHS) {
     try { return fs.readFileSync(p, 'utf8'); } catch (e) { /* try next */ }
   }
-  console.error('Signing key not found. Set BILLNGAI_AI_PRIVATE_KEY or create secrets/ai-dev-signing-key.pem (git-ignored).');
+  console.error('Signing key not found. Set BILLNGAI_AI_PRIVATE_KEY or create secrets/ai-signing-key.pem (git-ignored).');
   process.exit(1);
 }
 

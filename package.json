@@ -1,6 +1,6 @@
 {
   "name": "billngai-app",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
