@@ -3,6 +3,23 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [1.3.0] — 2026-07-04
+
+### Added
+- **แบ่งงวด (milestone billing)** — split an accepted quotation into N installment
+  invoices per the TOR payment schedule: per-งวด label, % or amount (last งวด
+  auto-balances so the total always matches), optional due dates, preset splits
+  (50/50, 30/40/30, equal parts). All งวด are created upfront as drafts with
+  sequential numbers, linked to the quotation.
+- **Installment progress on the quotation** — billed/paid/remaining bar and totals,
+  derived live from the linked invoices and their receipts.
+- งวด invoices are tagged "งวดที่ i/N" in the documents list and document trail;
+  line-item text follows the document language (ไทย / bilingual / English).
+
+### Fixed
+- A quotation could be converted to an invoice repeatedly; the convert (and split)
+  buttons now hide once invoice children exist and return if they are deleted.
+
 ## [1.2.0] — 2026-07-04
 
 ### Added

@@ -365,6 +365,25 @@
   .doc-trail .trail-chip:hover{border-color:var(--accent);color:var(--accent)}
   .doc-trail .trail-chip b{font-variant-numeric:tabular-nums}
   .doc-trail .trail-sep{width:1px;height:16px;background:var(--border)}
+  /* แถบความคืบหน้าการแบ่งงวด (บนใบเสนอราคาที่แบ่งแล้ว) */
+  .split-progress{max-width:820px;margin:0 auto 18px;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:10px;padding:14px 16px}
+  .split-progress .sp-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;font-size:12.5px}
+  .split-progress .sp-head b{font-size:13px}
+  .split-progress .sp-track{height:10px;border-radius:6px;background:var(--border-soft);overflow:hidden;display:flex}
+  .split-progress .sp-paid{height:100%;background:linear-gradient(90deg,var(--accent-bright),var(--accent));transition:.2s}
+  .split-progress .sp-billed{height:100%;background:var(--accent);opacity:.32;transition:.2s}
+  .split-progress .sp-stats{display:flex;gap:18px;margin-top:9px;font-size:12px;color:var(--text-dim);flex-wrap:wrap}
+  .split-progress .sp-stats b{font-variant-numeric:tabular-nums}
+  /* ตารางในไดอะล็อกแบ่งงวด */
+  .split-rows{width:100%;border-collapse:collapse;font-size:12.5px}
+  .split-rows th{text-align:left;font-weight:600;color:var(--text-faint);padding:4px 6px;font-size:11.5px}
+  .split-rows td{padding:4px 6px;vertical-align:middle}
+  .split-rows input{width:100%}
+  .split-rows .num-col{width:88px}
+  .split-rows .amt-col{width:120px}
+  .split-rows .date-col{width:140px}
+  .split-rows .bal{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent)}
   .paper{background:#fff;color:#1f1c17;border-radius:10px;padding:52px 54px;
     max-width:820px;margin:0 auto;box-shadow:var(--shadow);font-size:13px;line-height:1.55;
     border:1px solid var(--border-soft);animation:fadeUp .45s cubic-bezier(.2,.7,.2,1) both}
@@ -1063,6 +1082,30 @@ const I18N_EN = {
   'ธุรกิจ':'Business',
   'จำนวนเอกสารรายรับ':'Income documents',
   'เอกสารต่างประเทศที่ยังไม่ระบุอัตราแลกเปลี่ยน':'Foreign documents missing an FX rate',
+  // --- แบ่งงวด (milestone billing) ---
+  'แบ่งงวด':'Split into installments',
+  'การแบ่งงวด':'Installment schedule',
+  '{n} งวด':'{n} installments',
+  'งวดที่ {i}':'Installment {i}',
+  'งวดที่ {i}/{n}':'Installment {i}/{n}',
+  'ออกใบแจ้งหนี้ครบแล้ว':'fully invoiced',
+  'ออกบิลแล้ว':'Invoiced',
+  'ยังไม่ออกบิล':'Not yet invoiced',
+  'มัดจำ':'Deposit',
+  'ส่งมอบงาน':'Delivery',
+  'ชื่องวด (ตาม TOR)':'Installment name (per TOR)',
+  'จำนวนเงิน':'Amount',
+  'เช่น มัดจำ / ส่งมอบงาน / ตรวจรับ':'e.g. deposit / delivery / acceptance',
+  'เพิ่มงวด':'Add installment',
+  '3 งวดเท่ากัน':'3 equal parts',
+  '4 งวดเท่ากัน':'4 equal parts',
+  'ยอดก่อน VAT {a} — งวดสุดท้ายปรับยอดให้ครบอัตโนมัติ แต่ละงวดจะคิด VAT/หัก ณ ที่จ่าย ของตัวเอง':'Pre-VAT total {a} — the last installment auto-balances; each installment computes its own VAT/withholding',
+  'ยอดงวดก่อนหน้ารวมเกินยอดใบเสนอราคา — ลดยอดบางงวดลง':'Earlier installments exceed the quotation total — reduce some amounts',
+  'ยอดใบเสนอราคาเป็นศูนย์ — แบ่งงวดไม่ได้':'Quotation total is zero — nothing to split',
+  'ใบเสนอราคานี้แบ่งงวดแล้ว — ลบใบแจ้งหนี้งวดเดิมก่อนถ้าต้องการแบ่งใหม่':'This quotation is already split — delete the existing installment invoices to split again',
+  'ทุกงวดต้องมียอดมากกว่าศูนย์':'Every installment needs an amount above zero',
+  'สร้างใบแจ้งหนี้ {n} งวด':'Create {n} installment invoices',
+  'สร้างใบแจ้งหนี้ {n} งวดแล้ว':'Created {n} installment invoices',
   // --- statuses ---
   'ร่าง':'Draft',
   'ส่งแล้ว':'Sent',
@@ -2219,7 +2262,7 @@ function docTable(list){
     ${list.map(d=>{
       const cl=clientById(d.clientId); const t=compute(d); const st=effectiveStatus(d);
       return `<tr onclick="viewDoc('${d.id}')">
-        <td class="doc-no">${d.number}</td>
+        <td class="doc-no">${d.number}${d.milestone?`<div class="muted" style="font-size:11px;font-weight:400">${tr('งวดที่ {i}/{n}').replace('{i}',d.milestone.seq).replace('{n}',d.milestone.of)}</div>`:''}</td>
         <td>${typeName(d.type)}</td>
         <td>${cl?escapeHtml(cl.name):'<span class="muted">—</span>'}${d.project?`<div class="muted" style="font-size:11.5px">${escapeHtml(d.project)}</div>`:''}</td>
         <td class="muted">${fmtDate(d.issueDate)}</td>
@@ -3252,7 +3295,11 @@ function renderDocView(c,ta){
     if(d.status==='draft') lifecycle+=`<button class="btn" onclick="setStatus('${d.id}','sent')">${tr('ทำเครื่องหมายว่าส่งแล้ว')}</button>`;
     if(d.status==='sent'){ lifecycle+=`<button class="btn" onclick="setStatus('${d.id}','accepted')">${tr('ลูกค้าตอบรับ')}</button>
       <button class="btn btn-danger" onclick="setStatus('${d.id}','declined')">${tr('ลูกค้าปฏิเสธ')}</button>`; }
-    if(d.status==='accepted'||d.status==='sent') lifecycle+=`<button class="btn btn-primary" onclick="convertToInvoice('${d.id}')">${ic('arrowRight')} ${tr('แปลงเป็นใบแจ้งหนี้')}</button>`;
+    // ซ่อนปุ่มแปลง/แบ่งงวดเมื่อออกใบแจ้งหนี้ลูกไปแล้ว (กันออกซ้ำ) — ลบใบลูกทั้งหมดแล้วปุ่มกลับมาเอง
+    if((d.status==='accepted'||d.status==='sent') && !invoiceChildren(d).length){
+      lifecycle+=`<button class="btn btn-primary" onclick="convertToInvoice('${d.id}')">${ic('arrowRight')} ${tr('แปลงเป็นใบแจ้งหนี้')}</button>
+      <button class="btn" onclick="openSplitDialog('${d.id}')">${ic('hash')} ${tr('แบ่งงวด')}</button>`;
+    }
   }
   if(d.type==='invoice'){
     if(d.status==='draft') lifecycle+=`<button class="btn" onclick="setStatus('${d.id}','sent')">${tr('ทำเครื่องหมายว่าส่งแล้ว')}</button>`;
@@ -3273,6 +3320,7 @@ function renderDocView(c,ta){
       <button class="btn btn-danger" onclick="deleteDoc('${d.id}')">${ic('trash')} ${tr('ลบ')}</button>
     </div>
     ${docTrail(d)}
+    ${d.type==='quotation' ? renderSplitProgress(d) : ''}
     ${renderPaper(d,cl,t)}
   `;
 }
@@ -3331,7 +3379,7 @@ function docTrail(d){
   const parent = d.parentId ? DB.documents.find(x=>x.id===d.parentId) : null;
   const children = DB.documents.filter(x=>x.parentId===d.id);
   if(!parent && !children.length) return '';
-  const chip = doc => `<a class="trail-chip" onclick="viewDoc('${doc.id}')">${typeName(doc.type)} <b>${escapeHtml(doc.number)}</b></a>`;
+  const chip = doc => `<a class="trail-chip" onclick="viewDoc('${doc.id}')">${typeName(doc.type)}${doc.milestone?' · '+tr('งวดที่ {i}').replace('{i}',doc.milestone.seq):''} <b>${escapeHtml(doc.number)}</b></a>`;
   let parts=[];
   if(parent) parts.push(`<span class="trail-l">${tr('สร้างจาก')}</span>${chip(parent)}`);
   if(children.length) parts.push(`<span class="trail-l">${ic('arrowRight')} ${tr('นำไปออก')}</span>${children.map(chip).join('')}`);
@@ -3516,6 +3564,7 @@ function duplicateDoc(id){
   const src=DB.documents.find(x=>x.id===id);
   const copy=JSON.parse(JSON.stringify(src));
   copy.id=uid(); copy.parentId=null; copy.issueDate=todayISO();
+  delete copy.milestone;   // สำเนาไม่ใช่งวดของใคร
   copy.createdAt=new Date().toISOString();
   copy.status = (copy.type==='receipt'||copy.type==='tax_invoice')?'issued':'draft';
   if(copy.type==='invoice') copy.dueDate=addDays(todayISO(),30);
@@ -3525,6 +3574,171 @@ function duplicateDoc(id){
   DB.documents.push(copy);
   persist(); viewDoc(copy.id);
   toast(tr('ทำสำเนาแล้ว'),'ok');
+}
+
+/* ============================================================
+   แบ่งงวด — split a quotation into milestone invoices
+   ============================================================ */
+function invoiceChildren(q){ return DB.documents.filter(x=> x.parentId===q.id && x.type==='invoice'); }
+// billed = ยอดที่ออกใบแจ้งหนี้แล้ว, paid = ชำระแล้ว (หรือมีใบเสร็จลูกแล้ว) — เทียบกับยอดใบเสนอราคา
+function splitProgress(q){
+  const kids = invoiceChildren(q);
+  const total = compute(q).grandTotal;
+  let billed=0, paid=0;
+  kids.forEach(k=>{
+    const g=compute(k).grandTotal; billed+=g;
+    const hasReceipt = DB.documents.some(r=> r.parentId===k.id && (r.type==='receipt'||r.type==='tax_invoice'));
+    if(k.status==='paid' || hasReceipt) paid+=g;
+  });
+  billed=round2(billed); paid=round2(paid);
+  const remaining = Math.max(0, round2(total-billed));   // เศษสตางค์จาก VAT รายใบ — ต่ำกว่า 0.05 ถือว่าครบ
+  return {kids, total, billed, paid, remaining, fullyBilled: kids.length>0 && (total-billed)<0.05};
+}
+function renderSplitProgress(q){
+  const p = splitProgress(q);
+  if(!p.kids.length) return '';
+  const cs = curSymOf(docCurrency(q));
+  const pctPaid = p.total? Math.min(100, p.paid/p.total*100) : 0;
+  const pctBilledOnly = p.total? Math.max(0, Math.min(100, p.billed/p.total*100) - pctPaid) : 0;
+  return `<div class="split-progress">
+    <div class="sp-head"><b>${tr('การแบ่งงวด')}</b>
+      <span class="muted">${tr('{n} งวด').replace('{n}',p.kids.length)}${p.fullyBilled?' · '+tr('ออกใบแจ้งหนี้ครบแล้ว'):''}</span></div>
+    <div class="sp-track">
+      <div class="sp-paid" style="width:${pctPaid.toFixed(1)}%"></div>
+      <div class="sp-billed" style="width:${pctBilledOnly.toFixed(1)}%"></div>
+    </div>
+    <div class="sp-stats">
+      <span>${tr('ชำระแล้ว')} <b>${cs}${money(p.paid)}</b></span>
+      <span>${tr('ออกบิลแล้ว')} <b>${cs}${money(p.billed)}</b></span>
+      ${p.remaining>=0.05?`<span>${tr('ยังไม่ออกบิล')} <b>${cs}${money(p.remaining)}</b></span>`:''}
+    </div>
+  </div>`;
+}
+
+let splitState=null;   // {qid, rows:[{label, amount, due}]} — แถวสุดท้ายไม่มี amount (ยอดคงเหลืออัตโนมัติ)
+function splitBase(q){ return compute(q).subtotal; }   // แบ่งจากยอดก่อน VAT — แต่ละใบคำนวณ VAT/WHT ของตัวเอง
+function openSplitDialog(qid){
+  const q=DB.documents.find(x=>x.id===qid); if(!q) return;
+  if(invoiceChildren(q).length){ toast(tr('ใบเสนอราคานี้แบ่งงวดแล้ว — ลบใบแจ้งหนี้งวดเดิมก่อนถ้าต้องการแบ่งใหม่'),'err'); return; }
+  const base=splitBase(q);
+  if(!(base>0)){ toast(tr('ยอดใบเสนอราคาเป็นศูนย์ — แบ่งงวดไม่ได้'),'err'); return; }
+  // ป้ายชื่องวดพิมพ์ลงเอกสาร — ตั้งต้นตามภาษาเอกสาร ไม่ใช่ภาษา UI
+  const enDoc = docLangOf(q)==='en';
+  splitState={ qid, rows:[
+    {label:enDoc?'Deposit':'มัดจำ', amount:round2(base*0.5), due:addDays(todayISO(),30)},
+    {label:enDoc?'Delivery':'ส่งมอบงาน', amount:null, due:addDays(todayISO(),60)}
+  ]};
+  drawSplitDialog();
+}
+function splitPreset(pcts){
+  const q=DB.documents.find(x=>x.id===splitState.qid); const base=splitBase(q);
+  splitState.rows = pcts.map((p,i)=>({
+    label: splitState.rows[i] ? splitState.rows[i].label : '',   // คำว่า "งวดที่ i/N" ใส่ให้อัตโนมัติอยู่แล้ว
+    amount: i===pcts.length-1 ? null : round2(base*p/100),
+    due: addDays(todayISO(), 30*(i+1))
+  }));
+  drawSplitDialog();
+}
+function splitAdd(){
+  if(splitState.rows.length>=12) return;
+  splitState.rows.splice(splitState.rows.length-1, 0, {label:'', amount:0, due:addDays(todayISO(),30*splitState.rows.length)});
+  drawSplitDialog();
+}
+function splitDel(i){
+  if(splitState.rows.length<=2) return;
+  splitState.rows.splice(i,1);
+  drawSplitDialog();
+}
+function splitUpd(i,k,v){
+  const row=splitState.rows[i];
+  if(k==='amount') row.amount=round2(Number(v)||0);
+  else if(k==='pct'){ const q=DB.documents.find(x=>x.id===splitState.qid); row.amount=round2(splitBase(q)*(Number(v)||0)/100); }
+  else row[k]=v;
+  if(k==='amount'||k==='pct') drawSplitDialog();
+}
+function splitBalance(){
+  const q=DB.documents.find(x=>x.id===splitState.qid);
+  const others=splitState.rows.slice(0,-1).reduce((s,r)=>s+(Number(r.amount)||0),0);
+  return round2(splitBase(q)-others);
+}
+function drawSplitDialog(){
+  const q=DB.documents.find(x=>x.id===splitState.qid);
+  const base=splitBase(q); const cs=curSymOf(docCurrency(q));
+  const bal=splitBalance(); const n=splitState.rows.length;
+  const pctOf=a=> base? (a/base*100) : 0;
+  const rowsHtml=splitState.rows.map((r,i)=>{
+    const last=i===n-1;
+    const amt=last? bal : (Number(r.amount)||0);
+    return `<tr>
+      <td class="muted">${i+1}</td>
+      <td><input type="text" value="${attr(r.label)}" placeholder="${attr(tr('เช่น มัดจำ / ส่งมอบงาน / ตรวจรับ'))}" onchange="splitUpd(${i},'label',this.value)"></td>
+      <td class="num-col">${last
+        ? `<span class="bal">${pctOf(amt).toFixed(1)}%</span>`
+        : `<input type="number" min="0" max="100" step="0.1" value="${pctOf(amt).toFixed(1)}" onchange="splitUpd(${i},'pct',this.value)">`}</td>
+      <td class="amt-col">${last
+        ? `<span class="bal">${cs}${money(amt)}</span>`
+        : `<input type="number" min="0" step="0.01" value="${amt}" onchange="splitUpd(${i},'amount',this.value)">`}</td>
+      <td class="date-col"><input type="date" value="${r.due||''}" onchange="splitUpd(${i},'due',this.value)"></td>
+      <td>${n>2?`<button class="btn btn-sm" onclick="splitDel(${i})">${ic('trash',13)}</button>`:''}</td>
+    </tr>`;
+  }).join('');
+  const m=document.getElementById('modal');
+  m.innerHTML=`
+    <div class="modal-head"><h3>${tr('แบ่งงวด')} — ${escapeHtml(q.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="muted" style="font-size:12px;margin-bottom:10px">${tr('ยอดก่อน VAT {a} — งวดสุดท้ายปรับยอดให้ครบอัตโนมัติ แต่ละงวดจะคิด VAT/หัก ณ ที่จ่าย ของตัวเอง').replace('{a}',cs+money(base))}</div>
+      <div class="pill-select" style="margin-bottom:12px">
+        <button onclick="splitPreset([50,50])">50/50</button>
+        <button onclick="splitPreset([30,40,30])">30/40/30</button>
+        <button onclick="splitPreset([100/3,100/3,100/3])">${tr('3 งวดเท่ากัน')}</button>
+        <button onclick="splitPreset([25,25,25,25])">${tr('4 งวดเท่ากัน')}</button>
+      </div>
+      <table class="split-rows">
+        <tr><th>#</th><th>${tr('ชื่องวด (ตาม TOR)')}</th><th>%</th><th>${tr('จำนวนเงิน')}</th><th>${tr('ครบกำหนด')}</th><th></th></tr>
+        ${rowsHtml}
+      </table>
+      <button class="btn btn-sm" style="margin-top:10px" onclick="splitAdd()">${ic('plus',13)} ${tr('เพิ่มงวด')}</button>
+      ${bal<0.005?`<div class="banner" style="background:var(--red-bg);border-color:#e6c5bd;color:#9c3022;margin-top:10px">${ic('alert')} ${tr('ยอดงวดก่อนหน้ารวมเกินยอดใบเสนอราคา — ลดยอดบางงวดลง')}</div>`:''}
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button>
+      <button class="btn btn-primary" onclick="saveSplit()">${ic('arrowRight')} ${tr('สร้างใบแจ้งหนี้ {n} งวด').replace('{n}',n)}</button>
+    </div>`;
+  openModal();
+}
+function saveSplit(){
+  const q=DB.documents.find(x=>x.id===splitState.qid);
+  const bal=splitBalance();
+  const amounts=[...splitState.rows.slice(0,-1).map(r=>round2(Number(r.amount)||0)), bal];
+  if(amounts.some(a=> !(a>0))){ toast(tr('ทุกงวดต้องมียอดมากกว่าศูนย์'),'err'); return; }
+  splitQuotation(q, splitState.rows.map((r,i)=>({label:(r.label||'').trim(), amount:amounts[i], due:r.due||null})));
+}
+function splitQuotation(q, rows){
+  const N=rows.length;
+  const lang=docLangOf(q);                         // คำบรรยายงวดพิมพ์ลงกระดาษ — ตามภาษาเอกสาร ไม่ใช่ภาษา UI
+  rows.forEach((r,idx)=>{
+    const i=idx+1;
+    const th=`งวดที่ ${i}/${N}${r.label?' — '+r.label:''} · อ้างอิง ${q.number}`;
+    const en=`Installment ${i}/${N}${r.label?' — '+r.label:''} · ref ${q.number}`;
+    const bi=`งวดที่ ${i}/${N} (Installment ${i}/${N})${r.label?' — '+r.label:''} · อ้างอิง/ref ${q.number}`;
+    const description = lang==='en' ? en : lang==='bilingual' ? bi : th;
+    const inv={
+      id:uid(), type:'invoice', number:nextNumber('invoice',todayISO()),
+      clientId:q.clientId, parentId:q.id, issueDate:todayISO(), dueDate:r.due||addDays(todayISO(),30*i),
+      paidDate:null, status:'draft', project:q.project, currency:docCurrency(q),
+      items:[{description, qty:1, unit: lang==='en'?'installment':'งวด', price:r.amount}],
+      vatRate:q.vatRate, whtRate:q.whtRate,
+      docLang:q.docLang||'', fxRate:q.fxRate||null,
+      notes:q.notes, milestone:{seq:i, of:N, label:r.label},
+      createdAt:new Date().toISOString()
+    };
+    commitNumber('invoice',todayISO());             // ย้ำ: ต้อง commit ทุกวน ไม่งั้นเลขซ้ำทั้งชุด
+    DB.documents.push(inv);
+  });
+  q.status='accepted';
+  splitState=null;
+  persist(); closeModal(); viewDoc(q.id);
+  toast(tr('สร้างใบแจ้งหนี้ {n} งวดแล้ว').replace('{n}',N),'ok');
 }
 
 /* ============================================================
