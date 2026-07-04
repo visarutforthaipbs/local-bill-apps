@@ -309,6 +309,20 @@
   .ai-skel i:nth-child(6){animation-delay:.75s}
   @keyframes aiPulse{from{opacity:.4}to{opacity:1}}
   @keyframes aiGlow{from{opacity:.5}to{opacity:1}}
+  /* stepper ของหน้า TOR → Invoice — เดินทีละขั้น */
+  .ai-steps{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .ai-steps .step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text-faint)}
+  .ai-steps .step .n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11.5px;font-weight:700;background:var(--surface-3);color:var(--text-faint);flex-shrink:0}
+  .ai-steps .step.active{color:var(--text)}
+  .ai-steps .step.active .n{background:var(--accent);color:#fff}
+  .ai-steps .step.done{color:var(--accent-ink)}
+  .ai-steps .step.done .n{background:var(--accent-tint);color:var(--accent-ink);border:1px solid var(--accent-tint-bd)}
+  .ai-steps .sep{width:26px;height:1px;background:var(--border)}
+  .ai-tor-summary{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-dim);
+    background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);
+    padding:9px 13px;margin-bottom:14px}
+  .ai-tor-summary b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .filing-detail .line{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px}
   .filing-detail .line:last-child{border-bottom:none}
   .filing-detail .line>span{color:var(--text-dim);flex-shrink:0}
@@ -1136,6 +1150,12 @@ const I18N_EN = {
   'TOR → Invoice':'TOR → Invoice',
   'TOR':'TOR',
   'AI พร้อมใช้งาน':'AI ready',
+  'นำเข้า TOR':'Import TOR',
+  'AI ร่างเอกสาร':'AI drafts',
+  'ตรวจทานและสร้าง':'Review & create',
+  'แก้ไข TOR':'Edit TOR',
+  'ข้อความที่วางเอง':'Pasted text',
+  'ตัวอักษร':'characters',
   'AI กำลังอ่าน TOR และร่างเอกสารบนเครื่องของคุณ':'AI is reading the TOR and drafting on your machine',
   'วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต':'Paste the TOR or job details and let AI draft a quotation — everything runs on your machine, nothing leaves it',
   'โดยปกติใช้เวลาราว 1 นาที ขึ้นกับความยาว TOR และความเร็วเครื่อง':'Usually takes about a minute, depending on TOR length and machine speed',
@@ -2154,6 +2174,7 @@ function aiTorDrop(event){
   if(file && file.path) importTorFile(file.path);
 }
 function aiTorDrag(event){ event.preventDefault(); }
+function aiBackToInput(){ aiTorDraft=null; aiTorOutput=''; aiTorShowRaw=false; render(); }
 // ตัวนับเวลาให้ผู้ใช้เห็นว่า AI ทำงานอยู่ (โมเดลบนเครื่องใช้เวลาเป็นนาที)
 let aiTorTimer = null, aiTorStart = 0;
 function aiTickStart(){
@@ -2266,27 +2287,42 @@ function renderAi(c,ta){
   }
   if(status.valid){
     ta.innerHTML += ` <button class="btn btn-ghost" onclick="revealAiFolder()">${ic('folderOpen')} ${tr('เปิดโฟลเดอร์โมดูล')}</button>`;
-    c.innerHTML = `<div class="settings-grid">
-      <div class="card-block">
-        <h4>${ic('sparkles')} ${tr('TOR')}</h4>
+    const step = aiTorRunning ? 2 : ((aiTorDraft || aiTorOutput) ? 3 : 1);
+    const stepCls = n => n===step ? 'step active' : (n<step ? 'step done' : 'step');
+    const stepN = n => n<step ? ic('check',12) : n;
+    const torChars = (aiTorInput||'').length;
+    const torSummary = `<div class="ai-tor-summary">${ic('fileText',14)}
+      <b style="flex:1">${aiTorFileName?escapeHtml(aiTorFileName):tr('ข้อความที่วางเอง')} · ${torChars.toLocaleString()} ${tr('ตัวอักษร')}</b>
+      ${step===3?`<button class="btn btn-sm" onclick="aiBackToInput()">${tr('แก้ไข TOR')}</button>`:''}</div>`;
+    let body = '';
+    if(step===1){
+      body = `
         <div class="desc">${tr('วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต')}</div>
         <div class="banner" ondrop="aiTorDrop(event)" ondragover="aiTorDrag(event)" style="background:var(--accent-tint);border-color:var(--accent-tint-bd);color:var(--text);margin-bottom:13px">
           ${ic('upload')} <span style="flex:1">${aiTorFileName?`${tr('ไฟล์ที่นำเข้า')}: <b>${escapeHtml(aiTorFileName)}</b>`:tr('ลากไฟล์ PDF/DOCX/TXT มาวาง หรือเลือกไฟล์จากเครื่อง')}</span>
           <button class="btn btn-sm" onclick="event.stopPropagation();importTorFile()" ${aiTorImporting?'disabled':''}>${aiTorImporting?tr('กำลังนำเข้า...'):tr('เลือกไฟล์ TOR')}</button>
         </div>
         <div class="field" style="margin-bottom:12px">
-          <textarea id="aiTorInput" oninput="aiTorInput=this.value" style="min-height:170px" placeholder="${tr('วาง TOR หรือรายละเอียดงานที่นี่')}">${escapeHtml(aiTorInput)}</textarea>
+          <textarea id="aiTorInput" oninput="aiTorInput=this.value" style="min-height:190px" placeholder="${tr('วาง TOR หรือรายละเอียดงานที่นี่')}">${escapeHtml(aiTorInput)}</textarea>
         </div>
-        <button class="btn btn-primary" onclick="runAiTor()" ${aiTorRunning?'disabled':''}>${ic('sparkles')} ${aiTorRunning?tr('กำลังแปลง...'):tr('แปลงเป็นร่างเอกสาร')}</button>
-        <div class="hint" style="margin-top:12px">${ic('check')} ${tr('AI พร้อมใช้งาน')} · ${escapeHtml(status.model||'')} ${status.version?'v'+escapeHtml(status.version):''}</div>
+        <button class="btn btn-primary" onclick="runAiTor()">${ic('sparkles')} ${tr('แปลงเป็นร่างเอกสาร')}</button>
+        <div class="hint" style="margin-top:12px">${ic('check')} ${tr('AI พร้อมใช้งาน')} · ${escapeHtml(status.model||'')} ${status.version?'v'+escapeHtml(status.version):''}</div>`;
+    } else if(step===2){
+      body = torSummary + aiWorkingSkeleton();
+    } else {
+      body = torSummary + (aiTorDraft && !aiTorShowRaw ? renderAiDraftCard(aiTorDraft) : `
+        <pre style="white-space:pre-wrap;margin:0 0 12px;min-height:120px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;line-height:1.65;color:var(--text)">${escapeHtml(aiTorOutput||tr('ผลลัพธ์จะแสดงที่นี่'))}</pre>
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          ${aiTorDraft?`<button class="btn" onclick="aiTorShowRaw=false;render()">${ic('arrowLeft')} ${tr('กลับไปดูร่าง')}</button>`:`<button class="btn" onclick="aiBackToInput()">${ic('arrowLeft')} ${tr('แก้ไข TOR')}</button>`}
+        </div>`);
+    }
+    c.innerHTML = `<div class="settings-grid">
+      <div class="ai-steps">
+        <div class="${stepCls(1)}"><span class="n">${stepN(1)}</span> ${tr('นำเข้า TOR')}</div><div class="sep"></div>
+        <div class="${stepCls(2)}"><span class="n">${stepN(2)}</span> ${tr('AI ร่างเอกสาร')}</div><div class="sep"></div>
+        <div class="${stepCls(3)}"><span class="n">${stepN(3)}</span> ${tr('ตรวจทานและสร้าง')}</div>
       </div>
-      <div class="card-block">
-        <h4>${tr('ร่างจาก AI')}</h4>
-        <div class="desc">${tr('ตรวจทานและแก้ไขก่อนนำไปใช้จริง')}</div>
-        ${aiTorRunning ? aiWorkingSkeleton() : (aiTorDraft && !aiTorShowRaw ? renderAiDraftCard(aiTorDraft) : `
-        <pre style="white-space:pre-wrap;margin:0 0 ${aiTorDraft?'12px':'0'};min-height:120px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;line-height:1.65;color:var(--text)">${escapeHtml(aiTorOutput||tr('ผลลัพธ์จะแสดงที่นี่'))}</pre>
-        ${aiTorDraft?`<button class="btn" onclick="aiTorShowRaw=false;render()">${ic('arrowLeft')} ${tr('กลับไปดูร่าง')}</button>`:''}`)}
-      </div>
+      <div class="card-block">${body}</div>
     </div>`;
     return;
   }
