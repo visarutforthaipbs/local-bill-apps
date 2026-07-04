@@ -179,6 +179,7 @@ function runLocalTool(command, args, options = {}) {
 }
 function cleanTorText(text) {
   return String(text || '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')  // PDF บางไฟล์ทิ้ง NUL/control chars ไว้ — ทำ spawn/prompt พัง
     .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
     .replace(/\r/g, '')
     .replace(/[ \t]+\n/g, '\n')
@@ -348,7 +349,10 @@ async function runAiInference(input) {
   if (!status.valid) throw new Error('BillNgai AI Add-on is not installed or not valid');
   const modelPath = findAiModel(status);
   const runner = findAiRunner(status);
-  const prompt = buildTorPrompt(text);
+  const prompt = buildTorPrompt(cleanTorText(text));   // กัน NUL/control chars จาก PDF ไม่ว่าจะมาทางไฟล์หรือวางเอง
+  // ส่ง prompt ผ่านไฟล์ชั่วคราวแทน argv — ยาวแค่ไหนก็ไม่ชน ARG_MAX และไม่พังเพราะอักขระแปลก
+  const promptFile = path.join(app.getPath('temp'), 'billngai-tor-' + Date.now() + '.txt');
+  await fsp.writeFile(promptFile, prompt, 'utf8');
   const args = [
     '--log-disable',
     '--device', 'none',
@@ -356,7 +360,7 @@ async function runAiInference(input) {
     '--no-warmup',
     '--single-turn',
     '-m', modelPath,
-    '-p', prompt,
+    '-f', promptFile,
     '-c', '16384',                      // TOR ไทยยาว ๆ เกิน ctx เริ่มต้น 4096 แล้วโมเดลจะ "เงียบ" — ตั้งให้พอเสมอ
     '-n', '900',
     '--temp', '0.2',
@@ -368,18 +372,22 @@ async function runAiInference(input) {
     const child = spawn(runner, args, { shell: false, windowsHide: true });
     let stdout = '';
     let stderr = '';
+    const cleanup = () => fsp.unlink(promptFile).catch(() => {});
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
+      cleanup();
       reject(new Error('AI inference timed out'));
     }, 300000);   // TOR ยาว ๆ บนเครื่อง Intel เก่าอาจใช้เวลาหลายนาที
     child.stdout.on('data', chunk => { stdout += chunk.toString('utf8'); });
     child.stderr.on('data', chunk => { stderr += chunk.toString('utf8'); });
     child.on('error', err => {
       clearTimeout(timer);
+      cleanup();
       reject(err);
     });
     child.on('close', code => {
       clearTimeout(timer);
+      cleanup();
       if (code !== 0) {
         reject(new Error((stderr || stdout || `AI runtime exited with code ${code}`).slice(0, 1200)));
         return;
