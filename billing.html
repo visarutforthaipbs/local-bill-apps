@@ -2173,8 +2173,11 @@ function createDocFromAiDraft(){
   if(d.paymentTerms) noteParts.push(tr('เงื่อนไขชำระเงิน')+': '+d.paymentTerms);
   if(d.installments&&d.installments.length) noteParts.push(tr('งวดตาม TOR')+': '+d.installments.map(g=>`${g.label} ${g.percent}%`).join(' · '));
   if(d.delivery) noteParts.push(tr('กำหนดส่งมอบ')+': '+d.delivery);
+  const resolved = client || DB.clients[0];
   openDocEditor('quotation', null, items, null, {
-    clientId: client ? client.id : (DB.clients[0]&&DB.clients[0].id),
+    clientId: resolved && resolved.id,
+    // สำคัญ: หัก ณ ที่จ่าย ต้องตามลูกค้าที่เลือกจริง ไม่ใช่ลูกค้าคนแรกในระบบ
+    whtRate: (resolved && resolved.defaultWht!==false) ? DB.business.defaultWhtRate : 0,
     project: d.project||'',
     notes: noteParts.join('\n')
   });
