@@ -358,7 +358,7 @@ async function runAiInference(input) {
     '--device', 'none',
     '--no-op-offload',
     '--no-warmup',
-    '--single-turn',
+    '--single-turn',                    // จบเทิร์นเดียวแล้วออก — ห้ามถอดออก ไม่งั้น CLI ค้างเป็น REPL
     '-m', modelPath,
     '-f', promptFile,
     '-c', '16384',                      // TOR ไทยยาว ๆ เกิน ctx เริ่มต้น 4096 แล้วโมเดลจะ "เงียบ" — ตั้งให้พอเสมอ
@@ -369,7 +369,7 @@ async function runAiInference(input) {
   ];
 
   return await new Promise((resolve, reject) => {
-    const child = spawn(runner, args, { shell: false, windowsHide: true });
+    const child = spawn(runner, args, { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     const cleanup = () => fsp.unlink(promptFile).catch(() => {});
