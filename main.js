@@ -369,7 +369,9 @@ async function runAiInference(input) {
   ];
 
   return await new Promise((resolve, reject) => {
-    const child = spawn(runner, args, { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    // detached: true = คนละ session ไม่มี controlling terminal — สำคัญมาก:
+    // ถ้ารันแอปจาก Terminal llama-cli จะเปิด /dev/tty แล้วพิมพ์คำตอบลงจอแทน stdout (แอปได้ 0 bytes)
+    const child = spawn(runner, args, { shell: false, windowsHide: true, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     const cleanup = () => fsp.unlink(promptFile).catch(() => {});
