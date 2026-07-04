@@ -1144,6 +1144,7 @@ const I18N_EN = {
   'แปลง TOR แล้ว — ตรวจทานร่างก่อนสร้างเอกสาร':'TOR converted — review the draft before creating a document',
   'ร่างจาก AI':'AI draft',
   'ดูข้อความดิบ':'View raw output',
+  'กลับไปดูร่าง':'Back to draft',
   'ชื่องาน':'Project',
   'ลูกค้า/ผู้ว่าจ้าง':'Client / hiring party',
   'ต้องถามเพิ่ม':'Needs confirmation',
@@ -2113,6 +2114,7 @@ let aiAddonLoading = false;
 let aiTorInput = 'โครงการพัฒนาเว็บไซต์บริษัท พร้อมออกแบบหน้าแรก หน้าบริการ และระบบติดต่อกลับ ระยะเวลาดำเนินงาน 30 วัน ชำระ 50% ก่อนเริ่มงาน และ 50% หลังส่งมอบ';
 let aiTorOutput = '';
 let aiTorDraft = null;   // โครงร่าง JSON ที่ตรวจทานได้ก่อนสร้างเอกสารจริง
+let aiTorShowRaw = false; // สลับดูข้อความดิบโดยไม่ทิ้งร่าง
 let aiTorRunning = false;
 let aiTorFileName = '';
 let aiTorImporting = false;
@@ -2180,6 +2182,7 @@ async function runAiTor(){
   aiTorRunning = true;
   aiTorOutput = '';
   aiTorDraft = null;
+  aiTorShowRaw = false;
   render();
   aiTickStart();
   try{
@@ -2240,7 +2243,7 @@ function renderAiDraftCard(d){
     ${(d.questions||[]).length?`<div class="banner" style="background:var(--amber-bg);border-color:#ecdcb4;color:#7a5a1a;display:block;margin-bottom:12px"><b>${tr('ควรถามลูกค้าเพิ่ม')}</b><br>${d.questions.map(q=>'• '+escapeHtml(q)).join('<br>')}</div>`:''}
     <div style="display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="createDocFromAiDraft()">${ic('arrowRight')} ${tr('สร้างใบเสนอราคา (ร่าง)')}</button>
-      <button class="btn" onclick="aiTorDraft=null;render()">${tr('ดูข้อความดิบ')}</button>
+      <button class="btn" onclick="aiTorShowRaw=true;render()">${tr('ดูข้อความดิบ')}</button>
     </div>`;
 }
 function renderAi(c,ta){
@@ -2280,8 +2283,9 @@ function renderAi(c,ta){
       <div class="card-block">
         <h4>${tr('ร่างจาก AI')}</h4>
         <div class="desc">${tr('ตรวจทานและแก้ไขก่อนนำไปใช้จริง')}</div>
-        ${aiTorRunning ? aiWorkingSkeleton() : (aiTorDraft ? renderAiDraftCard(aiTorDraft) : `
-        <pre style="white-space:pre-wrap;margin:0;min-height:120px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;line-height:1.65;color:var(--text)">${escapeHtml(aiTorOutput||tr('ผลลัพธ์จะแสดงที่นี่'))}</pre>`)}
+        ${aiTorRunning ? aiWorkingSkeleton() : (aiTorDraft && !aiTorShowRaw ? renderAiDraftCard(aiTorDraft) : `
+        <pre style="white-space:pre-wrap;margin:0 0 ${aiTorDraft?'12px':'0'};min-height:120px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;line-height:1.65;color:var(--text)">${escapeHtml(aiTorOutput||tr('ผลลัพธ์จะแสดงที่นี่'))}</pre>
+        ${aiTorDraft?`<button class="btn" onclick="aiTorShowRaw=false;render()">${ic('arrowLeft')} ${tr('กลับไปดูร่าง')}</button>`:''}`)}
       </div>
     </div>`;
     return;
