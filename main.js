@@ -357,6 +357,7 @@ async function runAiInference(input) {
     '--single-turn',
     '-m', modelPath,
     '-p', prompt,
+    '-c', '16384',                      // TOR ไทยยาว ๆ เกิน ctx เริ่มต้น 4096 แล้วโมเดลจะ "เงียบ" — ตั้งให้พอเสมอ
     '-n', '900',
     '--temp', '0.2',
     '--json-schema', TOR_JSON_SCHEMA,   // grammar-constrained: ผลลัพธ์เป็น JSON ตามสคีมาเสมอ
@@ -370,7 +371,7 @@ async function runAiInference(input) {
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
       reject(new Error('AI inference timed out'));
-    }, 180000);
+    }, 300000);   // TOR ยาว ๆ บนเครื่อง Intel เก่าอาจใช้เวลาหลายนาที
     child.stdout.on('data', chunk => { stdout += chunk.toString('utf8'); });
     child.stderr.on('data', chunk => { stderr += chunk.toString('utf8'); });
     child.on('error', err => {
@@ -385,6 +386,11 @@ async function runAiInference(input) {
       }
       const draft = parseTorDraft(stdout);
       const output = cleanAiOutput(stdout);
+      if (!draft && !output) {
+        // โมเดลไม่พ่นอะไรเลย (เช่น ctx ไม่พอ / โหลดโมเดลล้มเงียบ) — บอกตรง ๆ ดีกว่าโชว์ค่าว่าง
+        reject(new Error('โมเดลไม่ตอบกลับ — ลองย่อ TOR ให้สั้นลง (เอาเฉพาะส่วนขอบเขตงานและงบประมาณ) แล้วแปลงใหม่'));
+        return;
+      }
       resolve({
         ok: true,
         draft,                                // โครงร่างที่พร้อมเปิดในตัวแก้ไขเอกสาร (null ถ้า parse ไม่ได้)
