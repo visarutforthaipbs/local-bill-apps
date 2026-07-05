@@ -296,7 +296,26 @@ Completed during prototype setup:
 
 ## Current Built Model Package
 
-Built on 2026-07-04 from Hugging Face model:
+Switched 2026-07-05 to a Thai-specialized, commercially licensed model
+(Qwen2.5-3B is research-license only — cannot be sold):
+
+```text
+Model: Typhoon2-3B-Instruct (SCB 10X, base Llama-3.2-3B)
+Repository: mradermacher/llama3.2-typhoon2-3b-instruct-GGUF
+File: llama3.2-typhoon2-3b-instruct.Q4_K_M.gguf (~1.9 GB)
+License: Llama 3.2 Community License — commercial OK, requires
+         "Built with Llama" attribution (shown in the AI view status line)
+```
+
+Prompting is template-agnostic: plain-text system prompt via `-sysf`,
+TOR via `-f`; llama-cli applies each model's own chat template, so GGUF
+models can be swapped without code changes. Bake-off vs Qwen2.5-3B on the
+real TOR fixture: Typhoon was ~20% faster and more reliable on the
+installment schedule; item granularity varies per run for both (human
+reviews anyway). Old package archived at
+~/Downloads/billngai-ai-source-archive/qwen-tor-recommended.
+
+Original prototype model (for reference):
 
 ```text
 Repository: bartowski/Qwen2.5-3B-Instruct-GGUF

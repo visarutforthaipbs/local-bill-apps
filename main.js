@@ -296,23 +296,19 @@ const TOR_JSON_SCHEMA = JSON.stringify({
   },
   required: ['project', 'client', 'items', 'payment_terms', 'installments', 'delivery', 'questions']
 });
-function buildTorPrompt(input) {
-  return `<|im_start|>system
-คุณคือผู้ช่วยออกเอกสารของ BillNgai ทำงานบนเครื่องเท่านั้น
+// system prompt แบบข้อความล้วน — llama-cli จะห่อด้วย chat template ของโมเดลเองผ่าน -sysf
+// (สลับโมเดล GGUF ได้โดยไม่ต้องแก้โค้ด ไม่ว่าจะเป็น ChatML/Llama/Gemma template)
+const TOR_SYSTEM_PROMPT = `คุณคือผู้ช่วยออกเอกสารของ BillNgai ทำงานบนเครื่องเท่านั้น
 อ่าน TOR หรือรายละเอียดงาน แล้วสรุปเป็น JSON ภาษาไทยสำหรับร่างใบเสนอราคา ตามฟิลด์:
 - project: ชื่องานสั้น ๆ
 - client: ชื่อลูกค้า/ผู้ว่าจ้าง — ห้ามใช้ชื่อหน่วยงานดำเนินการ/ผู้จัดทำ ถ้าไม่พบชัดเจนให้ใส่ "ต้องถามเพิ่ม"
-- items: รายการคิดเงิน แยกเป็นงานย่อยตาม TOR พร้อม qty, unit (เช่น งาน/ชิ้น/เดือน), price เป็นตัวเลขบาท (ไม่พบราคาให้ใส่ 0)
+- items: รายการคิดเงิน แยกครบทุกรายการย่อยตาม TOR อย่ารวบหลายรายการเป็นข้อเดียว
+  แต่ละรายการมี qty, unit (เช่น งาน/ชิ้น/เดือน), price = ราคาต่อหน่วย (ไม่ใช่ยอดรวมของรายการ; ไม่พบราคาให้ใส่ 0)
 - payment_terms: เงื่อนไขการชำระเงินตาม TOR
 - installments: ถ้า TOR แบ่งจ่ายเป็นงวด ให้ใส่ label และ percent ของแต่ละงวด (รวม 100) ถ้าไม่แบ่งให้ใส่ []
 - delivery: กำหนดส่งมอบ/ระยะเวลา
 - questions: สิ่งที่ควรถามลูกค้าเพิ่มก่อนออกเอกสารจริง
-ตอบเป็น JSON เท่านั้น<|im_end|>
-<|im_start|>user
-${input}<|im_end|>
-<|im_start|>assistant
-`;
-}
+ตอบเป็น JSON เท่านั้น`;
 // ดึงก้อน JSON จากเอาต์พุตโมเดล (grammar บังคับแล้ว แต่กันเปลือกข้อความ/แบนเนอร์ของ CLI)
 function parseTorDraft(stdout) {
   const raw = String(stdout || '').replace(/\x08/g, '');
@@ -349,10 +345,12 @@ async function runAiInference(input) {
   if (!status.valid) throw new Error('BillNgai AI Add-on is not installed or not valid');
   const modelPath = findAiModel(status);
   const runner = findAiRunner(status);
-  const prompt = buildTorPrompt(cleanTorText(text));   // กัน NUL/control chars จาก PDF ไม่ว่าจะมาทางไฟล์หรือวางเอง
-  // ส่ง prompt ผ่านไฟล์ชั่วคราวแทน argv — ยาวแค่ไหนก็ไม่ชน ARG_MAX และไม่พังเพราะอักขระแปลก
-  const promptFile = path.join(app.getPath('temp'), 'billngai-tor-' + Date.now() + '.txt');
-  await fsp.writeFile(promptFile, prompt, 'utf8');
+  // ส่งผ่านไฟล์ชั่วคราวแทน argv — ยาวแค่ไหนก็ไม่ชน ARG_MAX และไม่พังเพราะอักขระแปลก
+  const stamp = Date.now();
+  const sysFile = path.join(app.getPath('temp'), 'billngai-sys-' + stamp + '.txt');
+  const promptFile = path.join(app.getPath('temp'), 'billngai-tor-' + stamp + '.txt');
+  await fsp.writeFile(sysFile, TOR_SYSTEM_PROMPT, 'utf8');
+  await fsp.writeFile(promptFile, cleanTorText(text), 'utf8');   // กัน NUL/control chars จาก PDF ไม่ว่าจะมาทางไฟล์หรือวางเอง
   const args = [
     '--log-disable',
     '--device', 'none',
@@ -360,6 +358,7 @@ async function runAiInference(input) {
     '--no-warmup',
     '--single-turn',                    // จบเทิร์นเดียวแล้วออก — ห้ามถอดออก ไม่งั้น CLI ค้างเป็น REPL
     '-m', modelPath,
+    '-sysf', sysFile,
     '-f', promptFile,
     '-c', '16384',                      // TOR ไทยยาว ๆ เกิน ctx เริ่มต้น 4096 แล้วโมเดลจะ "เงียบ" — ตั้งให้พอเสมอ
     '-n', '900',
@@ -374,7 +373,7 @@ async function runAiInference(input) {
     const child = spawn(runner, args, { shell: false, windowsHide: true, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
-    const cleanup = () => fsp.unlink(promptFile).catch(() => {});
+    const cleanup = () => { fsp.unlink(promptFile).catch(() => {}); fsp.unlink(sysFile).catch(() => {}); };
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
       cleanup();

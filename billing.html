@@ -2306,7 +2306,7 @@ function renderAi(c,ta){
           <textarea id="aiTorInput" oninput="aiTorInput=this.value" style="min-height:190px" placeholder="${tr('วาง TOR หรือรายละเอียดงานที่นี่')}">${escapeHtml(aiTorInput)}</textarea>
         </div>
         <button class="btn btn-primary" onclick="runAiTor()">${ic('sparkles')} ${tr('แปลงเป็นร่างเอกสาร')}</button>
-        <div class="hint" style="margin-top:12px">${ic('check')} ${tr('AI พร้อมใช้งาน')} · ${escapeHtml(status.model||'')} ${status.version?'v'+escapeHtml(status.version):''}</div>`;
+        <div class="hint" style="margin-top:12px">${ic('check')} ${tr('AI พร้อมใช้งาน')} · ${escapeHtml(status.model||'')} ${status.version?'v'+escapeHtml(status.version):''} · Built with Llama</div>`;
     } else if(step===2){
       body = torSummary + aiWorkingSkeleton();
     } else {
