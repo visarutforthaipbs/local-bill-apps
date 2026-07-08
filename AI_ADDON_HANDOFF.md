@@ -26,6 +26,8 @@ Implemented files:
   - Checks local add-on paths:
     - dev/user path: `~/Library/Application Support/BillNgai/ai`
     - installer/system path: `/Library/Application Support/BillNgai/ai`
+    - Windows user path: `%APPDATA%\BillNgai\ai`
+    - Windows system path: `%PROGRAMDATA%\BillNgai\ai`
   - Reads `addon.json`.
   - Verifies an Ed25519 signature using a public key embedded in the app.
   - Verifies SHA-256 hashes for every file listed in the manifest.
@@ -84,6 +86,31 @@ Build a real add-on package from a local source folder:
 
 ```bash
 npm run ai:addon:build -- --source /path/to/local/billngai-ai-source --version 1.0.0 --model qwen-tor-recommended
+```
+
+Prepare a Windows add-on folder on a Windows PC:
+
+```powershell
+npm run ai:addon:build -- --platform win32 --source C:\path\to\billngai-ai-source-win --version 1.0.0 --model qwen-tor-recommended
+```
+
+The Windows source folder should contain platform-specific files:
+
+```text
+runtime/
+  bin/
+    llama-cli.exe
+    pdftotext.exe        # recommended for PDF TOR import
+models/
+  qwen-tor-recommended/
+    Qwen2.5-3B-Instruct-Q4_K_M.gguf
+```
+
+The generated Windows folder includes `install.cmd` / `install.ps1`, which
+copies the add-on to:
+
+```text
+%APPDATA%\BillNgai\ai
 ```
 
 Build the frictionless macOS installer:
@@ -273,7 +300,11 @@ Remaining:
    git-ignored `secrets/ai-signing-key.pem`, public key embedded in main.js,
    add-on PKG re-signed and re-installed. Old dev-signed packages are now
    rejected by the app (by design).
-2. Windows add-on story (paths + llama-cli build are macOS-only today).
+2. Windows add-on story — first prep is done: app now checks Windows user/system
+   add-on paths, looks for `runtime/bin/llama-cli.exe`, supports `pdftotext.exe`
+   for PDF import, and the builder can emit a Windows install folder with
+   `install.cmd` / `install.ps1`. Still remaining: build/test a real Windows
+   `llama-cli.exe` package and create a customer-friendly signed installer.
 3. Optional: auto-suggest แบ่งงวด from `installments` after the quotation
    is created.
 4. Pricing/packaging decision for the premium add-on (DMG name, price point,

@@ -24,6 +24,7 @@ Options:
   --version <version>     Add-on version. Default: 0.1.0
   --model <name>          Model label. Default: qwen-tor-local
   --name <name>           Display name. Default: BillNgai AI Add-on
+  --platform <platform>   Target platform: darwin or win32. Default: current platform
   --pkg                   Also build a macOS .pkg installer
   --install               Also install into ~/Library/Application Support/BillNgai/ai
 
@@ -90,9 +91,14 @@ if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
 const version = arg('--version') || '0.1.0';
 const model = arg('--model') || 'qwen-tor-local';
 const name = arg('--name') || 'BillNgai AI Add-on';
+const targetPlatform = arg('--platform') || process.platform;
+if (!['darwin', 'win32'].includes(targetPlatform)) {
+  throw new Error(`Unsupported --platform: ${targetPlatform}. Use darwin or win32.`);
+}
 const outRoot = path.resolve(arg('--out') || 'dist/ai-addons');
 const safeModel = model.replace(/[^a-z0-9._-]+/gi, '-');
-const packageName = `BillNgai-AI-AddOn-${safeModel}-${version}`;
+const platformSuffix = targetPlatform === process.platform ? '' : `-${targetPlatform}`;
+const packageName = `BillNgai-AI-AddOn-${safeModel}-${version}${platformSuffix}`;
 const packageDir = path.join(outRoot, packageName);
 const payloadDir = path.join(packageDir, 'ai');
 
@@ -134,20 +140,36 @@ const signature = crypto.sign(
 
 fs.writeFileSync(path.join(payloadDir, 'addon.json'), JSON.stringify({ ...manifest, signature }, null, 2));
 
-const installScript = `#!/bin/sh
+const installScript = targetPlatform === 'win32'
+  ? `$ErrorActionPreference = "Stop"
+$dest = Join-Path $env:APPDATA "BillNgai\\ai"
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item -Path (Join-Path $PSScriptRoot "ai\\*") -Destination $dest -Recurse -Force
+Write-Host "Installed BillNgai AI Add-on to: $dest"
+`
+  : `#!/bin/sh
 set -eu
 DEST="$HOME/Library/Application Support/BillNgai/ai"
 mkdir -p "$DEST"
 cp -R "$(dirname "$0")/ai/." "$DEST/"
 echo "Installed BillNgai AI Add-on to: $DEST"
 `;
-fs.writeFileSync(path.join(packageDir, 'install.sh'), installScript, { mode: 0o755 });
+if (targetPlatform === 'win32') {
+  fs.writeFileSync(path.join(packageDir, 'install.ps1'), installScript);
+  fs.writeFileSync(path.join(packageDir, 'install.cmd'), [
+    '@echo off',
+    'powershell -ExecutionPolicy Bypass -NoProfile -File "%~dp0install.ps1"',
+    ''
+  ].join('\r\n'));
+} else {
+  fs.writeFileSync(path.join(packageDir, 'install.sh'), installScript, { mode: 0o755 });
+}
 fs.writeFileSync(path.join(packageDir, 'README.txt'), [
   'BillNgai AI Add-on',
   '',
   'Offline install:',
   '1. Close BillNgai.',
-  '2. Run ./install.sh from this folder.',
+  targetPlatform === 'win32' ? '2. Run install.cmd from this folder.' : '2. Run ./install.sh from this folder.',
   '3. Open BillNgai and go to TOR → Invoice.',
   '',
   'This add-on does not require BillNgai to connect to the internet.',
@@ -155,13 +177,21 @@ fs.writeFileSync(path.join(packageDir, 'README.txt'), [
 ].join('\n'));
 
 if (has('--install')) {
-  const dest = path.join(process.env.HOME, 'Library/Application Support/BillNgai/ai');
+  if (targetPlatform !== process.platform) {
+    throw new Error(`--install can only install for the current platform (${process.platform}), not ${targetPlatform}`);
+  }
+  const dest = targetPlatform === 'win32'
+    ? path.join(process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming'), 'BillNgai', 'ai')
+    : path.join(process.env.HOME, 'Library/Application Support/BillNgai/ai');
   fs.rmSync(dest, { recursive: true, force: true });
   copyRecursive(payloadDir, dest);
   console.log(`Installed add-on into ${dest}`);
 }
 
 if (has('--pkg')) {
+  if (targetPlatform !== 'darwin') {
+    throw new Error('--pkg is only available for --platform darwin. Build a Windows installer on Windows from the generated folder.');
+  }
   const pkgPath = path.join(outRoot, `${packageName}.pkg`);
   fs.rmSync(pkgPath, { force: true });
   const result = spawnSync('pkgbuild', [

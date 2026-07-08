@@ -1,6 +1,6 @@
 {
   "name": "billngai-app",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "assets": "node prepare-brand-assets.js",
     "ai:addon:dev": "node scripts/create-dev-ai-addon.js",
     "ai:addon:build": "node scripts/build-ai-addon.js",
+    "pro:license": "node scripts/make-license.js",
     "icon": "electron make-icon.js",
     "predist": "electron make-icon.js",
     "pack": "electron-builder --dir",
@@ -48,6 +49,7 @@
       "assets/brand/objects/set-1-23-envelope.png",
       "assets/brand/objects/set-1-24-folder.png",
       "fonts/**/*",
+      "secrets/gdrive-oauth.json",
       "package.json"
     ],
     "mac": {

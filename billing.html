@@ -584,7 +584,8 @@
     .sidebar,.topbar,.doc-actions,.overlay,.toast,.banner,.stamp-fx,.paper .paid-stamp{display:none!important}
     .main,.content{padding:0;max-width:none}
     .paper{box-shadow:none;border:none;border-radius:0;max-width:none;margin:0;padding:24px 26px;animation:none;
-      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;
+      zoom:var(--paper-zoom,1)}   /* shrink-to-fit: ตั้งค่าโดย applyPrintZoom() ก่อนพิมพ์/บันทึก PDF */
     /* keep blocks intact across page breaks; never orphan the signature */
     .paper .totals,.paper .footer-grid,.paper .sign,.paper .note-box{break-inside:avoid;page-break-inside:avoid}
     .paper table.lines tr{break-inside:avoid;page-break-inside:avoid}
@@ -685,7 +686,7 @@ async function rememberHandle(h){ try{ await idbSet(HANDLE_KEY,h); }catch(e){} }
 
 function blankDB(){
   return {
-    version: 1,
+    version: 2,   // v2 = sync-ready: updatedAt/deletedAt ทุก record, id มี device prefix
     business: {
       businessName: '',
       businessNameEn: '',
@@ -720,7 +721,8 @@ function blankDB(){
         invoice:   'INV-{YY}-{###}',
         receipt:   'RC-{YY}-{###}',
         tax_invoice:'TX-{YY}-{###}'
-      }
+      },
+      updatedAt: ''        // v2: โปรไฟล์ธุรกิจ sync เป็น record เดียว
     },
     clients: [],
     documents: [],
@@ -766,6 +768,351 @@ async function writeToFile(){
   }
 }
 
+/* ---------- change journal (v2) ----------
+   persist() เขียน event ต่อ record ที่เปลี่ยน (ตรวจจาก updatedAt) ลงไฟล์ NDJSON รายเดือน
+   ผ่าน main.js — เป็นฐานของ Google Drive Workspace Sync (Pro) ในเฟสถัดไป
+   journal พังต้องไม่ทำให้การบันทึกข้อมูลจริงล้มเด็ดขาด */
+let journalIndex = null;   // Map id -> {type, u: updatedAt ล่าสุดที่ลง journal แล้ว}
+function buildJournalIndex(){
+  journalIndex = new Map();
+  const idx=(arr,type)=>arr.forEach(r=>{ if(r.id) journalIndex.set(r.id,{type,u:r.updatedAt||''}); });
+  idx(DB.documents,'document'); idx(DB.clients,'client'); idx(DB.recurring,'recurring');
+  journalIndex.set('~business',{type:'business',u:DB.business.updatedAt||''});
+  journalIndex.set('~counters',{type:'counters',u:JSON.stringify(DB.counters)});
+}
+function collectJournalEvents(){
+  if(!journalIndex){ buildJournalIndex(); return []; }
+  const evs=[], seen=new Set();
+  const ev=(type,id,op,record)=>evs.push({v:2,eventId:uid(),deviceId:DEVICE_ID,at:nowISO(),type,recordId:id,op,record});
+  const scan=(arr,type)=>arr.forEach(r=>{
+    if(!r.id) return; seen.add(r.id);
+    const prev=journalIndex.get(r.id);
+    if(!prev || prev.u!==(r.updatedAt||'')){
+      ev(type,r.id,r.deletedAt?'delete':'upsert',r);
+      journalIndex.set(r.id,{type,u:r.updatedAt||''});
+    }
+  });
+  scan(DB.documents,'document'); scan(DB.clients,'client'); scan(DB.recurring,'recurring');
+  const bPrev=journalIndex.get('~business');
+  if(!bPrev || bPrev.u!==(DB.business.updatedAt||'')){
+    ev('business','~business','upsert',DB.business);
+    journalIndex.set('~business',{type:'business',u:DB.business.updatedAt||''});
+  }
+  // counters เป็น singleton — sync ฝั่งรับใช้ max-merge ต่อ key กันเลขเอกสารถอยหลัง
+  const cSig = JSON.stringify(DB.counters);
+  const cPrev = journalIndex.get('~counters');
+  if(!cPrev || cPrev.u!==cSig){
+    ev('counters','~counters','upsert',{...DB.counters});
+    journalIndex.set('~counters',{type:'counters',u:cSig});
+  }
+  // record ที่หายไปจาก DB ทั้งก้อน (เช่น ล้างข้อมูลตัวอย่าง / purge tombstone) = hard delete
+  for(const [id,meta] of [...journalIndex]){
+    if(id!=='~business' && id!=='~counters' && !seen.has(id)){ ev(meta.type,id,'delete',null); journalIndex.delete(id); }
+  }
+  return evs;
+}
+function appendJournal(){
+  try{
+    if(!IS_ELECTRON || !window.billingAPI.journalAppend) return;
+    const evs=collectJournalEvents();
+    if(evs.length) window.billingAPI.journalAppend(evs.map(e=>JSON.stringify(e)).join('\n'));
+  }catch(e){ /* เงียบ — ห้ามขวางการบันทึกข้อมูลจริง */ }
+}
+// บอก journal ว่า record นี้เพิ่งรับมาจากเครื่องอื่น — persist ครั้งถัดไปจะได้ไม่ส่งซ้ำ (กัน echo)
+function journalMark(type,id,updatedAt){ if(journalIndex) journalIndex.set(id,{type,u:updatedAt||''}); }
+
+/* ============================================================
+   BillNgai Pro (Phase E) + Google Drive Workspace Sync (Phase D)
+   Local = ownership · Pro = peace of mind — sync ผ่าน Drive ของผู้ใช้เอง
+   BillNgai ไม่มีเซิร์ฟเวอร์เก็บเอกสารลูกค้า และ Pro ทำงานออฟไลน์ได้เสมอ
+   ============================================================ */
+let PRO = { valid:false };
+function isPro(){ return !!(PRO && PRO.valid); }
+let syncInfo = { configured:false, connected:false, email:'', lastSyncAt:null, devices:[] };
+let syncBusy = false, syncErr = '', syncConflicts = [], syncTimer = null;
+function isSyncEnabled(){ return IS_ELECTRON && isPro() && syncInfo.connected; }
+
+// ฟิลด์การเงิน/ทางการ — ห้าม merge เงียบ ๆ เด็ดขาด (PRD §17)
+const SYNC_PROTECTED = ['number','status','paidDate','issueDate','dueDate','currency','fxRate','vatRate','whtRate','incomeCategory','whtCertReceived','whtCertNo','whtCertDate'];
+function itemsSig(items){ return JSON.stringify((items||[]).map(it=>[it.description,it.qty,it.unit,it.price])); }
+function protectedDiff(a,b){
+  if(!(a.type||b.type)) return false;   // clients/recurring = last-write-wins ทั้ง record
+  for(const k of SYNC_PROTECTED){ if(JSON.stringify(a[k]??null)!==JSON.stringify(b[k]??null)) return true; }
+  return itemsSig(a.items)!==itemsSig(b.items);
+}
+function arrOfType(t){ return t==='document'?DB.documents : t==='client'?DB.clients : t==='recurring'?DB.recurring : null; }
+
+/* merge engine: last-write-wins ต่อ record + ฟิลด์การเงินชนกัน → ค้างเป็น conflict ให้ผู้ใช้เลือก
+   includeOwn ใช้เฉพาะตอนกู้คืนจากคลาวด์ (replay event ของทุกเครื่องทับสแนปช็อต) */
+function applySyncEvents(events, lastPullAt, includeOwn){
+  const res = { applied:0, conflicts:[], renumbered:0 };
+  const latest = new Map(); const counterEvents = [];
+  for(const ev of (events||[])){
+    if(!ev || !ev.recordId) continue;
+    if(!includeOwn && ev.deviceId===DEVICE_ID) continue;
+    if(ev.type==='counters'){ counterEvents.push(ev); continue; }
+    const prev = latest.get(ev.recordId);
+    if(!prev || String(prev.at||'')<=String(ev.at||'')) latest.set(ev.recordId, ev);
+  }
+  for(const [id, ev] of latest){
+    if(id==='~business'){
+      const rb = ev.record||{};
+      // โปรไฟล์เปล่า (เช่น ผ่าน wizard บนเครื่องใหม่โดยไม่กรอกอะไร) ห้ามทับโปรไฟล์จริงเด็ดขาด —
+      // บั๊กจริงที่เจอ: เครื่อง B ล้างชื่อ/โลโก้/PromptPay ของเครื่อง A ผ่าน sync
+      const remoteBlank = !String(rb.businessName||'').trim() && !(rb.logo||'') && !String(rb.taxId||'').trim();
+      const localNamed = !!String(DB.business.businessName||'').trim() || !!(DB.business.logo||'');
+      if(remoteBlank && localNamed) continue;
+      if((rb.updatedAt||'') > (DB.business.updatedAt||'')){
+        DB.business = {...blankDB().business, ...rb};
+        journalMark('business','~business',DB.business.updatedAt);
+        res.applied++;
+      }
+      continue;
+    }
+    const arr = arrOfType(ev.type); if(!arr) continue;
+    // hard delete ไม่มี payload → สังเคราะห์ tombstone จากเวลา event
+    const remote = ev.record || { id, deletedAt: ev.at||nowISO(), updatedAt: ev.at||nowISO() };
+    const local = arr.find(r=>r.id===id);
+    if(!local){ arr.push(remote); journalMark(ev.type,id,remote.updatedAt); res.applied++; continue; }
+    if((remote.updatedAt||'')===(local.updatedAt||'')) continue;               // ตรงกันอยู่แล้ว
+    const localChanged = (local.updatedAt||'') > (lastPullAt||'');
+    if(localChanged && protectedDiff(local, remote)){
+      // แก้ทั้งสองฝั่งหลัง sync ล่าสุด และฟิลด์การเงินไม่ตรงกัน — ให้ผู้ใช้ตัดสิน (local ยังชนะจนกว่าจะเลือก)
+      res.conflicts.push({ kind:'record', type:ev.type, id, local:JSON.parse(JSON.stringify(local)), remote });
+      continue;
+    }
+    if((remote.updatedAt||'') > (local.updatedAt||'')){
+      arr[arr.indexOf(local)] = remote;
+      journalMark(ev.type,id,remote.updatedAt);
+      res.applied++;
+    }
+    // remote เก่ากว่า → local ชนะ แล้วฝั่งนี้จะ push กลับไปเอง
+  }
+  for(const ev of counterEvents){   // max-merge ต่อ key — เลขเอกสารเดินหน้าอย่างเดียว
+    for(const [k,v] of Object.entries(ev.record||{})) DB.counters[k] = Math.max(Number(DB.counters[k]||0), Number(v)||0);
+  }
+  res.renumbered = reconcileNumbers(res.conflicts);
+  syncConflicts = res.conflicts;
+  return res;
+}
+// เลขเอกสารชนกันข้ามเครื่อง (PRD §18): ใบร่างถูกตั้งเลขใหม่อัตโนมัติ · ออกแล้วทั้งคู่ → ผู้ใช้ตัดสิน
+function reconcileNumbers(conflicts){
+  let renumbered = 0;
+  const seen = new Map();
+  const docs = activeDocs().slice().sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+  for(const d of docs){
+    if(!d.number) continue;
+    const key = d.type+'|'+d.number;
+    const first = seen.get(key);
+    if(!first){ seen.set(key,d); continue; }
+    const draft = d.status==='draft' ? d : (first.status==='draft' ? first : null);
+    if(draft){
+      // counters อาจตามหลังเอกสารจริง (ไฟล์เก่า/ต่างปีปฏิทิน) — เดินหน้าจนพ้นเลขที่ถูกใช้แล้วเสมอ
+      let n;
+      do { n = nextNumber(draft.type, draft.issueDate); commitNumber(draft.type, draft.issueDate); }
+      while(activeDocs().some(x=>x!==draft && x.type===draft.type && x.number===n));
+      draft.number = n;
+      touch(draft); renumbered++;
+      if(draft===first) seen.set(key,d);
+    }else{
+      conflicts.push({ kind:'number', type:'document', id:d.id, otherId:first.id, number:d.number });
+    }
+  }
+  return renumbered;
+}
+
+/* ---------- sync orchestration ---------- */
+function scheduleSync(){
+  if(!isSyncEnabled()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=>syncNow(true), 30000);   // debounce หลังบันทึก
+}
+async function refreshSyncInfo(){
+  if(!IS_ELECTRON || !window.billingAPI.syncStatus) return;
+  try{ syncInfo = await window.billingAPI.syncStatus(); }catch(e){}
+}
+async function syncNow(silent){
+  if(!isSyncEnabled() || syncBusy) return;
+  syncBusy = true; syncErr = ''; updateFileStatus();
+  try{
+    const pushed = await window.billingAPI.syncPush();
+    const r = await window.billingAPI.syncPull();
+    const out = applySyncEvents(r.events||[], r.lastPullAt||'');
+    if(out.applied || out.renumbered){ await persist(true); render(); }
+    await window.billingAPI.syncCommitPull(r.cursors||{});
+    // ห้ามอัปโหลดสแนปช็อตของ DB ว่าง — เครื่องใหม่จะสร้างสแนปช็อตเปล่ามาบังของจริงใน Drive
+    let snapped = false;
+    if(r.wantSnapshot && (activeDocs().length || activeClients().length)){
+      await window.billingAPI.syncSnapshot(JSON.stringify(DB,null,2));
+      snapped = true;
+    }
+    await refreshSyncInfo();
+    if(out.renumbered) toast(tr('เอกสาร {n} ใบถูกตั้งเลขใหม่เพราะเลขชนกับอีกเครื่อง').replace('{n}',out.renumbered),'ok');
+    if(out.conflicts.length) toast(tr('มีข้อมูลแก้ไขชนกัน {n} รายการ — กดสถานะซิงก์ที่แถบซ้ายเพื่อตรวจ').replace('{n}',out.conflicts.length),'err');
+    else if(!silent){
+      // บอกตรง ๆ ว่ารอบนี้เกิดอะไร — "เงียบเพราะไม่มีอะไรใหม่" ต้องแยกจาก "เงียบเพราะพัง" ให้ออก
+      const parts = [];
+      if((pushed&&pushed.uploaded)||0) parts.push(tr('ส่งการแก้ไขขึ้น Drive แล้ว'));
+      if(out.applied) parts.push(tr('รับมา {n} รายการ').replace('{n}',out.applied));
+      if(snapped) parts.push(tr('อัปโหลดสแนปช็อตฉบับเต็มแล้ว'));
+      toast(parts.length ? tr('ซิงก์แล้ว')+' — '+parts.join(' · ') : tr('ซิงก์แล้ว — ข้อมูลตรงกับ Drive อยู่แล้ว ไม่มีอะไรต้องส่ง'),'ok');
+    }
+  }catch(e){
+    syncErr = e.message||String(e);
+    if(!silent) toast(tr('ซิงก์ไม่สำเร็จ:')+' '+syncErr,'err');
+  }
+  syncBusy = false; updateFileStatus();
+}
+async function connectDrive(){
+  try{
+    const plat = /Mac/i.test(navigator.platform||'') ? 'Mac' : 'PC';
+    const name = plat+' · '+((DB.business.businessName||'').trim()||DEVICE_ID.slice(0,6));
+    toast(tr('เปิดหน้าล็อกอิน Google ในเบราว์เซอร์แล้ว — ล็อกอินเสร็จแล้วกลับมาที่แอป'),'ok');
+    syncInfo = await window.billingAPI.syncConnect(name);
+    render();
+    toast(tr('เชื่อมต่อ Google Drive แล้ว'),'ok');
+    // เครื่องเปล่า (เครื่องใหม่/ลงใหม่) → เข้าโฟลว์กู้คืนก่อนเลย — ห้าม sync ก่อน ไม่งั้นจะดันสถานะว่างขึ้นไป
+    if(!activeDocs().length && !activeClients().length) restoreFromCloudFlow();
+    else syncNow(true);
+  }catch(e){ toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+}
+async function disconnectDrive(){
+  if(!confirm(tr('ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ'))) return;
+  try{
+    await window.billingAPI.syncDisconnect();
+    await refreshSyncInfo(); render();
+    toast(tr('ยกเลิกการเชื่อมต่อแล้ว'),'ok');
+  }catch(e){ toast(tr('ยกเลิกไม่สำเร็จ'),'err'); }
+}
+async function restoreFromCloudFlow(){
+  if(!confirm(tr('กู้คืนพื้นที่ทำงานจาก Google Drive? ข้อมูลปัจจุบันในเครื่องจะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจากคลาวด์'))) return;
+  try{
+    await window.billingAPI.snapshotBackup('pre-restore');
+    const r = await window.billingAPI.syncRestore();
+    if(!r || !r.snapshot){ toast(tr('ยังไม่มีสแนปช็อตในคลาวด์'),'err'); return; }
+    DB = migrate(JSON.parse(r.snapshot));
+    applySyncEvents(r.events||[], '', true);   // replay event ของทุกเครื่องทับสแนปช็อต
+    buildJournalIndex();                       // สถานะที่กู้มา = baseline ใหม่ของ journal
+    loadFailed = false;
+    await persist(true); setView('dashboard');
+    // บอกจำนวนที่กู้มาตรง ๆ — "สำเร็จ" ที่ได้ 0 รายการต้องมองเห็นได้ทันที ไม่ใช่เงียบ
+    toast(tr('กู้คืนจากคลาวด์แล้ว — เอกสาร {n} ใบ · ลูกค้า {c} ราย')
+      .replace('{n}',activeDocs().length).replace('{c}',activeClients().length),'ok');
+  }catch(e){ toast(tr('กู้คืนไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+}
+
+/* ---------- conflict UI ---------- */
+function openConflictsModal(){
+  if(!syncConflicts.length){ toast(tr('ไม่มีข้อขัดแย้งค้างอยู่'),'ok'); return; }
+  const m = document.getElementById('modal');
+  const row = (label, a, b) => `<tr><td class="muted">${label}</td><td>${a}</td><td>${b}</td></tr>`;
+  const cards = syncConflicts.map((c,i)=>{
+    if(c.kind==='number'){
+      return `<div class="card-block" style="margin-bottom:12px">
+        <div class="banner" style="margin-bottom:0">${ic('alert')} <span style="flex:1">${tr('เลขเอกสารซ้ำกัน: {n} — ทั้งสองใบออกแล้ว โปรดตรวจและแก้เลขเอง').replace('{n}','<b>'+escapeHtml(c.number)+'</b>')}</span>
+        <button class="btn btn-sm" onclick="closeModal();viewDoc('${c.id}')">${tr('เปิดเอกสารนี้')}</button></div>
+      </div>`;
+    }
+    const L=c.local, R=c.remote;
+    const isDoc = c.type==='document';
+    const nm = isDoc ? (L.number||R.number||'') : (L.name||R.name||'');
+    const money2 = d => isDoc ? fmtMoneyC(compute(d).netPayable, docCurrency(d)) : '—';
+    return `<div class="card-block" style="margin-bottom:12px">
+      <h4 style="margin-bottom:10px">${isDoc?typeName(L.type||R.type):tr('ลูกค้า')} <b>${escapeHtml(nm)}</b></h4>
+      <table class="rclient" style="margin-bottom:12px"><thead><tr><th></th><th>${tr('เครื่องนี้')}</th><th>${tr('อีกเครื่อง')}</th></tr></thead><tbody>
+        ${isDoc?row(tr('สถานะ'), tr(STATUS_LABEL[L.status])||L.status||'—', tr(STATUS_LABEL[R.status])||R.status||'—'):''}
+        ${isDoc?row(tr('ยอดสุทธิ'), money2(L), money2(R)):''}
+        ${isDoc?row(tr('วันที่ชำระ'), L.paidDate?fmtDate(L.paidDate):'—', R.paidDate?fmtDate(R.paidDate):'—'):''}
+        ${row(tr('แก้ไขล่าสุด'), fmtDate((L.updatedAt||'').slice(0,10)), fmtDate((R.updatedAt||'').slice(0,10)))}
+      </tbody></table>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="resolveConflict(${i},false)">${tr('ใช้ของเครื่องนี้')}</button>
+        <button class="btn" onclick="resolveConflict(${i},true)">${tr('ใช้ของอีกเครื่อง')}</button>
+        ${isDoc?`<button class="btn btn-ghost" onclick="closeModal();viewDoc('${c.id}')">${tr('เปิดเอกสารนี้')}</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  m.innerHTML = `
+    <div class="modal-head"><h3>${tr('ข้อขัดแย้งจากการซิงก์')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="desc" style="margin-bottom:14px">${tr('เอกสารถูกแก้ไขบนสองเครื่องพร้อมกัน — เลือกเวอร์ชันที่ถูกต้อง เวอร์ชันที่เลือกจะถูกใช้กับทุกเครื่อง')}</div>
+      ${cards}
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ปิดไว้ก่อน')}</button></div>`;
+  openModal();
+}
+function resolveConflict(i, useRemote){
+  const c = syncConflicts[i]; if(!c) return;
+  if(c.kind==='record'){
+    const arr = arrOfType(c.type);
+    const idx = arr.findIndex(r=>r.id===c.id);
+    if(useRemote){
+      if(idx>=0) arr[idx] = c.remote; else arr.push(c.remote);
+      touch(idx>=0?arr[idx]:arr[arr.length-1]);   // ประทับใหม่ → เวอร์ชันที่เลือกชนะทุกเครื่อง
+    }else if(idx>=0){ touch(arr[idx]); }
+  }
+  syncConflicts.splice(i,1);
+  persist();
+  if(syncConflicts.length) openConflictsModal();
+  else { closeModal(); render(); toast(tr('บันทึกการตัดสินแล้ว — จะซิงก์ให้ทุกเครื่องตามนี้'),'ok'); }
+}
+
+/* ---------- Pro upgrade & license (Phase E) ---------- */
+function openUpgradeModal(){
+  const m = document.getElementById('modal');
+  const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
+  m.innerHTML = `
+    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2" style="align-items:start">
+        <div class="card-block" style="margin-bottom:0">
+          <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
+          <div class="desc">${tr('ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
+          ${li(tr('ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน'))}
+          ${li(tr('ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94'))}
+          ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
+          ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
+        </div>
+        <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
+          <h4>${tr('BillNgai Pro — Work Everywhere')}</h4>
+          <div class="desc">${tr('ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง')}</div>
+          ${li(tr('ทุกอย่างที่มีใน Local'))}
+          ${li(tr('AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ'))}
+          ${li(tr('ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน'))}
+          ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
+          ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
+          ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
+          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว ฿1,990 (ราคาเปิดตัว) — ไม่มีค่ารายเดือน')}</div>
+        </div>
+      </div>
+      <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
+      <div class="field" style="margin-top:16px;margin-bottom:0">
+        <label>${tr('มีรหัส Pro แล้ว? วางที่นี่')}</label>
+        <div style="display:flex;gap:9px">
+          <input id="lic_key" spellcheck="false" placeholder="eyJsaWNlbnNlIjo…" style="flex:1">
+          <button class="btn btn-primary" onclick="activateLicense()">${tr('เปิดใช้งานรหัส')}</button>
+        </div>
+        <div class="hint">${tr('สั่งซื้อ/สอบถามได้ที่ผู้พัฒนา — รหัส Pro จะส่งให้ทางอีเมล')}</div>
+      </div>
+    </div>`;
+  openModal();
+}
+async function activateLicense(){
+  const key = (document.getElementById('lic_key')||{value:''}).value.trim();
+  if(!key) return;
+  try{
+    PRO = await window.billingAPI.licenseActivate(key);
+    closeModal();
+    await refreshSyncInfo();
+    render();
+    toast(tr('เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!'),'ok');
+  }catch(e){ toast(tr('รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง'),'err'); }
+}
+async function deactivateLicense(){
+  if(!confirm(tr('ปิดการใช้งานรหัส Pro บนเครื่องนี้?'))) return;
+  try{ PRO = await window.billingAPI.licenseDeactivate(); render(); }catch(e){}
+}
+
 // Persist everything: native file (desktop app), or file/localStorage (browser).
 async function persist(silent){
   if(loadFailed){
@@ -773,7 +1120,7 @@ async function persist(silent){
     return;
   }
   if(IS_ELECTRON){
-    try{ await window.billingAPI.save(JSON.stringify(DB,null,2)); dirty=false; }
+    try{ await window.billingAPI.save(JSON.stringify(DB,null,2)); dirty=false; appendJournal(); scheduleSync(); }
     catch(e){ toast(tr('บันทึกไม่สำเร็จ:')+' '+e.message,'err'); }
     updateFileStatus();
     if(!silent) toast(tr('บันทึกแล้ว'),'ok');
@@ -948,12 +1295,12 @@ function exportAccountantZip(year){
 
 // Phase 3 — documents CSV for the accountant
 function exportCSV(){
-  if(!DB.documents.length){ toast(tr('ยังไม่มีเอกสาร'),'err'); return; }
-  const head=['เลขที่','ประเภท','สถานะ','วันที่ออก','ครบกำหนด','วันที่ชำระ','ลูกค้า','เลขภาษีลูกค้า','โปรเจกต์','รวมเป็นเงิน','VAT%','VAT','ยอดรวมทั้งสิ้น','WHT%','ภาษีหัก ณ ที่จ่าย','ยอดสุทธิ','สกุลเงิน'].map(s=>tr(s));
-  const rows=[...DB.documents].sort((a,b)=>(a.issueDate||'').localeCompare(b.issueDate||'')).map(d=>{
+  if(!activeDocs().length){ toast(tr('ยังไม่มีเอกสาร'),'err'); return; }
+  const head=['เลขที่','ประเภท','สถานะ','วันที่ออก','ครบกำหนด','วันที่ชำระ','ลูกค้า','เลขภาษีลูกค้า','โปรเจกต์','ประเภทเงินได้','รวมเป็นเงิน','VAT%','VAT','ยอดรวมทั้งสิ้น','WHT%','ภาษีหัก ณ ที่จ่าย','ยอดสุทธิ','สกุลเงิน'].map(s=>tr(s));
+  const rows=[...activeDocs()].sort((a,b)=>(a.issueDate||'').localeCompare(b.issueDate||'')).map(d=>{
     const cl=clientById(d.clientId); const t=compute(d);
     return [d.number,typeName(d.type),tr(STATUS_LABEL[effectiveStatus(d)])||'',d.issueDate||'',d.dueDate||'',d.paidDate||'',
-      cl?cl.name:'',cl?cl.taxId||'':'',d.project||'',
+      cl?cl.name:'',cl?cl.taxId||'':'',d.project||'',d.incomeCategory||'',
       t.subtotal.toFixed(2),t.vatRate,t.vatAmount.toFixed(2),t.grandTotal.toFixed(2),
       t.whtRate,t.whtAmount.toFixed(2),t.netPayable.toFixed(2),DB.business.currency].map(csvCell).join(',');
   });
@@ -980,14 +1327,14 @@ function exportWhtCSV(){
 // รายชื่อลูกค้าพร้อมเลขภาษี — สำหรับชุดส่งออกให้บัญชี
 function buildClientsCSV(){
   const head=['ชื่อลูกค้า','เลขผู้เสียภาษี','ผู้ติดต่อ','อีเมล','โทรศัพท์','ที่อยู่'].map(s=>tr(s));
-  const rows=DB.clients.map(cl=>[cl.name||'',cl.taxId||'',cl.contactPerson||'',cl.email||'',cl.phone||'',cl.address||''].map(csvCell).join(','));
+  const rows=activeClients().map(cl=>[cl.name||'',cl.taxId||'',cl.contactPerson||'',cl.email||'',cl.phone||'',cl.address||''].map(csvCell).join(','));
   return '﻿'+[head.map(csvCell).join(','),...rows].join('\r\n');
 }
 
 // RD e-Tax Invoice draft (XML, ETDA / UN-CEFACT style). Starting point for an e-Tax service / accountant.
 function exportETaxXML(){
   const b=DB.business;
-  const taxDocs=DB.documents.filter(d=> d.type==='tax_invoice');
+  const taxDocs=activeDocs().filter(d=> d.type==='tax_invoice');
   if(!taxDocs.length){ toast(tr('ยังไม่มีใบกำกับภาษี'),'err'); return; }
   if(!b.taxId){ toast(tr('กรอกเลขประจำตัวผู้เสียภาษีของคุณในตั้งค่าก่อน'),'err'); return; }
   const esc=s=>escapeHtml(s);
@@ -1068,6 +1415,17 @@ function migrate(data){
   merged.documents.forEach(d=>{ if(!d.currency) d.currency = merged.business.currency || 'THB'; });
   // rebrand 1.4.0: ผู้ใช้ที่ยังใช้สีเขียวค่าเริ่มต้นเดิม (ไม่เคยเลือกเอง) ย้ายมาส้มแบรนด์ใหม่
   if((merged.business.brandColor||'').toLowerCase()==='#1f5d43') merged.business.brandColor = '#ff6b00';
+  // v2 (sync-ready): ประทับ updatedAt/deletedAt ให้ทุก record ที่มาจากไฟล์เก่า
+  const bootNow = new Date().toISOString();
+  const stampV2 = r=>{ if(!r.updatedAt) r.updatedAt = r.createdAt || bootNow; if(r.deletedAt===undefined) r.deletedAt = null; };
+  merged.clients.forEach(stampV2); merged.documents.forEach(stampV2); merged.recurring.forEach(stampV2);
+  if(!merged.business.updatedAt) merged.business.updatedAt = bootNow;
+  // ล้าง tombstone ที่เก่ากว่า 180 วัน — เหตุการณ์ลบถูกบันทึกใน journal ไปแล้ว
+  const keepTomb = r=> !r.deletedAt || (Date.now() - new Date(r.deletedAt).getTime()) < 180*86400000;
+  merged.clients = merged.clients.filter(keepTomb);
+  merged.documents = merged.documents.filter(keepTomb);
+  merged.recurring = merged.recurring.filter(keepTomb);
+  merged.version = 2;
   return merged;
 }
 
@@ -1076,7 +1434,17 @@ function updateFileStatus(){
   if(IS_ELECTRON){
     el.className='file-status connected';
     const where = dataLoc.mode==='external' ? (tr('ไฟล์:')+' '+escapeHtml(baseName(dataLoc.path))) : tr('เก็บในแอป (อัตโนมัติ)');
-    el.innerHTML = `<span class="dot"></span>${tr('บันทึกอัตโนมัติ')} · ${where}`;
+    let syncLine = '';
+    if(isPro() && syncInfo.connected){
+      const t = syncInfo.lastSyncAt ? (d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))(new Date(syncInfo.lastSyncAt)) : null;
+      const stx = syncBusy ? tr('กำลังซิงก์…')
+        : syncErr ? tr('ซิงก์ไม่สำเร็จ — จะลองใหม่ให้อัตโนมัติ')
+        : t ? tr('ซิงก์ล่าสุด {t}').replace('{t}',t) : tr('ยังไม่ได้ซิงก์');
+      const cf = syncConflicts.length
+        ? ` · <a href="#" onclick="openConflictsModal();return false" style="color:var(--amber);font-weight:600">${tr('ข้อขัดแย้ง {n} รายการ').replace('{n}',syncConflicts.length)}</a>` : '';
+      syncLine = `<div style="margin-top:6px">${ic('repeat',12)} ${stx}${cf}</div>`;
+    }
+    el.innerHTML = `<span class="dot"></span>${tr('บันทึกอัตโนมัติ')} · ${where}${syncLine}`;
     return;
   }
   el.className='file-status';
@@ -1118,8 +1486,36 @@ async function forgetFile(){
 /* ============================================================
    HELPERS
    ============================================================ */
-const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* ---------- schema v2 (sync-ready) helpers ---------- */
+// device id ประจำเครื่อง (ไม่ sync ไปกับข้อมูล) — กัน id/เลขเอกสารชนกันข้ามเครื่อง
+let DEVICE_ID = '';
+function browserDeviceId(){
+  try{
+    let id = localStorage.getItem('billing_device_id');
+    if(!id){ id = Math.random().toString(36).slice(2,10); localStorage.setItem('billing_device_id', id); }
+    return id;
+  }catch(e){ return Math.random().toString(36).slice(2,10); }
+}
+const uid = ()=> (DEVICE_ID||'0')+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const $ = s=>document.querySelector(s);
+const nowISO = ()=> new Date().toISOString();
+// stamp ต้องไม่ซ้ำแม้แก้สอง record ในมิลลิวินาทีเดียวกัน — journal ตรวจความเปลี่ยนแปลงจาก updatedAt
+let _lastTouchMs = 0;
+function touchStamp(){
+  let ms = Date.now();
+  if(ms <= _lastTouchMs) ms = _lastTouchMs + 1;
+  _lastTouchMs = ms;
+  return new Date(ms).toISOString();
+}
+// ทุกการแก้ไข record ต้อง touch() เพื่อประทับ updatedAt — ฐานของ journal และ sync ในอนาคต
+function touch(r){ r.updatedAt = touchStamp(); return r; }
+// ลบ = tombstone ไม่ใช่ลบทิ้งจริง — ไม่งั้นเอกสารที่ลบแล้วจะฟื้นคืนตอน sync
+function softDelete(r){ r.deletedAt = touchStamp(); r.updatedAt = r.deletedAt; }
+const notDeleted = r=>!r.deletedAt;
+// ทุกที่ที่ "แสดงรายการ/รวมยอด" ต้องอ่านผ่านตัวกรองนี้ — lookup ตาม id (clientById ฯลฯ) ยังค้นทั้งหมด
+function activeDocs(){ return DB.documents.filter(notDeleted); }
+function activeClients(){ return DB.clients.filter(notDeleted); }
+function activeRecurring(){ return DB.recurring.filter(notDeleted); }
 
 /* ============================================================
    UI LANGUAGE (ภาษาแอป) — Thai strings ARE the keys; tr() looks up
@@ -1583,7 +1979,7 @@ const I18N_EN = {
   'เปิดที่เก็บไฟล์':'Show data folder',
   'สำรองข้อมูล':'Back up data',
   'โฟลเดอร์สำรองอัตโนมัติ':'Auto-backup folder',
-  'แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 14 ชุดล่าสุด)':'The app keeps automatic snapshots every 30 minutes (last 14 kept)',
+  'แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 30 ชุดล่าสุด)':'The app keeps automatic snapshots every 30 minutes (last 30 kept)',
   'กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ — แอปจะเชื่อมไฟล์นี้ให้เองทุกครั้งที่เปิด':'Saving automatically to {f} — the app reconnects it every time you open',
   'เบราว์เซอร์นี้ไม่รองรับการเขียนไฟล์โดยตรง — ใช้ส่งออก/นำเข้าแทน (แนะนำ Chrome/Edge/Arc/Brave)':'This browser cannot write files directly — use export/import instead (Chrome/Edge/Arc/Brave recommended)',
   'สร้างไฟล์ใหม่…':'New file…',
@@ -1682,7 +2078,125 @@ const I18N_EN = {
   'หรือโอนเข้าบัญชี: {b}':'Or transfer to: {b}',
   'รับชำระแล้ว: {a}':'Payment received: {a}',
   'วันที่รับชำระ: {d}':'Received on: {d}',
-  'ขอบคุณที่ใช้บริการ':'Thank you for your business'
+  'ขอบคุณที่ใช้บริการ':'Thank you for your business',
+  // --- backup history & restore (v2 Phase B) ---
+  'สำรองและกู้คืน':'Backup & restore',
+  'ประวัติไฟล์สำรองในเครื่อง — กู้คืนได้ทันที ระบบจะสำรองข้อมูลปัจจุบันให้ก่อนกู้คืนเสมอ':'Local backup history — restore anytime; your current data is always backed up first',
+  'ยังไม่มีไฟล์สำรอง — จะถูกสร้างอัตโนมัติระหว่างใช้งาน':'No backups yet — they are created automatically as you work',
+  'วันที่สำรอง':'Backed up',
+  'ที่มา':'Source',
+  'ขนาด':'Size',
+  'อัตโนมัติ':'Automatic',
+  'สำรองเอง':'Manual',
+  'ก่อนอัปเกรด':'Before upgrade',
+  'ก่อนกู้คืน':'Before restore',
+  'กู้คืน':'Restore',
+  'กู้คืนข้อมูลจากไฟล์สำรองนี้? ข้อมูลปัจจุบันจะถูกสำรองไว้ให้ก่อนโดยอัตโนมัติ':'Restore from this backup? Your current data will be backed up first automatically',
+  'สร้างไฟล์สำรองแล้ว':'Backup created',
+  'กู้คืนข้อมูลแล้ว':'Data restored',
+  'กู้คืนไม่สำเร็จ:':'Restore failed:',
+  // --- income category มาตรา 40 (v2 Phase C) ---
+  'ประเภทเงินได้ (มาตรา 40)':'Income category (Section 40)',
+  'ประเภทเงินได้':'Income category',
+  'ไม่ระบุ':'Unspecified',
+  'ยังไม่ระบุประเภท':'Uncategorized',
+  'เลือกประเภทแล้วระบบแนะนำอัตราหัก ณ ที่จ่ายให้ และช่วยจัดกลุ่มยอดตอนยื่นภาษี':'Picking a category suggests the withholding rate and groups income for tax filing',
+  'ประเภทเงินได้เริ่มต้นของลูกค้ารายนี้':'Default income category for this client',
+  'ใช้เป็นค่าเริ่มต้นเวลาออกเอกสารให้ลูกค้ารายนี้ — ช่วยจัดกลุ่มยอดตอนยื่นภาษี':'Used as the default on documents for this client — helps group income for tax filing',
+  'รายรับตามประเภทเงินได้ (มาตรา 40)':'Income by category (Section 40)',
+  'ใบ':'doc(s)',
+  'ยอดก่อน VAT — ใช้จัดกลุ่มเงินได้พึงประเมินตอนยื่น ภ.ง.ด.90/94':'Pre-VAT amounts — groups assessable income for PND 90/94 filing',
+  '{n} ใบไม่ถูกนับใน ภ.ง.ด.94 เพราะเป็นเงินได้นอก 40(5)–(8)':'{n} document(s) not counted in PND 94 — income outside section 40(5)–(8)',
+  'เงินเดือน ค่าจ้าง':'Salary / wages',
+  'รับจ้างทั่วไป ฟรีแลนซ์ ค่านายหน้า':'Freelance / services / commissions',
+  'ค่าลิขสิทธิ์ ค่ากู๊ดวิลล์':'Royalties / goodwill',
+  'ค่าเช่าทรัพย์สิน':'Property rental',
+  'วิชาชีพอิสระ':'Professional services',
+  'รับเหมาที่ลงทุนจัดหาสัมภาระ':'Contract work with materials',
+  'ธุรกิจ พาณิชย์ อื่น ๆ':'Business / commerce / other',
+  // --- Workspace sync (Pro, Phase D) ---
+  'พื้นที่ทำงาน (Workspace)':'Workspace',
+  'ทำงานต่อได้ทุกเครื่อง สำรองอัตโนมัติ และกู้คืนเมื่อเปลี่ยนคอม — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเอง BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา':'Work on every device, back up automatically, and restore on a new computer — data syncs through your own Google Drive. BillNgai never stores client documents on our servers',
+  'ดูแพ็กเกจ Pro':'See Pro plans',
+  'ตอนนี้ใช้แบบ Local: ข้อมูลอยู่ในเครื่องนี้เท่านั้น (สำรอง/กู้คืนได้ที่แท็บ ข้อมูลและสำรอง)':'Currently on Local: data lives on this device only (back up / restore in the Data & backup tab)',
+  'ธุรกิจของฉัน':'My business',
+  'เอกสารและภาษี':'Documents & tax',
+  'ข้อมูลและสำรอง':'Data & backup',
+  'พื้นที่ทำงาน':'Workspace',
+  'รุ่นนี้ยังไม่ได้ฝังค่า Google OAuth client — สำหรับนักพัฒนา: วางไฟล์ secrets/gdrive-oauth.json หรือตั้งค่า BILLNGAI_GDRIVE_CLIENT_ID':'This build has no Google OAuth client embedded — for developers: add secrets/gdrive-oauth.json or set BILLNGAI_GDRIVE_CLIENT_ID',
+  'เชื่อมต่อ Google Drive':'Connect Google Drive',
+  'เชื่อมต่อแล้วจะซิงก์อัตโนมัติ — เครื่องใหม่ใช้ปุ่ม "กู้คืนจากคลาวด์" หลังเชื่อมต่อ':'Once connected, sync runs automatically — on a new computer, use "Restore from cloud" after connecting',
+  'เชื่อมต่อแล้ว: {e}':'Connected: {e}',
+  'ซิงก์ล่าสุด {t}':'Last synced {t}',
+  'ยังไม่ได้ซิงก์':'Not synced yet',
+  'กำลังซิงก์…':'Syncing…',
+  'ซิงก์เดี๋ยวนี้':'Sync now',
+  'ซิงก์แล้ว':'Synced',
+  'ส่งการแก้ไขขึ้น Drive แล้ว':'changes uploaded to Drive',
+  'รับมา {n} รายการ':'received {n} update(s)',
+  'อัปโหลดสแนปช็อตฉบับเต็มแล้ว':'full snapshot uploaded',
+  'ซิงก์แล้ว — ข้อมูลตรงกับ Drive อยู่แล้ว ไม่มีอะไรต้องส่ง':'Synced — already up to date with Drive, nothing to send',
+  'ซิงก์ไม่สำเร็จ:':'Sync failed:',
+  'ซิงก์ไม่สำเร็จ — จะลองใหม่ให้อัตโนมัติ':'Sync failed — will retry automatically',
+  'กู้คืนจากคลาวด์ (เครื่องใหม่)':'Restore from cloud (new computer)',
+  'ดูข้อขัดแย้ง':'View conflicts',
+  'ยกเลิกการเชื่อมต่อ':'Disconnect',
+  'เครื่องที่เชื่อมต่อ':'Connected devices',
+  'เครื่องนี้':'this device',
+  'ใช้งานล่าสุด':'last active',
+  'เปิดหน้าล็อกอิน Google ในเบราว์เซอร์แล้ว — ล็อกอินเสร็จแล้วกลับมาที่แอป':'Google sign-in opened in your browser — come back to the app when done',
+  'เชื่อมต่อ Google Drive แล้ว':'Google Drive connected',
+  'เชื่อมต่อไม่สำเร็จ:':'Could not connect:',
+  'ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ':'Disconnect Google Drive? Your local data stays intact and nothing in your Drive is deleted',
+  'ยกเลิกการเชื่อมต่อแล้ว':'Disconnected',
+  'ยกเลิกไม่สำเร็จ':'Could not disconnect',
+  'กู้คืนพื้นที่ทำงานจาก Google Drive? ข้อมูลปัจจุบันในเครื่องจะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจากคลาวด์':'Restore your workspace from Google Drive? Current local data will be backed up first, then replaced with the cloud copy',
+  'ยังไม่มีสแนปช็อตในคลาวด์':'No cloud snapshot found yet',
+  'กู้คืนจากคลาวด์แล้ว — เอกสาร {n} ใบ · ลูกค้า {c} ราย':'Restored from cloud — {n} document(s) · {c} client(s)',
+  'เอกสาร {n} ใบถูกตั้งเลขใหม่เพราะเลขชนกับอีกเครื่อง':'{n} draft(s) were renumbered — their numbers collided with another device',
+  'มีข้อมูลแก้ไขชนกัน {n} รายการ — กดสถานะซิงก์ที่แถบซ้ายเพื่อตรวจ':'{n} edit conflict(s) — click the sync status in the sidebar to review',
+  'ข้อขัดแย้ง {n} รายการ':'{n} conflict(s)',
+  'ไม่มีข้อขัดแย้งค้างอยู่':'No pending conflicts',
+  'ข้อขัดแย้งจากการซิงก์':'Sync conflicts',
+  'เอกสารถูกแก้ไขบนสองเครื่องพร้อมกัน — เลือกเวอร์ชันที่ถูกต้อง เวอร์ชันที่เลือกจะถูกใช้กับทุกเครื่อง':'Edited on two devices at once — pick the correct version; your choice will be used on every device',
+  'อีกเครื่อง':'Other device',
+  'แก้ไขล่าสุด':'Last edited',
+  'ใช้ของเครื่องนี้':'Keep this device',
+  'ใช้ของอีกเครื่อง':'Use other device',
+  'ปิดไว้ก่อน':'Decide later',
+  'บันทึกการตัดสินแล้ว — จะซิงก์ให้ทุกเครื่องตามนี้':'Decision saved — every device will sync to this version',
+  'เลขเอกสารซ้ำกัน: {n} — ทั้งสองใบออกแล้ว โปรดตรวจและแก้เลขเอง':'Duplicate document number: {n} — both were already issued; please review and fix the numbers manually',
+  'เปิดเอกสารนี้':'Open this document',
+  // --- Pro packaging (Phase E) ---
+  'อัปเกรดเป็น BillNgai Pro':'Upgrade to BillNgai Pro',
+  'BillNgai Local — ของคุณตลอดไป':'BillNgai Local — yours forever',
+  'ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Buy once, issue documents forever, data stays on your machine',
+  'ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน':'Every document type, unlimited',
+  'ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94':'Full Thai tax handling: VAT · withholding · PND 90/94',
+  'ข้อมูลอยู่ในเครื่องคุณ 100%':'Your data stays 100% on your machine',
+  'สำรอง/กู้คืนในเครื่อง':'Local backup & restore',
+  'BillNgai Pro — Work Everywhere':'BillNgai Pro — Work Everywhere',
+  'ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง':'Work on every device, back up automatically, and prepare taxes more easily — with data in your own Google Drive',
+  'ทุกอย่างที่มีใน Local':'Everything in Local',
+  'ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน':'Sync via your own Google Drive — start at the office, continue at home',
+  'สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม':'Automatic cloud backup + restore on a new computer',
+  'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
+  'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
+  'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your machine',
+  'จ่ายครั้งเดียว ฿1,990 (ราคาเปิดตัว) — ไม่มีค่ารายเดือน':'One-time ฿1,990 (launch price) — no monthly fees',
+  'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
+  'BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'BillNgai never stores client documents on our servers — data syncs only through your own Google Drive',
+  'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
+  'เปิดใช้งานรหัส':'Activate',
+  'สั่งซื้อ/สอบถามได้ที่ผู้พัฒนา — รหัส Pro จะส่งให้ทางอีเมล':'Purchase or ask the developer — your Pro key arrives by email',
+  'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
+  'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
+  'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
+  'ฟีเจอร์ Pro — ดูแพ็กเกจ':'Pro feature — see plans',
+  'สถานะ Pro':'Pro status',
+  'ตลอดชีพ':'Lifetime',
+  'ใช้ได้ถึง {d}':'Valid until {d}',
+  'ปิดการใช้งานรหัสนี้':'Deactivate this key'
 };
 
 /* ---------- inline SVG icons (Lucide, MIT) — no emoji, works offline ---------- */
@@ -1879,7 +2393,7 @@ function loadFailBanner(){
 }
 // Gentle nudge on the dashboard when it's been a while since the last manual backup.
 function backupReminder(){
-  if(!DB.documents.length) return '';
+  if(!activeDocs().length) return '';
   if(DB.meta && DB.meta.demo) return '';   // don't nag about backing up sample data
   const d = daysSince(DB.meta && DB.meta.lastBackupAt);
   if(d < 14) return '';
@@ -1982,7 +2496,32 @@ const STATUS_LABEL = {
   paid:'ชำระแล้ว', overdue:'เกินกำหนด', issued:'ออกแล้ว'
 };
 
+/* ประเภทเงินได้ตามมาตรา 40 — metadata คงที่ (ไม่ใช่ข้อมูลผู้ใช้) ป้ายผ่าน tr() เสมอ
+   wht = อัตราหัก ณ ที่จ่ายที่พบบ่อยของประเภทนั้น ใช้เป็นคำแนะนำตอนเลือกในตัวแก้ไขเอกสาร */
+const INCOME_CATEGORIES = [
+  {code:'40(1)', th:'เงินเดือน ค่าจ้าง', wht:0},
+  {code:'40(2)', th:'รับจ้างทั่วไป ฟรีแลนซ์ ค่านายหน้า', wht:3},
+  {code:'40(3)', th:'ค่าลิขสิทธิ์ ค่ากู๊ดวิลล์', wht:3},
+  {code:'40(5)', th:'ค่าเช่าทรัพย์สิน', wht:5},
+  {code:'40(6)', th:'วิชาชีพอิสระ', wht:3},
+  {code:'40(7)', th:'รับเหมาที่ลงทุนจัดหาสัมภาระ', wht:3},
+  {code:'40(8)', th:'ธุรกิจ พาณิชย์ อื่น ๆ', wht:3}
+];
+// ภ.ง.ด.94 ใช้กับเงินได้ 40(5)–(8) เท่านั้น — เอกสารที่ไม่ระบุประเภทยังนับตามพฤติกรรมเดิม
+const PND94_CATS = ['40(5)','40(6)','40(7)','40(8)'];
+function incomeCatLabel(code){
+  const c = INCOME_CATEGORIES.find(x=>x.code===code);
+  return c ? c.code+' '+tr(c.th) : code;
+}
+
 function clientById(id){ return DB.clients.find(c=>c.id===id); }
+// ตัวเลือกลูกค้าในตัวแก้ไข — เฉพาะที่ยังไม่ลบ แต่ถ้าเอกสารเดิมผูกกับลูกค้าที่ลบไปแล้ว ให้โชว์รายนั้นด้วย
+function editorClients(currentId){
+  const list = activeClients();
+  const cur = clientById(currentId);
+  if(cur && cur.deletedAt) list.unshift(cur);
+  return list;
+}
 function isOverdue(doc){
   return doc.type==='invoice' && doc.status==='sent' && doc.dueDate && doc.dueDate < todayISO();
 }
@@ -2049,10 +2588,10 @@ function render(){
   const c = document.getElementById('content');
   const ta = document.getElementById('topActions');
   ta.innerHTML='';
-  const dc = DB.documents.length;
+  const dc = activeDocs().length;
   const nb = document.getElementById('navDocCount');
   nb.style.display = dc? 'inline-block':'none'; nb.textContent = dc;
-  const activeRec = DB.recurring.filter(r=>r.active!==false).length;
+  const activeRec = activeRecurring().filter(r=>r.active!==false).length;
   const rb = document.getElementById('navRecCount');
   rb.style.display = activeRec? 'inline-block':'none'; rb.textContent = activeRec;
   const pendingCerts = whtPendingList().length;
@@ -2224,9 +2763,10 @@ function createDocFromAiDraft(){
   const d = aiTorDraft; if(!d) return;
   const name = (d.client||'').trim();
   const askMore = !name || /ต้องถามเพิ่ม/.test(name);
-  let client = !askMore ? DB.clients.find(c => (c.name||'').trim() === name) : null;
+  let client = !askMore ? activeClients().find(c => (c.name||'').trim() === name) : null;
   if(!client && !askMore){
-    client = { id:uid(), name, contactPerson:'', taxId:'', address:'', email:'', phone:'', defaultWht:true, docLang:'', notes:tr('สร้างอัตโนมัติจากร่าง AI — กรอกเลขภาษี/ที่อยู่ก่อนออกใบกำกับภาษี') };
+    client = { id:uid(), name, contactPerson:'', taxId:'', address:'', email:'', phone:'', defaultWht:true, docLang:'', defaultIncomeCategory:'', deletedAt:null, notes:tr('สร้างอัตโนมัติจากร่าง AI — กรอกเลขภาษี/ที่อยู่ก่อนออกใบกำกับภาษี') };
+    touch(client);
     DB.clients.push(client); persist();
     toast(tr('เพิ่มลูกค้าใหม่จากร่าง AI แล้ว — อย่าลืมกรอกเลขภาษี'),'ok');
   }
@@ -2236,11 +2776,12 @@ function createDocFromAiDraft(){
   if(d.paymentTerms) noteParts.push(tr('เงื่อนไขชำระเงิน')+': '+d.paymentTerms);
   if(d.installments&&d.installments.length) noteParts.push(tr('งวดตาม TOR')+': '+d.installments.map(g=>`${g.label} ${g.percent}%`).join(' · '));
   if(d.delivery) noteParts.push(tr('กำหนดส่งมอบ')+': '+d.delivery);
-  const resolved = client || DB.clients[0];
+  const resolved = client || activeClients()[0];
   openDocEditor('quotation', null, items, null, {
     clientId: resolved && resolved.id,
     // สำคัญ: หัก ณ ที่จ่าย ต้องตามลูกค้าที่เลือกจริง ไม่ใช่ลูกค้าคนแรกในระบบ
     whtRate: (resolved && resolved.defaultWht!==false) ? DB.business.defaultWhtRate : 0,
+    incomeCategory: (resolved && resolved.defaultIncomeCategory) || '',
     project: d.project||'',
     notes: noteParts.join('\n')
   });
@@ -2274,6 +2815,24 @@ function renderAi(c,ta){
       <h4>${ic('sparkles')} ${tr('BillNgai AI Add-on')}</h4>
       <div class="desc">${tr('โมดูล AI แบบออฟไลน์ใช้ได้ในแอปเดสก์ท็อปเท่านั้น')}</div>
     </div></div>`;
+    return;
+  }
+  // TOR → Invoice เป็นฟีเจอร์ Pro (2.0) — 1.5.0 ไม่เคยเผยแพร่ จึงไม่มีผู้ใช้เดิมให้ grandfather
+  if(!isPro()){
+    ta.innerHTML = '';
+    c.innerHTML = `<div class="settings-grid">
+      <div class="card-block">
+        <h4>${ic('sparkles')} ${tr('TOR → Invoice — ฟีเจอร์ของ BillNgai Pro')}</h4>
+        <div class="desc">${tr('วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต')}</div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="openUpgradeModal()">${ic('sparkles')} ${tr('ดูแพ็กเกจ Pro')}</button>
+        </div>
+      </div>
+      <div class="card-block">
+        <h4>${tr('หลักการของโมดูลนี้')}</h4>
+        <div class="desc">${tr('ไม่มีการดาวน์โหลดในแอป ไม่มีการเปิดใช้งานผ่านอินเทอร์เน็ต และไม่มีการส่งเอกสารออกจากเครื่อง')}</div>
+      </div>
+    </div>`;
     return;
   }
   const status = aiAddonStatus;
@@ -2351,7 +2910,7 @@ function renderAi(c,ta){
 function renderDashboard(c,ta){
   let unpaid=0, received=0, expectedWht=0, openQuotes=0, openQuotesVal=0, overdueCount=0;
   const foreign={}; // currency -> {unpaid, received}
-  DB.documents.forEach(d=>{
+  activeDocs().forEach(d=>{
     const t = compute(d);
     const isTHB = t.currency==='THB';
     const F = ()=> (foreign[t.currency] = foreign[t.currency] || {unpaid:0,received:0});
@@ -2367,14 +2926,14 @@ function renderDashboard(c,ta){
 
   ta.innerHTML = `<button class="btn btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>`;
 
-  const recent = [...DB.documents].sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,8);
+  const recent = [...activeDocs()].sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,8);
   const due = dueRecurring();
   const pendingCerts = whtPendingList();
 
   c.innerHTML = `
     ${loadFailBanner()}
     ${demoBanner()}
-    ${!DB.clients.length && !DB.documents.length ? welcomeBanner() : ''}
+    ${!activeClients().length && !activeDocs().length ? welcomeBanner() : ''}
     ${backupReminder()}
     ${filingReminder()}
     ${due.length?`<div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878">${ic('repeat')} ${tr('มีรายการประจำถึงกำหนด {n} รายการ').replace('{n}',`<b style="margin:0 3px">${due.length}</b>`)} <button class="btn btn-sm btn-primary" style="margin-left:8px" onclick="setView('recurring')">${tr('ดูและสร้าง')}</button></div>`:''}
@@ -2401,7 +2960,7 @@ function renderDashboard(c,ta){
       <div class="mini-stat"><div class="v">${openQuotes}</div><div class="l">${tr('ใบเสนอราคาที่เปิดอยู่')}</div></div>
       <div class="mini-stat"><div class="v" data-cu="${openQuotesVal}" data-cu-pre="฿">${fmtMoneyC(openQuotesVal,'THB')}</div><div class="l">${tr('มูลค่าใน pipeline')}</div></div>
       <div class="mini-stat" style="cursor:pointer" onclick="setView('wht')"><div class="v" style="color:${pendingCerts.length?'var(--amber)':'inherit'}">${pendingCerts.length}</div><div class="l">${tr('รอใบ 50 ทวิ จากลูกค้า')}</div></div>
-      <div class="mini-stat"><div class="v">${DB.clients.length}</div><div class="l">${tr('ลูกค้า')}</div></div>
+      <div class="mini-stat"><div class="v">${activeClients().length}</div><div class="l">${tr('ลูกค้า')}</div></div>
     </div>
 
     ${foreignKeys.length?`<div class="fx-row">
@@ -2420,7 +2979,7 @@ function renderDashboard(c,ta){
 }
 
 /* ---------- DASHBOARD CHARTS (Phase 3, no library) ---------- */
-function receivedDocs(){ return DB.documents.filter(d=>d.type==='receipt'||d.type==='tax_invoice'); }
+function receivedDocs(){ return activeDocs().filter(d=>d.type==='receipt'||d.type==='tax_invoice'); }
 function chartsBlock(){
   // THB only — mixing currencies in one bar chart would be misleading.
   const recs = receivedDocs().filter(d=> docCurrency(d)==='THB');
@@ -2516,6 +3075,9 @@ function wizBack(){ wizCollect(); wizStep--; drawWizard(); }
 function wizDone(skip){
   wizCollect();
   DB.meta.setupDone = true;
+  // ข้าม wizard เปล่า ๆ ต้องไม่นับเป็น "การแก้ไขโปรไฟล์" — ไม่งั้น sync จะพาโปรไฟล์เปล่าไปทับเครื่องอื่น
+  const b=DB.business;
+  if(String(b.businessName||'').trim() || String(b.taxId||'').trim() || String(b.promptpayId||'').trim() || (b.logo||'')) touch(b);
   persist(true); applyTheme(); render(); closeModal();
   if(!skip) toast(tr('พร้อมใช้งานแล้ว — เพิ่มลูกค้าแล้วออกเอกสารแรกได้เลย'),'ok');
 }
@@ -2585,14 +3147,15 @@ function drawWizard(){
 // entering real data. Demo records carry demo:true and use DEMO-* numbers so
 // they never touch the real counters.
 function loadDemoData(){
-  if(DB.documents.length || DB.clients.length){ toast(tr('มีข้อมูลจริงอยู่แล้ว — ข้อมูลตัวอย่างใช้ได้เฉพาะตอนเริ่มต้น'),'err'); return; }
+  if(activeDocs().length || activeClients().length){ toast(tr('มีข้อมูลจริงอยู่แล้ว — ข้อมูลตัวอย่างใช้ได้เฉพาะตอนเริ่มต้น'),'err'); return; }
   const vat = DB.business.isVatRegistered ? 7 : 0;
   const cid = uid();
+  const ts0=new Date().toISOString();
   DB.clients.push({ id:cid, demo:true, name:'บริษัท ตัวอย่าง จำกัด', contactPerson:'คุณสมชาย ใจดี',
     taxId:'0105561000000', address:'99/9 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
-    email:'somchai@example.co.th', phone:'02-000-0000', defaultWht:true });
-  const t0=todayISO(), ts=new Date().toISOString();
-  const mk=(o)=>({ demo:true, clientId:cid, currency:'THB', vatRate:vat, whtRate:3, notes:'', createdAt:ts, paidDate:null, dueDate:null, parentId:null, ...o });
+    email:'somchai@example.co.th', phone:'02-000-0000', defaultWht:true, updatedAt:ts0, deletedAt:null });
+  const t0=todayISO(), ts=ts0;
+  const mk=(o)=>({ demo:true, clientId:cid, currency:'THB', vatRate:vat, whtRate:3, notes:'', createdAt:ts, updatedAt:ts, deletedAt:null, paidDate:null, dueDate:null, parentId:null, ...o });
   const q = mk({ id:uid(), type:'quotation', number:'DEMO-QT-001', issueDate:addDays(t0,-40), status:'accepted',
     project:'ออกแบบเว็บไซต์บริษัท', items:[{description:'ออกแบบและพัฒนาเว็บไซต์',qty:1,unit:'งาน',price:45000}] });
   const inv1 = mk({ id:uid(), type:'invoice', number:'DEMO-INV-001', parentId:q.id, issueDate:addDays(t0,-30), dueDate:addDays(t0,-2), status:'sent',
@@ -2637,7 +3200,7 @@ function renderDocuments(c,ta){
   ta.innerHTML = `<button class="btn btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>`;
   const tabs = [['all','ทั้งหมด'],['quotation','ใบเสนอราคา'],['invoice','ใบแจ้งหนี้'],['receipt','ใบเสร็จ / ใบกำกับภาษี']];
   // status chip counts follow the active type tab
-  let typed = DB.documents;
+  let typed = activeDocs();
   if(docFilter==='receipt') typed = typed.filter(d=> d.type==='receipt'||d.type==='tax_invoice');
   else if(docFilter!=='all') typed = typed.filter(d=> d.type===docFilter);
   const cnt = f => typed.filter(d=> docStatusMatch(d,f)).length;
@@ -2668,7 +3231,7 @@ function renderDocuments(c,ta){
 }
 function drawDocList(q){
   q = (q||'').toLowerCase();
-  let list = [...DB.documents];
+  let list = [...activeDocs()];
   if(docFilter==='receipt') list = list.filter(d=> d.type==='receipt'||d.type==='tax_invoice');
   else if(docFilter!=='all') list = list.filter(d=> d.type===docFilter);
   if(docStatusFilter!=='all') list = list.filter(d=> docStatusMatch(d,docStatusFilter));
@@ -2694,7 +3257,7 @@ function docQuickAction(d, st){
   if(d.type==='invoice'){
     if(st==='sent'||st==='overdue')
       return `<button class="btn btn-sm" onclick="event.stopPropagation();setStatus('${d.id}','paid')">${ic('check',13)} ${tr('รับชำระ')}</button>`;
-    if(d.status==='paid' && !DB.documents.some(r=> r.parentId===d.id && (r.type==='receipt'||r.type==='tax_invoice')))
+    if(d.status==='paid' && !activeDocs().some(r=> r.parentId===d.id && (r.type==='receipt'||r.type==='tax_invoice')))
       return `<button class="btn btn-sm" onclick="event.stopPropagation();createReceipt('${d.id}')">${ic('arrowRight',13)} ${tr('ออกใบเสร็จ')}</button>`;
   }
   return '';
@@ -2726,7 +3289,7 @@ function statusBadge(st){
 /* ---------- WHT 50 ทวิ TRACKING (Someday→done) ---------- */
 // Docs where withholding actually occurred (payment happened) and a 50 ทวิ cert is expected.
 function whtTrackedDocs(){
-  const docs = DB.documents;
+  const docs = activeDocs();
   const recs = docs.filter(d=> (d.type==='receipt'||d.type==='tax_invoice') && compute(d).whtAmount>0);
   const paidInvNoReceipt = docs.filter(d=> d.type==='invoice' && d.status==='paid' && compute(d).whtAmount>0
       && !docs.some(r=> r.parentId===d.id && (r.type==='receipt'||r.type==='tax_invoice')));
@@ -2745,7 +3308,7 @@ function renderWht(c,ta){
     return;
   }
   c.innerHTML = `
-    <div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878">
+    <div class="banner" style="background:var(--blue-bg);border-color:var(--blue-bg);color:var(--blue)">
       ${ic('receipt')} ${tr('ใบ 50 ทวิ คือหนังสือรับรองการหักภาษี ณ ที่จ่ายที่')} <b>${tr('ลูกค้าต้องออกให้คุณ')}</b> — ${tr('เก็บไว้เพื่อใช้เครดิตภาษีตอนยื่นภงด.')}
     </div>
     <div class="mini-stats" style="grid-template-columns:repeat(3,1fr)">
@@ -2770,7 +3333,7 @@ function renderWht(c,ta){
         <td>${d.whtCertReceived
           ? `<span class="badge-status s-paid"><span class="d"></span>${tr('ได้รับแล้ว')}${d.whtCertNo?' · '+escapeHtml(d.whtCertNo):''}</span>`
           : `<span class="badge-status s-draft"><span class="d"></span>${tr('ยังไม่ได้รับ')}</span>`}</td>
-        <td style="text-align:right"><button class="btn btn-sm" onclick="openWhtCert('${d.id}')">${d.whtCertReceived?tr('แก้ไข'):tr('บันทึกรับใบ')}</button></td>
+        <td style="text-align:right"><button class="btn btn-sm ${d.whtCertReceived?'btn-ghost':'btn-primary'}" onclick="openWhtCert('${d.id}')">${d.whtCertReceived?tr('แก้ไข'):tr('บันทึกรับใบ')}</button></td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
@@ -2796,6 +3359,7 @@ function saveWhtCert(id){
   d.whtCertReceived=document.getElementById('w_got').checked;
   d.whtCertNo=document.getElementById('w_no').value.trim();
   d.whtCertDate=document.getElementById('w_date').value||null;
+  touch(d);
   persist(); closeModal(); render(); toast(tr('บันทึกข้อมูลใบ 50 ทวิ แล้ว'),'ok');
 }
 
@@ -2808,13 +3372,13 @@ function advanceDate(iso,freq){
   else d.setFullYear(d.getFullYear()+1);
   return d.toISOString().slice(0,10);
 }
-function dueRecurring(){ return DB.recurring.filter(r=> r.active!==false && r.nextDate && r.nextDate<=todayISO()); }
+function dueRecurring(){ return activeRecurring().filter(r=> r.active!==false && r.nextDate && r.nextDate<=todayISO()); }
 
 function renderRecurring(c,ta){
-  ta.innerHTML = DB.clients.length?`<button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button>`:'';
+  ta.innerHTML = activeClients().length?`<button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button>`:'';
   const due = dueRecurring();
-  if(!DB.recurring.length){
-    c.innerHTML = `${brandEmpty('objectFolder', tr('ยังไม่มีรายการประจำ'), tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว'))}${DB.clients.length?`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button></div>`:`<div style="text-align:center;margin-top:16px"><span class="muted">${tr('เพิ่มลูกค้าก่อน')}</span></div>`}`;
+  if(!activeRecurring().length){
+    c.innerHTML = `${brandEmpty('objectFolder', tr('ยังไม่มีรายการประจำ'), tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว'))}${activeClients().length?`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button></div>`:`<div style="text-align:center;margin-top:16px"><span class="muted">${tr('เพิ่มลูกค้าก่อน')}</span></div>`}`;
     return;
   }
   c.innerHTML = `
@@ -2822,7 +3386,7 @@ function renderRecurring(c,ta){
     <table><thead><tr>
       <th>${tr('ลูกค้า / โปรเจกต์')}</th><th>${tr('ความถี่')}</th><th>${tr('ครั้งถัดไป')}</th><th class="num">${tr('ยอดบิล')}</th><th>${tr('สถานะ')}</th><th></th>
     </tr></thead><tbody>
-    ${DB.recurring.map(r=>{
+    ${activeRecurring().map(r=>{
       const cl=clientById(r.clientId); const t=compute(r); const isDue=r.active!==false && r.nextDate<=todayISO();
       return `<tr style="cursor:default;${isDue?'background:var(--blue-bg)':''}">
         <td><b style="cursor:pointer" onclick="openRecurringEditor('${r.id}')">${cl?escapeHtml(cl.name):'—'}</b>${r.project?`<div class="muted" style="font-size:11.5px">${escapeHtml(r.project)}</div>`:''}</td>
@@ -2840,11 +3404,11 @@ function renderRecurring(c,ta){
 }
 let editRec=null;
 function openRecurringEditor(id){
-  if(!DB.clients.length){ toast(tr('เพิ่มลูกค้าก่อน'),'err'); setView('clients'); return; }
+  if(!activeClients().length){ toast(tr('เพิ่มลูกค้าก่อน'),'err'); setView('clients'); return; }
   if(id) editRec=JSON.parse(JSON.stringify(DB.recurring.find(r=>r.id===id)));
   else{
-    const cl=DB.clients[0];
-    editRec={id:null,clientId:cl.id,project:'',frequency:'monthly',nextDate:todayISO(),active:true,
+    const cl=activeClients()[0];
+    editRec={id:null,clientId:cl.id,project:'',frequency:'monthly',nextDate:todayISO(),active:true,deletedAt:null,
       items:[{description:'',qty:1,unit:'',price:0}],
       vatRate:DB.business.isVatRegistered?DB.business.defaultVatRate:0,
       whtRate:(cl.defaultWht!==false)?DB.business.defaultWhtRate:0, notes:''};
@@ -2858,7 +3422,7 @@ function drawRecEditor(){
     <div class="modal-body">
       <div class="grid-3">
         <div class="field"><label>${tr('ลูกค้า')}</label><select id="r_client" onchange="editRec.clientId=this.value">
-          ${DB.clients.map(c=>`<option value="${c.id}" ${r.clientId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select></div>
+          ${editorClients(r.clientId).map(c=>`<option value="${c.id}" ${r.clientId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select></div>
         <div class="field"><label>${tr('ความถี่')}</label><select id="r_freq" onchange="editRec.frequency=this.value">
           ${Object.entries(FREQ_LABEL).map(([k,l])=>`<option value="${k}" ${r.frequency===k?'selected':''}>${tr(l)}</option>`).join('')}</select></div>
         <div class="field"><label>${tr('วันที่ออกครั้งถัดไป')}</label><input type="date" id="r_next" value="${r.nextDate}" onchange="editRec.nextDate=this.value"></div>
@@ -2913,36 +3477,42 @@ function saveRecurring(){
   const r=editRec;
   r.items=r.items.filter(it=>(it.description||'').trim()||Number(it.price)>0);
   if(!r.items.length){ toast(tr('เพิ่มอย่างน้อยหนึ่งรายการ'),'err'); return; }
+  touch(r);
   if(r.id){ const i=DB.recurring.findIndex(x=>x.id===r.id); DB.recurring[i]=r; }
   else{ r.id=uid(); DB.recurring.push(r); }
   persist(); closeModal(); setView('recurring'); toast(tr('บันทึกรายการประจำแล้ว'),'ok');
 }
 function deleteRecurring(id){ if(!confirm(tr('ลบรายการประจำนี้?'))) return;
-  DB.recurring=DB.recurring.filter(r=>r.id!==id); persist(); closeModal(); setView('recurring'); }
+  const r=DB.recurring.find(x=>x.id===id); if(r) softDelete(r);   // tombstone (v2)
+  persist(); closeModal(); setView('recurring'); }
 function generateRecurring(id){
   const r=DB.recurring.find(x=>x.id===id);
   const issue = r.nextDate<=todayISO()? r.nextDate : todayISO();
+  const rcl=clientById(r.clientId);
   const inv={id:uid(),type:'invoice',number:nextNumber('invoice',issue),clientId:r.clientId,parentId:null,
     issueDate:issue,dueDate:addDays(issue,30),paidDate:null,status:'draft',project:r.project,
     currency:r.currency||DB.business.currency||'THB',
     items:JSON.parse(JSON.stringify(r.items)),vatRate:r.vatRate,whtRate:r.whtRate,notes:r.notes,
+    incomeCategory:(rcl&&rcl.defaultIncomeCategory)||'',deletedAt:null,
     createdAt:new Date().toISOString(),recurringId:r.id};
+  touch(inv);
   commitNumber('invoice',issue);
   DB.documents.push(inv);
   r.lastGenerated=issue;
   r.nextDate=advanceDate(r.nextDate,r.frequency);
+  touch(r);
   persist(); viewDoc(inv.id); toast(tr('สร้างใบแจ้งหนี้จากรายการประจำแล้ว — ครั้งถัดไป {d}').replace('{d}',fmtDate(r.nextDate)),'ok');
 }
 
 /* ---------- CLIENTS ---------- */
 function renderClients(c,ta){
   ta.innerHTML = `<button class="btn btn-primary" onclick="openClientEditor()">${tr('+ เพิ่มลูกค้า')}</button>`;
-  if(!DB.clients.length){
+  if(!activeClients().length){
     c.innerHTML = brandEmpty('characterReview', tr('ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร'), tr('เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้'));
     return;
   }
-  c.innerHTML = `<div class="cards">${DB.clients.map(cl=>{
-    const docs = DB.documents.filter(d=>d.clientId===cl.id).length;
+  c.innerHTML = `<div class="cards">${activeClients().map(cl=>{
+    const docs = activeDocs().filter(d=>d.clientId===cl.id).length;
     return `<div class="client-card" onclick="openClientEditor('${cl.id}')">
       <h3>${escapeHtml(cl.name)}</h3>
       <div class="meta">
@@ -2961,7 +3531,7 @@ function renderClients(c,ta){
 /* ---------- YEAR-END TAX SUMMARY ---------- */
 let reportYear = new Date().getFullYear();
 function docTaxDate(d){ return d.paidDate || d.issueDate || ''; }
-function realizedDocs(){ return DB.documents.filter(d=> d.type==='receipt' || d.type==='tax_invoice'); }
+function realizedDocs(){ return activeDocs().filter(d=> d.type==='receipt' || d.type==='tax_invoice'); }
 function reportYears(){
   const ys = new Set(realizedDocs().map(d=> new Date(docTaxDate(d)).getFullYear()).filter(y=>!isNaN(y)));
   ys.add(new Date().getFullYear());
@@ -2977,12 +3547,16 @@ function taxYearAgg(year){
   const agg = {subtotal:0,vat:0,wht:0,grand:0,net:0,count:thb.length};
   const byMonth = Array.from({length:12},()=>0);
   const byClient = {};
+  const byCategory = {};   // ประเภทเงินได้ (มาตรา 40) → {subtotal, wht, count}; '' = ยังไม่ระบุ
   thb.forEach(d=>{
     const t=compute(d);
     agg.subtotal+=t.subtotal; agg.vat+=t.vatAmount; agg.wht+=t.whtAmount; agg.grand+=t.grandTotal; agg.net+=t.netPayable;
     byMonth[new Date(docTaxDate(d)).getMonth()] += t.grandTotal;
     const cl=clientById(d.clientId); const nm=cl?cl.name:'—';
     byClient[nm]=(byClient[nm]||0)+t.netPayable;
+    const cat = d.incomeCategory || '';
+    const bc = byCategory[cat] = byCategory[cat] || {subtotal:0,wht:0,count:0};
+    bc.subtotal+=t.subtotal; bc.wht+=t.whtAmount; bc.count++;
   });
   // foreign income, per currency — converted to THB with the per-document FX rate when given
   const foreign={};
@@ -2994,15 +3568,16 @@ function taxYearAgg(year){
   });
   const foreignThb = Object.values(foreign).reduce((s,f)=>s+f.thb,0);
   const foreignMissing = Object.values(foreign).reduce((s,f)=>s+f.missing,0);
-  return {docs, agg, byMonth, byClient, foreign, foreignThb, foreignMissing};
+  return {docs, agg, byMonth, byClient, byCategory, foreign, foreignThb, foreignMissing};
 }
 
 function renderReport(c,ta){
-  const {docs, agg, byMonth, byClient, foreign, foreignThb, foreignMissing} = taxYearAgg(reportYear);
+  const {docs, agg, byMonth, byClient, byCategory, foreign, foreignThb, foreignMissing} = taxYearAgg(reportYear);
+  const catUsed = Object.keys(byCategory).some(k=>k!=='');
 
   // outstanding (unpaid invoices) issued this year — informational
   let outstanding=0;
-  DB.documents.filter(d=> d.type==='invoice' && docCurrency(d)==='THB'
+  activeDocs().filter(d=> d.type==='invoice' && docCurrency(d)==='THB'
       && new Date(d.issueDate).getFullYear()===reportYear
       && (effectiveStatus(d)==='sent'||effectiveStatus(d)==='overdue'))
     .forEach(d=> outstanding += compute(d).netPayable);
@@ -3045,6 +3620,17 @@ function renderReport(c,ta){
         ${f.missing?`<span class="fx-pair" style="color:var(--amber)"><span class="fx-l">${ic('alert',12)}</span> ${tr('{n} ใบไม่มีเรต').replace('{n}',f.missing)}</span>`:''}</div>`).join('')}
     </div>`:''}
 
+    ${catUsed?`<div class="section-title">${tr('รายรับตามประเภทเงินได้ (มาตรา 40)')}</div>
+    <div class="chart-card" style="margin-bottom:4px">
+      <table class="rclient"><tbody>
+        ${Object.keys(byCategory).sort().map(k=>`<tr>
+          <td>${k?escapeHtml(incomeCatLabel(k)):tr('ยังไม่ระบุประเภท')} <span class="muted" style="font-size:11px">· ${byCategory[k].count} ${tr('ใบ')}</span></td>
+          <td class="num">${fmtMoneyC(byCategory[k].subtotal,'THB')}</td>
+        </tr>`).join('')}
+      </tbody></table>
+      <div class="hint" style="margin-top:8px">${tr('ยอดก่อน VAT — ใช้จัดกลุ่มเงินได้พึงประเมินตอนยื่น ภ.ง.ด.90/94')}</div>
+    </div>`:''}
+
     <div class="report-grid">
       <div class="chart-card">
         <div class="ch-title">${tr('รายรับรายเดือน (ยอดรวม, บาท)')}</div>
@@ -3064,11 +3650,11 @@ function renderReport(c,ta){
 function buildReportCSV(year){
   const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===year)
     .sort((a,b)=> docTaxDate(a).localeCompare(docTaxDate(b)));
-  const head=['เลขที่','ประเภท','วันที่','ลูกค้า','เลขผู้เสียภาษี','สกุลเงิน','ก่อนVAT','VAT','รวม','หักณที่จ่าย','สุทธิ','อัตราแลกเปลี่ยน','เทียบเท่าบาท'].map(s=>tr(s));
+  const head=['เลขที่','ประเภท','วันที่','ลูกค้า','เลขผู้เสียภาษี','ประเภทเงินได้','สกุลเงิน','ก่อนVAT','VAT','รวม','หักณที่จ่าย','สุทธิ','อัตราแลกเปลี่ยน','เทียบเท่าบาท'].map(s=>tr(s));
   const rows=docs.map(d=>{ const t=compute(d); const cl=clientById(d.clientId);
     const rate = t.currency==='THB' ? 1 : (Number(d.fxRate)||'');
     const thbEq = rate ? (t.grandTotal*rate).toFixed(2) : '';
-    return [d.number,typeName(d.type),docTaxDate(d),cl?cl.name:'',cl?cl.taxId||'':'',t.currency,
+    return [d.number,typeName(d.type),docTaxDate(d),cl?cl.name:'',cl?cl.taxId||'':'',d.incomeCategory||'',t.currency,
       t.subtotal.toFixed(2),t.vatAmount.toFixed(2),t.grandTotal.toFixed(2),t.whtAmount.toFixed(2),t.netPayable.toFixed(2),
       rate,thbEq].map(csvCell).join(',');
   });
@@ -3099,13 +3685,15 @@ function buildSummaryCSV(year){
 
 /* ---------- ยื่นภาษี — ผู้ช่วย ภ.ง.ด. 90/94 ---------- */
 // รวมรายรับตามช่วงเดือน (mFrom..mTo, 0-11) ของปีภาษี — ต่างสกุลเงินเทียบบาทด้วย fxRate รายเอกสาร
-function filingIncome(year, mFrom, mTo){
-  const res={grossThb:0, wht:0, foreignThb:0, foreignMissing:0, count:0};
+function filingIncome(year, mFrom, mTo, only94Cats){
+  const res={grossThb:0, wht:0, foreignThb:0, foreignMissing:0, count:0, excluded:0};
   realizedDocs().forEach(d=>{
     const ds=docTaxDate(d); if(!ds) return;
     const dt=parseDate(ds);
     if(dt.getFullYear()!==year) return;
     const m=dt.getMonth(); if(m<mFrom||m>mTo) return;
+    // ภ.ง.ด.94 นับเฉพาะเงินได้ 40(5)–(8) — เอกสารที่ไม่ระบุประเภทนับตามเดิม (พฤติกรรมก่อน v2)
+    if(only94Cats && d.incomeCategory && !PND94_CATS.includes(d.incomeCategory)){ res.excluded++; return; }
     // เงินได้พึงประเมินไม่รวม VAT — ภาษีขายเก็บแทนสรรพากร ไม่ใช่เงินได้
     const t=compute(d); res.count++;
     if(t.currency==='THB'){ res.grossThb+=t.subtotal; res.wht+=t.whtAmount; }
@@ -3164,7 +3752,7 @@ function renderFiling(c,ta){
   const years = reportYears();
   ta.innerHTML = `<button class="btn btn-primary" onclick="exportAccountantZip(reportYear)">${ic('download')} ${tr('ส่งออกชุดให้บัญชี')}</button>`;
   const filingData = filingDeadlines(reportYear).map(f=>{
-    const inc = filingIncome(reportYear, f.mFrom, f.mTo);
+    const inc = filingIncome(reportYear, f.mFrom, f.mTo, f.half);
     const gross = round2(inc.grossThb + inc.foreignThb);
     const est = pitEstimate(gross, f.half);
     const owe = Math.max(0, round2(est.tax - inc.wht));
@@ -3186,6 +3774,7 @@ function renderFiling(c,ta){
         <tr><td><b>${tr('ประมาณการภาษีที่ต้องชำระเพิ่ม')}</b></td><td class="num"><b>${fmtMoneyC(owe,'THB')}</b></td></tr>
         ${refund?`<tr><td colspan="2" style="color:var(--accent-ink)">${tr('ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}').replace('{x}',fmtMoneyC(refund,'THB'))}</td></tr>`:''}
         ${inc.foreignMissing?`<tr><td colspan="2" style="color:var(--amber)">${ic('alert',12)} ${tr('{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น').replace('{n}',inc.foreignMissing)}</td></tr>`:''}
+        ${inc.excluded?`<tr><td colspan="2" class="muted" style="font-size:11.5px">${tr('{n} ใบไม่ถูกนับใน ภ.ง.ด.94 เพราะเป็นเงินได้นอก 40(5)–(8)').replace('{n}',inc.excluded)}</td></tr>`:''}
         <tr><td class="muted">${tr('จากเอกสารรายรับ')}</td><td class="num muted">${inc.count}</td></tr>
       </tbody></table></div>` : `<div class="muted" style="font-size:12px">${tr('รายละเอียดจะเปิดเมื่อมีเอกสารรายรับในงวดนี้')}</div>`;
     return `<div class="filing-card">
@@ -3237,57 +3826,24 @@ function renderFiling(c,ta){
 }
 
 /* ---------- SETTINGS ---------- */
+/* ตั้งค่าแบ่งเป็น 4 แท็บ — หน้าเดียวยาว 11 การ์ดอ่านไม่ไหว (BRAND.md: less friction)
+   ธุรกิจของฉัน · เอกสารและภาษี · ข้อมูลและสำรอง · พื้นที่ทำงาน (เดสก์ท็อป) */
+let settingsTab = 'business';
+function setSettingsTab(t){
+  saveSettings(true);   // เปลี่ยนแท็บแล้วค่าที่กรอกไว้ต้องไม่หาย — บันทึกเงียบ ๆ ให้ก่อน
+  settingsTab = t;
+  render();
+}
 function renderSettings(c,ta){
   const b = DB.business;
-  c.innerHTML = `<div class="settings-grid">
-    <div class="card-block">
-      <h4>${ic('folder')} ${tr('ไฟล์ข้อมูล')}</h4>
-      ${IS_ELECTRON ? `
-      <div class="desc">
-        ${dataLoc.mode==='external'
-          ? `${tr('กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ').replace('{f}',`<code>${escapeHtml(baseName(dataLoc.path))}</code>`)}<br><span class="muted" style="font-size:11px">${escapeHtml(dataLoc.path)}</span>`
-          : tr('ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า) — หรือจะเก็บเป็นไฟล์ใน Drive/Dropbox เพื่อพกพา/สำรองก็ได้')}
-      </div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        ${dataLoc.mode==='external'
-          ? `<button class="btn" onclick="elUseDefault()">${tr('ใช้ที่เก็บในแอปแทน')}</button>`
-          : `<button class="btn" onclick="elCreate()">${tr('เก็บเป็นไฟล์ใน Drive/Dropbox…')}</button>
-             <button class="btn" onclick="elLink()">${tr('เปิดไฟล์ billing.json ที่มีอยู่…')}</button>`}
-        <button class="btn" onclick="elReveal()">${ic('folderOpen')} ${tr('เปิดที่เก็บไฟล์')}</button>
-        <button class="btn" onclick="elExport()">${ic('download')} ${tr('สำรองข้อมูล')}</button>
-        <button class="btn" onclick="elImport()">${ic('upload')} ${tr('นำเข้าข้อมูล')}</button>
-        <button class="btn" onclick="elRevealBackups()">${ic('clock')} ${tr('โฟลเดอร์สำรองอัตโนมัติ')}</button>
-      </div>
-      <div class="hint" style="margin-top:10px">${ic('check')} ${tr('แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 14 ชุดล่าสุด)')} · ${lastBackupLine()}</div>
-      ` : `
-      <div class="desc">
-        ${fileHandle
-          ? tr('กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ — แอปจะเชื่อมไฟล์นี้ให้เองทุกครั้งที่เปิด').replace('{f}',`<code>${escapeHtml(fileHandle.name)}</code>`)
-          : thEn(`ข้อมูลถูกเก็บไว้ในเบราว์เซอร์ (cache) เท่านั้น ซึ่งอาจหายได้ — <b>แนะนำให้เชื่อมไฟล์ <code>billing.json</code></b> เพื่อความปลอดภัยและพกพาได้ (ลงใน Drive/Dropbox ได้)`,
-                 `Data lives only in the browser (cache) and can be lost — <b>link a <code>billing.json</code> file</b> for safety and portability (Drive/Dropbox works)`)}
-        ${supportsFSA?'':`<br><b style="color:var(--amber)">${tr('เบราว์เซอร์นี้ไม่รองรับการเขียนไฟล์โดยตรง — ใช้ส่งออก/นำเข้าแทน (แนะนำ Chrome/Edge/Arc/Brave)')}</b>`}
-      </div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        ${supportsFSA?`<button class="btn ${fileHandle?'':'btn-primary'}" onclick="newFile()">${tr('สร้างไฟล์ใหม่…')}</button>
-        <button class="btn" onclick="openFile()">${tr('เปิดไฟล์…')}</button>
-        ${fileHandle?`<button class="btn btn-danger" onclick="forgetFile()">${tr('ยกเลิกการเชื่อมไฟล์')}</button>`:''}`:''}
-        <button class="btn" onclick="exportJSON()">${ic('download')} ${tr('ส่งออก JSON')}</button>
-        <button class="btn" onclick="importJSON()">${ic('upload')} ${tr('นำเข้า JSON')}</button>
-      </div>
-      <div class="hint" style="margin-top:10px">${lastBackupLine()}</div>
-      `}
-    </div>
+  const tabs = [['business','ธุรกิจของฉัน'],['docs','เอกสารและภาษี'],['data','ข้อมูลและสำรอง']];
+  if(IS_ELECTRON) tabs.push(['workspace','พื้นที่ทำงาน']);
+  if(!tabs.some(([k])=>k===settingsTab)) settingsTab = 'business';
+  const saveBar = `<div style="display:flex;gap:10px;margin-bottom:30px">
+      <button class="btn btn-primary" onclick="saveSettings()">${tr('บันทึกการตั้งค่า')}</button>
+    </div>`;
 
-    <div class="card-block">
-      <h4>${tr('ส่งออกสำหรับนักบัญชี / สรรพากร')}</h4>
-      <div class="desc">${tr('CSV เปิดใน Excel/Sheets ได้ทันที · ร่าง e-Tax XML สำหรับส่งต่อผู้ให้บริการ e-Tax Invoice')}</div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button class="btn" onclick="exportCSV()">${ic('download')} ${tr('CSV เอกสารทั้งหมด')}</button>
-        <button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('CSV ภาษีหัก ณ ที่จ่าย')}</button>
-        <button class="btn" onclick="exportETaxXML()">${ic('download')} ${tr('ร่าง e-Tax Invoice (XML)')}</button>
-      </div>
-    </div>
-
+  const businessCards = ()=>`
     <div class="card-block">
       <h4>${tr('ข้อมูลธุรกิจ (ผู้ออกเอกสาร)')}</h4>
       <div class="desc">${tr('แสดงบนหัวเอกสารทุกฉบับ')}</div>
@@ -3328,27 +3884,6 @@ function renderSettings(c,ta){
     </div>
 
     <div class="card-block">
-      <h4>${tr('สีองค์กร / แบรนด์')}</h4>
-      <div class="desc">${tr('เลือกสีหลักให้ตรงกับแบรนด์ของคุณ — จะปรับสีทั้งแอปและสีบนเอกสารทุกฉบับ (หัวตาราง หัวข้อ ยอดสุทธิ ตราใบกำกับภาษี ฯลฯ) พร้อมกัน')}</div>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <input type="color" id="s_brand" value="${attr(b.brandColor||'#ff6b00')}" oninput="previewBrand(this.value)"
-          style="width:54px;height:40px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;padding:3px">
-        <input id="s_brandHex" value="${attr(b.brandColor||'#ff6b00')}" maxlength="7" spellcheck="false"
-          oninput="previewBrand(this.value)" style="width:110px;font-family:var(--font-display);letter-spacing:.5px;text-transform:uppercase">
-        <div class="pill-select" id="brandPresets">
-          ${BRAND_PRESETS.map(p=>`<button type="button" title="${p.name}" onclick="setBrandPreset('${p.hex}')"
-            style="width:26px;height:26px;padding:0;border-radius:50%;background:${p.hex};border:2px solid ${ (b.brandColor||'#ff6b00').toLowerCase()===p.hex.toLowerCase() ? 'var(--text)' : 'var(--border)'}"></button>`).join('')}
-        </div>
-        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset('#ff6b00')">${tr('คืนค่าเริ่มต้น')}</button>
-      </div>
-      <div class="hint" style="margin-top:12px">${tr('ตัวอย่างสด:')}
-        <span class="badge-status s-paid" style="margin:0 4px"><span class="d"></span>${tr('ปุ่ม/แท็ก')}</span>
-        <span style="display:inline-block;width:84px;height:10px;border-radius:6px;background:var(--accent);vertical-align:middle"></span>
-        <span style="color:var(--accent-ink);font-weight:700"> ${tr('ตัวอักษรเน้น')}</span>
-      </div>
-    </div>
-
-    <div class="card-block">
       <h4>${tr('โลโก้ · ลายเซ็น · ตราประทับ')}</h4>
       <div class="desc">${tr('ไม่บังคับ — โลโก้แสดงหัวเอกสาร · ลายเซ็นและตราประทับแสดงเหนือเส้นลงนาม (เหมาะกับใบเสร็จ/ใบกำกับภาษี) แนะนำไฟล์ PNG พื้นหลังโปร่งใส')}</div>
       <div class="asset-grid">
@@ -3370,6 +3905,29 @@ function renderSettings(c,ta){
       </div>
     </div>
 
+    <div class="card-block">
+      <h4>${tr('สีองค์กร / แบรนด์')}</h4>
+      <div class="desc">${tr('เลือกสีหลักให้ตรงกับแบรนด์ของคุณ — จะปรับสีทั้งแอปและสีบนเอกสารทุกฉบับ (หัวตาราง หัวข้อ ยอดสุทธิ ตราใบกำกับภาษี ฯลฯ) พร้อมกัน')}</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <input type="color" id="s_brand" value="${attr(b.brandColor||'#ff6b00')}" oninput="previewBrand(this.value)"
+          style="width:54px;height:40px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;padding:3px">
+        <input id="s_brandHex" value="${attr(b.brandColor||'#ff6b00')}" maxlength="7" spellcheck="false"
+          oninput="previewBrand(this.value)" style="width:110px;font-family:var(--font-display);letter-spacing:.5px;text-transform:uppercase">
+        <div class="pill-select" id="brandPresets">
+          ${BRAND_PRESETS.map(p=>`<button type="button" title="${p.name}" onclick="setBrandPreset('${p.hex}')"
+            style="width:26px;height:26px;padding:0;border-radius:50%;background:${p.hex};border:2px solid ${ (b.brandColor||'#ff6b00').toLowerCase()===p.hex.toLowerCase() ? 'var(--text)' : 'var(--border)'}"></button>`).join('')}
+        </div>
+        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset('#ff6b00')">${tr('คืนค่าเริ่มต้น')}</button>
+      </div>
+      <div class="hint" style="margin-top:12px">${tr('ตัวอย่างสด:')}
+        <span class="badge-status s-paid" style="margin:0 4px"><span class="d"></span>${tr('ปุ่ม/แท็ก')}</span>
+        <span style="display:inline-block;width:84px;height:10px;border-radius:6px;background:var(--accent);vertical-align:middle"></span>
+        <span style="color:var(--accent-ink);font-weight:700"> ${tr('ตัวอักษรเน้น')}</span>
+      </div>
+    </div>
+    ${saveBar}`;
+
+  const docsCards = ()=>`
     <div class="card-block">
       <h4>${tr('ภาษีและค่าเริ่มต้น')}</h4>
       <div class="field">
@@ -3418,11 +3976,167 @@ function renderSettings(c,ta){
         <div class="field"><label>${tr('ใบกำกับภาษี')}</label><input id="s_fmt_t" value="${attr(b.numberFormats.tax_invoice)}"></div>
       </div>
     </div>
+    ${saveBar}`;
 
-    <div style="display:flex;gap:10px;margin-bottom:30px">
-      <button class="btn btn-primary" onclick="saveSettings()">${tr('บันทึกการตั้งค่า')}</button>
+  const dataCards = ()=> IS_ELECTRON ? `
+    <div class="card-block">
+      <h4>${ic('folder')} ${tr('ไฟล์ข้อมูล')}</h4>
+      <div class="desc">
+        ${dataLoc.mode==='external'
+          ? `${tr('กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ').replace('{f}',`<code>${escapeHtml(baseName(dataLoc.path))}</code>`)}<br><span class="muted" style="font-size:11px">${escapeHtml(dataLoc.path)}</span>`
+          : tr('ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า) — หรือจะเก็บเป็นไฟล์ใน Drive/Dropbox เพื่อพกพา/สำรองก็ได้')}
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        ${dataLoc.mode==='external'
+          ? `<button class="btn" onclick="elUseDefault()">${tr('ใช้ที่เก็บในแอปแทน')}</button>`
+          : `<button class="btn" onclick="elCreate()">${tr('เก็บเป็นไฟล์ใน Drive/Dropbox…')}</button>
+             <button class="btn" onclick="elLink()">${tr('เปิดไฟล์ billing.json ที่มีอยู่…')}</button>`}
+        <button class="btn" onclick="elReveal()">${ic('folderOpen')} ${tr('เปิดที่เก็บไฟล์')}</button>
+      </div>
     </div>
+
+    <div class="card-block">
+      <h4>${ic('clock')} ${tr('สำรองและกู้คืน')}</h4>
+      <div class="desc">${tr('ประวัติไฟล์สำรองในเครื่อง — กู้คืนได้ทันที ระบบจะสำรองข้อมูลปัจจุบันให้ก่อนกู้คืนเสมอ')}</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn btn-primary" onclick="makeManualSnapshot()">${ic('download')} ${tr('สำรองตอนนี้')}</button>
+        <button class="btn" onclick="elExport()">${ic('download')} ${tr('สำรองข้อมูล')}</button>
+        <button class="btn" onclick="elImport()">${ic('upload')} ${tr('นำเข้าข้อมูล')}</button>
+        <button class="btn btn-ghost" onclick="elRevealBackups()">${ic('folderOpen')} ${tr('โฟลเดอร์สำรองอัตโนมัติ')}</button>
+      </div>
+      <div id="backupHist"><div class="muted" style="font-size:12px">…</div></div>
+      <div class="hint" style="margin-top:12px">${ic('check')} ${tr('แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 30 ชุดล่าสุด)')} · ${lastBackupLine()}</div>
+    </div>
+
+    <div class="card-block">
+      <h4>${tr('ส่งออกสำหรับนักบัญชี / สรรพากร')}</h4>
+      <div class="desc">${tr('CSV เปิดใน Excel/Sheets ได้ทันที · ร่าง e-Tax XML สำหรับส่งต่อผู้ให้บริการ e-Tax Invoice')}</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn" onclick="exportCSV()">${ic('download')} ${tr('CSV เอกสารทั้งหมด')}</button>
+        <button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('CSV ภาษีหัก ณ ที่จ่าย')}</button>
+        <button class="btn" onclick="exportETaxXML()">${ic('download')} ${tr('ร่าง e-Tax Invoice (XML)')}</button>
+      </div>
+    </div>` : `
+    <div class="card-block">
+      <h4>${ic('folder')} ${tr('ไฟล์ข้อมูล')}</h4>
+      <div class="desc">
+        ${fileHandle
+          ? tr('กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ — แอปจะเชื่อมไฟล์นี้ให้เองทุกครั้งที่เปิด').replace('{f}',`<code>${escapeHtml(fileHandle.name)}</code>`)
+          : thEn(`ข้อมูลถูกเก็บไว้ในเบราว์เซอร์ (cache) เท่านั้น ซึ่งอาจหายได้ — <b>แนะนำให้เชื่อมไฟล์ <code>billing.json</code></b> เพื่อความปลอดภัยและพกพาได้ (ลงใน Drive/Dropbox ได้)`,
+                 `Data lives only in the browser (cache) and can be lost — <b>link a <code>billing.json</code> file</b> for safety and portability (Drive/Dropbox works)`)}
+        ${supportsFSA?'':`<br><b style="color:var(--amber)">${tr('เบราว์เซอร์นี้ไม่รองรับการเขียนไฟล์โดยตรง — ใช้ส่งออก/นำเข้าแทน (แนะนำ Chrome/Edge/Arc/Brave)')}</b>`}
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        ${supportsFSA?`<button class="btn ${fileHandle?'':'btn-primary'}" onclick="newFile()">${tr('สร้างไฟล์ใหม่…')}</button>
+        <button class="btn" onclick="openFile()">${tr('เปิดไฟล์…')}</button>
+        ${fileHandle?`<button class="btn btn-danger" onclick="forgetFile()">${tr('ยกเลิกการเชื่อมไฟล์')}</button>`:''}`:''}
+        <button class="btn" onclick="exportJSON()">${ic('download')} ${tr('ส่งออก JSON')}</button>
+        <button class="btn" onclick="importJSON()">${ic('upload')} ${tr('นำเข้า JSON')}</button>
+      </div>
+      <div class="hint" style="margin-top:10px">${lastBackupLine()}</div>
+    </div>
+
+    <div class="card-block">
+      <h4>${tr('ส่งออกสำหรับนักบัญชี / สรรพากร')}</h4>
+      <div class="desc">${tr('CSV เปิดใน Excel/Sheets ได้ทันที · ร่าง e-Tax XML สำหรับส่งต่อผู้ให้บริการ e-Tax Invoice')}</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn" onclick="exportCSV()">${ic('download')} ${tr('CSV เอกสารทั้งหมด')}</button>
+        <button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('CSV ภาษีหัก ณ ที่จ่าย')}</button>
+        <button class="btn" onclick="exportETaxXML()">${ic('download')} ${tr('ร่าง e-Tax Invoice (XML)')}</button>
+      </div>
+    </div>`;
+
+  const workspaceCards = ()=>`
+    <div class="card-block">
+      <h4>${ic('repeat')} ${tr('พื้นที่ทำงาน (Workspace)')}${isPro()?` <span class="chip" style="background:var(--accent);color:#fff;margin:0 0 0 6px">Pro</span>`:''}</h4>
+      <div class="desc">${tr('ทำงานต่อได้ทุกเครื่อง สำรองอัตโนมัติ และกู้คืนเมื่อเปลี่ยนคอม — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเอง BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา')}</div>
+      ${!isPro()?`
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="openUpgradeModal()">${ic('sparkles')} ${tr('ดูแพ็กเกจ Pro')}</button>
+        </div>
+        <div class="hint" style="margin-top:10px">${tr('ตอนนี้ใช้แบบ Local: ข้อมูลอยู่ในเครื่องนี้เท่านั้น (สำรอง/กู้คืนได้ที่แท็บ ข้อมูลและสำรอง)')}</div>
+      `: !syncInfo.configured?`
+        <div class="banner" style="margin-bottom:0">${ic('alert')} ${tr('รุ่นนี้ยังไม่ได้ฝังค่า Google OAuth client — สำหรับนักพัฒนา: วางไฟล์ secrets/gdrive-oauth.json หรือตั้งค่า BILLNGAI_GDRIVE_CLIENT_ID')}</div>
+      `: !syncInfo.connected?`
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="connectDrive()">${tr('เชื่อมต่อ Google Drive')}</button>
+        </div>
+        <div class="hint" style="margin-top:10px">${tr('เชื่อมต่อแล้วจะซิงก์อัตโนมัติ — เครื่องใหม่ใช้ปุ่ม "กู้คืนจากคลาวด์" หลังเชื่อมต่อ')}</div>
+      `:`
+        <div class="hint" style="margin-bottom:12px">${ic('check')} ${tr('เชื่อมต่อแล้ว: {e}').replace('{e}',escapeHtml(syncInfo.email||''))} · ${syncInfo.lastSyncAt?tr('ซิงก์ล่าสุด {t}').replace('{t}',fmtDate(syncInfo.lastSyncAt.slice(0,10))):tr('ยังไม่ได้ซิงก์')}</div>
+        ${syncErr?`<div class="banner" style="background:var(--red-bg);border-color:var(--red-bg);color:var(--red);margin-bottom:12px">${ic('alert')} <span style="flex:1">${tr('ซิงก์ไม่สำเร็จ:')} ${escapeHtml(syncErr)}</span></div>`:''}
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="syncNow()" ${syncBusy?'disabled':''}>${ic('repeat')} ${syncBusy?tr('กำลังซิงก์…'):tr('ซิงก์เดี๋ยวนี้')}</button>
+          <button class="btn" onclick="restoreFromCloudFlow()">${ic('download')} ${tr('กู้คืนจากคลาวด์ (เครื่องใหม่)')}</button>
+          ${syncConflicts.length?`<button class="btn" style="color:var(--amber)" onclick="openConflictsModal()">${ic('alert')} ${tr('ดูข้อขัดแย้ง')} (${syncConflicts.length})</button>`:''}
+          <button class="btn btn-danger" onclick="disconnectDrive()">${tr('ยกเลิกการเชื่อมต่อ')}</button>
+        </div>
+        ${(syncInfo.devices||[]).length?`
+        <div class="hint" style="margin-top:14px;font-weight:600">${tr('เครื่องที่เชื่อมต่อ')}</div>
+        ${(syncInfo.devices||[]).map(d=>`<div class="hint" style="margin-top:4px">${d.id===DEVICE_ID?'●':'○'} ${escapeHtml(d.name||d.id)}${d.id===DEVICE_ID?' — '+tr('เครื่องนี้'):''} <span class="muted">· ${tr('ใช้งานล่าสุด')} ${d.lastSeen?fmtDate(d.lastSeen.slice(0,10)):'—'}</span></div>`).join('')}`:''}
+      `}
+      ${isPro()?`<div class="hint" style="margin-top:14px">${tr('สถานะ Pro')}: ${escapeHtml(PRO.email||'')} · ${PRO.plan==='pro-lifetime'?tr('ตลอดชีพ'):PRO.validUntil?tr('ใช้ได้ถึง {d}').replace('{d}',fmtDate(PRO.validUntil)):''} <a href="#" onclick="deactivateLicense();return false" style="margin-left:8px">${tr('ปิดการใช้งานรหัสนี้')}</a></div>`:''}
+    </div>`;
+
+  const groups = { business: businessCards, docs: docsCards, data: dataCards, workspace: workspaceCards };
+  c.innerHTML = `<div class="settings-grid">
+    <div class="tabs">
+      ${tabs.map(([k,l])=>`<button class="${settingsTab===k?'active':''}" onclick="setSettingsTab('${k}')">${tr(l)}</button>`).join('')}
+    </div>
+    ${(groups[settingsTab]||businessCards)()}
   </div>`;
+  if(IS_ELECTRON && settingsTab==='data') loadBackupHistory();
+}
+
+/* ---------- backup history & restore (Phase B) — desktop app only ---------- */
+const BK_LABELS = {'pre-v2':'ก่อนอัปเกรด','pre-restore':'ก่อนกู้คืน','manual':'สำรองเอง'};
+function backupLabelOf(name){
+  const m = String(name).match(/^billing-(.+?)-\d{4}-\d{2}-\d{2}T/);
+  return m ? tr(BK_LABELS[m[1]]||m[1]) : tr('อัตโนมัติ');
+}
+async function loadBackupHistory(){
+  if(!IS_ELECTRON || !window.billingAPI.listBackups) return;
+  let list = [];
+  try{ list = await window.billingAPI.listBackups(); }catch(e){}
+  const el = document.getElementById('backupHist');
+  if(!el) return;   // ผู้ใช้สลับหน้าไปแล้วระหว่างรอ
+  if(!list.length){
+    el.innerHTML = `<div class="muted" style="font-size:12px">${tr('ยังไม่มีไฟล์สำรอง — จะถูกสร้างอัตโนมัติระหว่างใช้งาน')}</div>`;
+    return;
+  }
+  el.innerHTML = `<table><thead><tr>
+      <th>${tr('วันที่สำรอง')}</th><th>${tr('ที่มา')}</th><th class="num">${tr('เอกสาร')}</th><th class="num">${tr('ขนาด')}</th><th></th>
+    </tr></thead><tbody>
+    ${list.map(b=>{
+      const m = b.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})/);
+      const when = m ? fmtDate(m[1])+' '+m[2]+':'+m[3] : fmtDate(b.mtime.slice(0,10));
+      return `<tr style="cursor:default">
+        <td>${when}</td>
+        <td class="muted">${backupLabelOf(b.name)}</td>
+        <td class="num">${b.docCount==null?'—':b.docCount}</td>
+        <td class="num muted">${Math.max(1,Math.round(b.size/1024))} KB</td>
+        <td style="text-align:right"><button class="btn btn-sm" onclick="restoreBackupFile('${attr(b.name)}')">${tr('กู้คืน')}</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+async function makeManualSnapshot(){
+  try{
+    await persist(true);   // ให้ไฟล์บนดิสก์ตรงกับข้อมูลล่าสุดก่อนคัดลอก
+    const n = await window.billingAPI.snapshotBackup('manual');
+    if(n){ toast(tr('สร้างไฟล์สำรองแล้ว'),'ok'); loadBackupHistory(); }
+  }catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
+}
+async function restoreBackupFile(name){
+  if(!confirm(tr('กู้คืนข้อมูลจากไฟล์สำรองนี้? ข้อมูลปัจจุบันจะถูกสำรองไว้ให้ก่อนโดยอัตโนมัติ'))) return;
+  try{
+    const text = await window.billingAPI.restoreBackup(name);   // main สำรองของปัจจุบันก่อนแล้วค่อยสลับไฟล์
+    DB = migrate(JSON.parse(text));
+    loadFailed = false;
+    await persist(true);   // normalize เป็น v2 + journal บันทึกความต่างจากการกู้คืน
+    render();
+    toast(tr('กู้คืนข้อมูลแล้ว'),'ok');
+  }catch(e){ toast(tr('กู้คืนไม่สำเร็จ:')+' '+(e.message||e),'err'); }
 }
 /* ---------- brand color (corporate theming) ---------- */
 const BRAND_PRESETS = [
@@ -3472,10 +4186,10 @@ function rgbToHex(s){
 function pickAsset(key){
   const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
   inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
-    const r=new FileReader(); r.onload=()=>{ DB.business[key]=r.result; persist(true); render(); }; r.readAsDataURL(f);
+    const r=new FileReader(); r.onload=()=>{ DB.business[key]=r.result; touch(DB.business); persist(true); render(); }; r.readAsDataURL(f);
   }; inp.click();
 }
-function removeAsset(key){ DB.business[key]=''; persist(true); render(); }
+function removeAsset(key){ DB.business[key]=''; touch(DB.business); persist(true); render(); }
 // Live preview of the PromptPay QR while typing the ID in settings.
 function previewPromptpay(val){
   const el=document.getElementById('ppHint'); if(!el) return;
@@ -3484,35 +4198,38 @@ function previewPromptpay(val){
     ? `<div style="width:84px;height:84px">${qrSvg(payload,84)}</div><span style="color:var(--accent-ink)">${ic('check')} ${tr('ใช้ได้ — QR นี้จะแสดงบนใบแจ้งหนี้ (สกุลเงินบาท)')}</span>`
     : (val.replace(/\D/g,'') ? `<span style="color:var(--amber)">${ic('alert')} ${tr('ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลข 13 หลัก')}</span>` : '');
 }
-function saveSettings(){
-  const b=DB.business; const v=id=>document.getElementById(id);
-  b.businessName=v('s_name').value; b.businessNameEn=v('s_nameEn').value;
-  b.address=v('s_addr').value; b.addressEn=v('s_addrEn').value; b.taxId=v('s_taxid').value;
-  b.phone=v('s_phone').value; b.email=v('s_email').value;
-  b.bankName=v('s_bankName').value; b.bankAccount=v('s_bankAcc').value; b.bankAccountName=v('s_bankAccName').value;
-  b.bankNameEn=v('s_bankNameEn').value; b.swiftCode=v('s_swift').value.trim().toUpperCase();
-  b.bankAccountNameEn=v('s_bankAccNameEn').value; b.bankAddress=v('s_bankAddr').value;
-  b.promptpayId=v('s_promptpay').value.trim();
-  const brand=(v('s_brand')&&v('s_brand').value)||b.brandColor||'#ff6b00';
-  b.brandColor = validHex(brand) ? brand.toLowerCase() : '#ff6b00';
-  b.isVatRegistered=v('s_vat').checked;
-  b.defaultVatRate=Number(v('s_vatRate').value)||0; b.defaultWhtRate=Number(v('s_whtRate').value)||0;
-  b.currency=v('s_cur').value; b.defaultTerms=v('s_terms').value; b.defaultTermsEn=v('s_termsEn').value;
-  b.yearMode=v('s_year').value; b.lang=v('s_lang').value;
-  const langChanged = b.uiLang !== v('s_uiLang').value;
-  b.uiLang=v('s_uiLang').value;
-  b.numberFormats.quotation=v('s_fmt_q').value; b.numberFormats.invoice=v('s_fmt_i').value;
-  b.numberFormats.receipt=v('s_fmt_r').value; b.numberFormats.tax_invoice=v('s_fmt_t').value;
-  persist(); applyTheme();
+// อ่านเฉพาะฟิลด์ที่อยู่บนแท็บปัจจุบัน (แท็บอื่นไม่มีใน DOM) — silent ใช้ตอนสลับแท็บอัตโนมัติ
+function saveSettings(silent){
+  const b=DB.business;
+  let touched=false, langChanged=false;
+  const set=(id,fn)=>{ const el=document.getElementById(id); if(el){ fn(el); touched=true; } };
+  set('s_name',el=>b.businessName=el.value); set('s_nameEn',el=>b.businessNameEn=el.value);
+  set('s_addr',el=>b.address=el.value); set('s_addrEn',el=>b.addressEn=el.value); set('s_taxid',el=>b.taxId=el.value);
+  set('s_phone',el=>b.phone=el.value); set('s_email',el=>b.email=el.value);
+  set('s_bankName',el=>b.bankName=el.value); set('s_bankAcc',el=>b.bankAccount=el.value); set('s_bankAccName',el=>b.bankAccountName=el.value);
+  set('s_bankNameEn',el=>b.bankNameEn=el.value); set('s_swift',el=>b.swiftCode=el.value.trim().toUpperCase());
+  set('s_bankAccNameEn',el=>b.bankAccountNameEn=el.value); set('s_bankAddr',el=>b.bankAddress=el.value);
+  set('s_promptpay',el=>b.promptpayId=el.value.trim());
+  set('s_brand',el=>{ const brand=el.value||b.brandColor||'#ff6b00'; b.brandColor = validHex(brand) ? brand.toLowerCase() : '#ff6b00'; });
+  set('s_vat',el=>b.isVatRegistered=el.checked);
+  set('s_vatRate',el=>b.defaultVatRate=Number(el.value)||0); set('s_whtRate',el=>b.defaultWhtRate=Number(el.value)||0);
+  set('s_cur',el=>b.currency=el.value); set('s_terms',el=>b.defaultTerms=el.value); set('s_termsEn',el=>b.defaultTermsEn=el.value);
+  set('s_year',el=>b.yearMode=el.value); set('s_lang',el=>b.lang=el.value);
+  set('s_uiLang',el=>{ langChanged = b.uiLang !== el.value; b.uiLang=el.value; });
+  set('s_fmt_q',el=>b.numberFormats.quotation=el.value); set('s_fmt_i',el=>b.numberFormats.invoice=el.value);
+  set('s_fmt_r',el=>b.numberFormats.receipt=el.value); set('s_fmt_t',el=>b.numberFormats.tax_invoice=el.value);
+  if(!touched) return;   // แท็บนี้ไม่มีฟอร์ม — ไม่มีอะไรให้บันทึก
+  touch(b);
+  persist(true); applyTheme();
   if(langChanged) render();   // re-draw the whole UI in the new language
-  toast(tr('บันทึกการตั้งค่าแล้ว'),'ok');
+  if(silent!==true) toast(tr('บันทึกการตั้งค่าแล้ว'),'ok');
 }
 
 /* ============================================================
    CLIENT EDITOR
    ============================================================ */
 function openClientEditor(id){
-  const cl = id? clientById(id) : {id:null,name:'',contactPerson:'',address:'',taxId:'',email:'',phone:'',defaultWht:true,docLang:'',notes:''};
+  const cl = id? clientById(id) : {id:null,name:'',contactPerson:'',address:'',taxId:'',email:'',phone:'',defaultWht:true,docLang:'',defaultIncomeCategory:'',notes:''};
   const m = document.getElementById('modal');
   m.innerHTML = `
     <div class="modal-head"><h3>${tr(id?'แก้ไขลูกค้า':'เพิ่มลูกค้า')}</h3><div class="spacer"></div>
@@ -3538,6 +4255,13 @@ function openClientEditor(id){
         </select>
         <div class="hint">${tr('ใบกำกับภาษีจะยังพิมพ์แบบไทย+อังกฤษเสมอ (เอกสารของกรมสรรพากร)')}</div>
       </div>
+      ${isPro()?`<div class="field"><label>${tr('ประเภทเงินได้เริ่มต้นของลูกค้ารายนี้')}</label>
+        <select id="c_incat">
+          <option value="" ${!cl.defaultIncomeCategory?'selected':''}>${tr('ไม่ระบุ')}</option>
+          ${INCOME_CATEGORIES.map(cat=>`<option value="${cat.code}" ${cl.defaultIncomeCategory===cat.code?'selected':''}>${incomeCatLabel(cat.code)}</option>`).join('')}
+        </select>
+        <div class="hint">${tr('ใช้เป็นค่าเริ่มต้นเวลาออกเอกสารให้ลูกค้ารายนี้ — ช่วยจัดกลุ่มยอดตอนยื่นภาษี')}</div>
+      </div>`:''}
       <div class="field"><label>${thEn('บันทึก','Notes')}</label><textarea id="c_notes">${escapeHtml(cl.notes)}</textarea></div>
     </div>
     <div class="modal-foot">
@@ -3554,15 +4278,17 @@ function saveClient(id){
   const data={name,contactPerson:v('c_contact'),taxId:v('c_taxid'),address:v('c_addr'),
     email:v('c_email'),phone:v('c_phone'),defaultWht:document.getElementById('c_wht').checked,
     docLang:document.getElementById('c_lang').value,notes:v('c_notes')};
-  if(id){ Object.assign(clientById(id),data); }
-  else{ DB.clients.push({id:uid(),...data}); }
+  const incatEl=document.getElementById('c_incat');           // ฟิลด์ Pro — ไม่มีก็อย่าไปทับค่าเดิม
+  if(incatEl) data.defaultIncomeCategory=incatEl.value;
+  if(id){ const cl=clientById(id); Object.assign(cl,data); touch(cl); }
+  else{ const cl={id:uid(),...data,deletedAt:null}; touch(cl); DB.clients.push(cl); }
   persist(); closeModal(); render(); toast(tr('บันทึกลูกค้าแล้ว'),'ok');
 }
 function deleteClient(id){
-  const used = DB.documents.some(d=>d.clientId===id);
+  const used = activeDocs().some(d=>d.clientId===id);
   if(used){ toast(tr('ลบไม่ได้ — มีเอกสารผูกกับลูกค้านี้อยู่'),'err'); return; }
   if(!confirm(tr('ลบลูกค้ารายนี้?'))) return;
-  DB.clients=DB.clients.filter(c=>c.id!==id);
+  const cl=clientById(id); if(cl) softDelete(cl);   // tombstone (v2)
   persist(); closeModal(); render();
 }
 
@@ -3571,13 +4297,13 @@ function deleteClient(id){
    ============================================================ */
 let editDoc = null;
 function openDocEditor(type, existingId, presetItems, parentId, presetMeta){
-  if(!DB.clients.length){
+  if(!activeClients().length){
     toast(tr('เพิ่มลูกค้าก่อนออกเอกสาร'),'err'); setView('clients'); return;
   }
   if(existingId){
     editDoc = JSON.parse(JSON.stringify(DB.documents.find(d=>d.id===existingId)));
   }else{
-    const firstClient = DB.clients[0];
+    const firstClient = activeClients()[0];
     editDoc = {
       id:null, type, number:null, clientId:firstClient.id, parentId:parentId||null,
       issueDate:todayISO(), dueDate:addDays(todayISO(),30), paidDate:null,
@@ -3586,6 +4312,7 @@ function openDocEditor(type, existingId, presetItems, parentId, presetMeta){
       vatRate: DB.business.isVatRegistered? DB.business.defaultVatRate:0,
       whtRate: (firstClient.defaultWht!==false)? DB.business.defaultWhtRate:0,
       docLang:'', fxRate:null,
+      incomeCategory: firstClient.defaultIncomeCategory||'', deletedAt:null,
       notes:''
     };
     if(presetMeta) Object.assign(editDoc, presetMeta);   // เช่น clientId/project/notes จากร่าง AI
@@ -3610,7 +4337,7 @@ function drawDocEditor(){
           </select></div>
         <div class="field"><label>${tr('ลูกค้า')}</label>
           <select id="d_client" onchange="editField('clientId',this.value);onClientChange()">
-            ${DB.clients.map(c=>`<option value="${c.id}" ${d.clientId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+            ${editorClients(d.clientId).map(c=>`<option value="${c.id}" ${d.clientId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
           </select></div>
         <div class="field"><label>${tr('โปรเจกต์ / อ้างอิง')}</label><input id="d_project" value="${attr(d.project)}" placeholder="${tr('เช่น Thai PBS — dashboard Q2')}" oninput="editField('project',this.value)"></div>
       </div>
@@ -3629,6 +4356,14 @@ function drawDocEditor(){
             <option value="bilingual" ${d.docLang==='bilingual'?'selected':''}>${tr('ไทย + อังกฤษ')}</option>
             <option value="en" ${d.docLang==='en'?'selected':''}>English</option>
           </select></div>
+        ${isPro()?`<div class="field"><label>${tr('ประเภทเงินได้ (มาตรา 40)')}</label>
+          <select id="d_incat" onchange="setIncomeCategory(this.value)">
+            <option value="" ${!d.incomeCategory?'selected':''}>${tr('ไม่ระบุ')}</option>
+            ${INCOME_CATEGORIES.map(cat=>`<option value="${cat.code}" ${d.incomeCategory===cat.code?'selected':''}>${incomeCatLabel(cat.code)}</option>`).join('')}
+          </select>
+          <div class="hint">${tr('เลือกประเภทแล้วระบบแนะนำอัตราหัก ณ ที่จ่ายให้ และช่วยจัดกลุ่มยอดตอนยื่นภาษี')}</div></div>`
+        :IS_ELECTRON?`<div class="field"><label>${tr('ประเภทเงินได้ (มาตรา 40)')}</label>
+          <button class="btn btn-sm" type="button" style="margin-top:4px" onclick="openUpgradeModal()">${ic('sparkles',13)} ${tr('ฟีเจอร์ Pro — ดูแพ็กเกจ')}</button></div>`:''}
       </div>
 
       <label style="display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin:6px 0 8px">${tr('รายการ')}</label>
@@ -3676,7 +4411,17 @@ function refreshTaxPath(){
 function editField(k,v){ editDoc[k]=v; if(k==='type') refreshTaxPath(); }
 function onClientChange(){
   const cl=clientById(editDoc.clientId);
-  if(cl){ editDoc.whtRate = (cl.defaultWht!==false)? DB.business.defaultWhtRate:0; drawDocEditor(); }
+  if(cl){
+    editDoc.whtRate = (cl.defaultWht!==false)? DB.business.defaultWhtRate:0;
+    if(cl.defaultIncomeCategory) editDoc.incomeCategory = cl.defaultIncomeCategory;
+    drawDocEditor();
+  }
+}
+// เลือกประเภทเงินได้ → แนะนำอัตราหัก ณ ที่จ่ายของประเภทนั้นให้เลย (เฉพาะงานบาท — ต่างประเทศไม่หัก)
+function setIncomeCategory(code){
+  editDoc.incomeCategory = code;
+  const cat = INCOME_CATEGORIES.find(x=>x.code===code);
+  if(cat && docCurrency(editDoc)==='THB'){ editDoc.whtRate = cat.wht; drawDocEditor(); }
 }
 function setWht(r){ editDoc.whtRate=r;
   document.querySelectorAll('#whtPills button').forEach(b=>b.classList.toggle('on', b.textContent===r+'%'));
@@ -3728,6 +4473,7 @@ function saveDoc(){
     if(!cl.taxId){ toast(tr('ออกใบกำกับภาษีไม่ได้ — ลูกค้ายังไม่มีเลขประจำตัวผู้เสียภาษี'),'err');
       if(confirm(tr('ลูกค้ายังไม่มีเลขภาษี ต้องการเพิ่มตอนนี้?'))){ closeModal(); openClientEditor(cl.id); } return; }
   }
+  touch(d);
   if(d.id){
     const idx=DB.documents.findIndex(x=>x.id===d.id);
     DB.documents[idx]=d;
@@ -3743,7 +4489,8 @@ function saveDoc(){
 }
 function deleteDoc(id){
   if(!confirm(tr('ลบเอกสารนี้?'))) return;
-  DB.documents=DB.documents.filter(d=>d.id!==id);
+  const d=DB.documents.find(x=>x.id===id);
+  if(d) softDelete(d);   // tombstone (v2) — กันเอกสารที่ลบแล้วฟื้นคืนตอน sync
   persist(); closeModal(); setView('documents');
 }
 
@@ -3757,7 +4504,7 @@ function viewDoc(id){ viewingId=id; currentView='docview';
 }
 function renderDocView(c,ta){
   const d=DB.documents.find(x=>x.id===viewingId);
-  if(!d){ setView('documents'); return; }
+  if(!d || d.deletedAt){ setView('documents'); return; }
   const cl=clientById(d.clientId); const t=compute(d); const st=effectiveStatus(d);
   document.getElementById('pageTitle').textContent = d.number;
 
@@ -3799,14 +4546,44 @@ function renderDocView(c,ta){
     ${renderPaper(d,cl,t)}
   `;
 }
+/* ---------- shrink-to-fit (พิมพ์/บันทึก PDF) ----------
+   เอกสารที่ยาวเกิน A4 หนึ่งหน้า "นิดเดียว" (หมายเหตุยาว/หลายรายการ) ต้องไม่หกไปหน้า 2 ที่แทบว่าง —
+   วัดความสูงจริงที่ความกว้างงานพิมพ์ แล้วย่อทั้งใบด้วย zoom ให้พอดีหน้า (ต่ำสุด 70% —
+   เอกสารที่ยาวจริง ๆ ปล่อยขึ้นหน้า 2 ตามธรรมชาติ ดีกว่าบีบจนอ่านไม่ออก) */
+const PRINT_PAGE = { w:703, h:1032 };   // A4 210×297mm ลบขอบ @page 12mm รอบด้าน ที่ 96dpi
+function computePrintZoom(){
+  const paper = document.querySelector('.paper');
+  if(!paper) return 1;
+  const clone = paper.cloneNode(true);
+  clone.style.cssText = 'position:absolute;left:-99999px;top:0;width:'+PRINT_PAGE.w+'px;max-width:none;'
+    + 'padding:24px 26px;border:none;box-shadow:none;border-radius:0;animation:none;margin:0';
+  document.body.appendChild(clone);
+  const h = clone.getBoundingClientRect().height;
+  clone.remove();
+  if(h <= PRINT_PAGE.h) return 1;
+  const z = PRINT_PAGE.h / h;   // z ที่วัดจากความกว้างเต็มเป็นค่า conservative — ย่อแล้วบรรทัดตัดน้อยลง ยิ่งเตี้ยลงอีก
+  return z >= 0.7 ? z : 1;
+}
+function applyPrintZoom(){
+  const z = computePrintZoom();
+  if(z < 1) document.documentElement.style.setProperty('--paper-zoom', z.toFixed(3));
+  else document.documentElement.style.removeProperty('--paper-zoom');
+}
+function clearPrintZoom(){ document.documentElement.style.removeProperty('--paper-zoom'); }
+// ครอบทุกช่องทางพิมพ์: ปุ่มพิมพ์/Cmd+P (beforeprint) และบันทึก PDF (printToPDF ไม่ยิง beforeprint)
+window.addEventListener('beforeprint', applyPrintZoom);
+window.addEventListener('afterprint', clearPrintZoom);
+
 // Save the open document as a PDF file (desktop app only).
 async function savePDF(){
   const d = DB.documents.find(x=>x.id===viewingId); if(!d) return;
   const name = String(d.number||'document').replace(/[\/\\:*?"<>|]/g,'-')+'.pdf';
   try{
+    applyPrintZoom();
     const p = await window.billingAPI.exportPDF(name);
     if(p) toast(tr('บันทึก PDF แล้ว:')+' '+baseName(p),'ok');
   }catch(e){ toast(tr('บันทึก PDF ไม่สำเร็จ'),'err'); }
+  finally{ clearPrintZoom(); }
 }
 // Ready-to-paste summary for LINE/chat: what, how much, when, where to pay.
 function shareText(d){
@@ -3852,7 +4629,7 @@ async function copyShareText(){
 // Show the lineage: which document this was created from, and what it led to.
 function docTrail(d){
   const parent = d.parentId ? DB.documents.find(x=>x.id===d.parentId) : null;
-  const children = DB.documents.filter(x=>x.parentId===d.id);
+  const children = activeDocs().filter(x=>x.parentId===d.id);
   if(!parent && !children.length) return '';
   const chip = doc => `<a class="trail-chip" onclick="viewDoc('${doc.id}')">${typeName(doc.type)}${doc.milestone?' · '+tr('งวดที่ {i}').replace('{i}',doc.milestone.seq):''} <b>${escapeHtml(doc.number)}</b></a>`;
   let parts=[];
@@ -3931,7 +4708,7 @@ function renderPaper(d,cl,t){
         ${d.items.map((it,i)=>`<tr>
           <td>${i+1}</td>
           <td>${escapeHtml(it.description||'')}</td>
-          <td class="r">${it.qty}${it.unit?' '+escapeHtml(it.unit):''}</td>
+          <td class="r" style="white-space:nowrap">${it.qty}${it.unit?' '+escapeHtml(it.unit):''}</td>
           <td class="r">${money(it.price)}</td>
           <td class="r">${money((Number(it.qty)||0)*(Number(it.price)||0))}</td>
         </tr>`).join('')}
@@ -3989,6 +4766,7 @@ function setStatus(id,st){
   const d=DB.documents.find(x=>x.id===id);
   d.status=st;
   if(st==='paid' && !d.paidDate) d.paidDate=todayISO();
+  touch(d);
   persist(); render();
   if(st==='paid'){
     stampFx(tr('ชำระแล้ว'), fmtMoneyC(compute(d).netPayable, docCurrency(d))+' · '+fmtDate(d.paidDate));
@@ -3998,15 +4776,17 @@ function setStatus(id,st){
 }
 function convertToInvoice(id){
   const q=DB.documents.find(x=>x.id===id);
-  q.status='accepted';
+  q.status='accepted'; touch(q);
   const inv={
     id:uid(), type:'invoice', number:nextNumber('invoice',todayISO()),
     clientId:q.clientId, parentId:q.id, issueDate:todayISO(), dueDate:addDays(todayISO(),30),
     paidDate:null, status:'draft', project:q.project, currency:docCurrency(q),
     items:JSON.parse(JSON.stringify(q.items)), vatRate:q.vatRate, whtRate:q.whtRate,
     docLang:q.docLang||'', fxRate:q.fxRate||null,
+    incomeCategory:q.incomeCategory||'', deletedAt:null,
     notes:q.notes, createdAt:new Date().toISOString()
   };
+  touch(inv);
   commitNumber('invoice',todayISO());
   DB.documents.push(inv);
   persist(); viewDoc(inv.id);
@@ -4028,8 +4808,10 @@ function createReceipt(id){
     dueDate:null, paidDate:inv.paidDate||todayISO(), status:'issued', project:inv.project, currency:docCurrency(inv),
     items:JSON.parse(JSON.stringify(inv.items)), vatRate:inv.vatRate, whtRate:inv.whtRate,
     docLang:inv.docLang||'', fxRate:inv.fxRate||null,
+    incomeCategory:inv.incomeCategory||'', deletedAt:null,
     notes:inv.notes, createdAt:new Date().toISOString()
   };
+  touch(rec);
   commitNumber(type,todayISO());
   DB.documents.push(rec);
   persist(); viewDoc(rec.id);
@@ -4045,6 +4827,7 @@ function duplicateDoc(id){
   if(copy.type==='invoice') copy.dueDate=addDays(todayISO(),30);
   if(copy.type==='receipt'||copy.type==='tax_invoice') copy.paidDate=todayISO();
   copy.number=nextNumber(copy.type,copy.issueDate);
+  copy.deletedAt=null; touch(copy);
   commitNumber(copy.type,copy.issueDate);
   DB.documents.push(copy);
   persist(); viewDoc(copy.id);
@@ -4054,7 +4837,7 @@ function duplicateDoc(id){
 /* ============================================================
    แบ่งงวด — split a quotation into milestone invoices
    ============================================================ */
-function invoiceChildren(q){ return DB.documents.filter(x=> x.parentId===q.id && x.type==='invoice'); }
+function invoiceChildren(q){ return activeDocs().filter(x=> x.parentId===q.id && x.type==='invoice'); }
 // billed = ยอดที่ออกใบแจ้งหนี้แล้ว, paid = ชำระแล้ว (หรือมีใบเสร็จลูกแล้ว) — เทียบกับยอดใบเสนอราคา
 function splitProgress(q){
   const kids = invoiceChildren(q);
@@ -4062,7 +4845,7 @@ function splitProgress(q){
   let billed=0, paid=0;
   kids.forEach(k=>{
     const g=compute(k).grandTotal; billed+=g;
-    const hasReceipt = DB.documents.some(r=> r.parentId===k.id && (r.type==='receipt'||r.type==='tax_invoice'));
+    const hasReceipt = activeDocs().some(r=> r.parentId===k.id && (r.type==='receipt'||r.type==='tax_invoice'));
     if(k.status==='paid' || hasReceipt) paid+=g;
   });
   billed=round2(billed); paid=round2(paid);
@@ -4204,13 +4987,15 @@ function splitQuotation(q, rows){
       items:[{description, qty:1, unit: lang==='en'?'installment':'งวด', price:r.amount}],
       vatRate:q.vatRate, whtRate:q.whtRate,
       docLang:q.docLang||'', fxRate:q.fxRate||null,
+      incomeCategory:q.incomeCategory||'', deletedAt:null,
       notes:q.notes, milestone:{seq:i, of:N, label:r.label},
       createdAt:new Date().toISOString()
     };
+    touch(inv);
     commitNumber('invoice',todayISO());             // ย้ำ: ต้อง commit ทุกวน ไม่งั้นเลขซ้ำทั้งชุด
     DB.documents.push(inv);
   });
-  q.status='accepted';
+  q.status='accepted'; touch(q);
   splitState=null;
   persist(); closeModal(); viewDoc(q.id);
   toast(tr('สร้างใบแจ้งหนี้ {n} งวดแล้ว').replace('{n}',N),'ok');
@@ -4234,26 +5019,53 @@ function attr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
 async function boot(){
   // Desktop app: load from the native store and we're done.
   if(IS_ELECTRON){
+    try{ DEVICE_ID = await window.billingAPI.deviceId(); }catch(e){ DEVICE_ID = browserDeviceId(); }
     let raw = null;
     try{ raw = await window.billingAPI.load(); }catch(e){ loadFailed = true; }
     if(raw){
       // A data file EXISTS — if it won't parse, never autosave a blank DB over it.
-      try{ DB = migrate(JSON.parse(raw)); }
+      try{
+        const parsed = JSON.parse(raw);
+        // อัปเกรดสคีมา v1 → v2: เก็บสำเนาไฟล์เดิมไว้ก่อนเสมอ (ไฟล์มีป้าย ไม่ถูกลบวนอัตโนมัติ)
+        if((parsed.version||1) < 2 && window.billingAPI.snapshotBackup){
+          try{ await window.billingAPI.snapshotBackup('pre-v2'); }catch(e){}
+        }
+        DB = migrate(parsed);
+      }
       catch(e){ loadFailed = true; }
     }
     if(!DB) DB = blankDB();
+    buildJournalIndex();   // baseline ของ journal — เริ่มนับความเปลี่ยนแปลงจากสถานะนี้
+    try{ if(window.billingAPI.licenseStatus) PRO = await window.billingAPI.licenseStatus(); }catch(e){}
+    await refreshSyncInfo();
+    if(isSyncEnabled()) setTimeout(()=>syncNow(true), 4000);        // ดึงงานจากเครื่องอื่นหลังเปิดแอป
+    // ตัวจับเวลา/โฟกัสลงทะเบียนเสมอ — เผื่อเปิด Pro/เชื่อม Drive ระหว่างใช้งาน (เช็คเงื่อนไขตอนยิง)
+    window.addEventListener('focus', ()=>{ if(isSyncEnabled() && !syncBusy) syncNow(true); });
+    setInterval(()=>{ if(isSyncEnabled()) syncNow(true); }, 5*60*1000);
     try{ dataLoc = await window.billingAPI.where(); }catch(e){}
     if(window.billingAPI.onMenuExport) window.billingAPI.onMenuExport(()=>elExport());
     if(window.billingAPI.onMenuImport) window.billingAPI.onMenuImport(()=>elImport());
+    // flush ตอนปิดแอป: ดัน journal ค้างขึ้น Drive ก่อนปิด (main รอสูงสุด 5 วิ แล้วปิดแน่นอน)
+    if(window.billingAPI.onQuitFlush) window.billingAPI.onQuitFlush(async ()=>{
+      try{
+        clearTimeout(syncTimer);
+        if(isSyncEnabled() && !syncBusy) await window.billingAPI.syncPush();
+      }catch(e){ /* เน็ตพัง — ข้อมูลอยู่ในเครื่องครบ จะซิงก์รอบหน้าตอนเปิดแอป */ }
+      window.billingAPI.quitFlushDone();
+    });
     applyTheme();
     updateFileStatus();
     setView('dashboard');
-    if(!loadFailed && !DB.meta.setupDone && !DB.business.businessName && !DB.documents.length) openWizard();
+    if(!loadFailed && !DB.meta.setupDone && !DB.business.businessName && !activeDocs().length) openWizard();
     return;
   }
 
   // 1) Show cached data immediately so the UI is never empty.
-  DB = migrate(loadLocal() || blankDB());
+  DEVICE_ID = browserDeviceId();
+  const cached = loadLocal();
+  // เก็บสำเนา v1 ไว้หนึ่งชุดก่อนอัปเกรดสคีมา (กู้มือจาก localStorage ได้ถ้าจำเป็น)
+  if(cached && (cached.version||1) < 2){ try{ localStorage.setItem(LS_KEY+'_prev2', JSON.stringify(cached)); }catch(e){} }
+  DB = migrate(cached || blankDB());
   applyTheme();
   updateFileStatus();
   setView('dashboard');
@@ -4278,7 +5090,7 @@ async function boot(){
   }
 
   // First run in the browser too — but only when no saved file might still load.
-  if(!fileHandle && !pendingHandle && !DB.meta.setupDone && !DB.business.businessName && !DB.documents.length) openWizard();
+  if(!fileHandle && !pendingHandle && !DB.meta.setupDone && !DB.business.businessName && !activeDocs().length) openWizard();
 
   window.addEventListener('beforeunload',e=>{ if(dirty && fileHandle){ e.preventDefault(); e.returnValue=''; } });
 }
