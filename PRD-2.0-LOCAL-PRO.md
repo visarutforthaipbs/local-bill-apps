@@ -204,7 +204,8 @@ document admin.
 a future Studio tier)
 
 ```text
-BillNgai Pro: ฿1,990 one-time (launch price; may rise to ฿2,490–2,990 later)
+BillNgai Pro Early Bird: ฿590 one-time (pre-launch / launch window)
+BillNgai Pro regular:    ฿1,990 one-time (after the launch window)
 ```
 
 ### 8.3 BillNgai Studio — future only (unchanged from original draft)

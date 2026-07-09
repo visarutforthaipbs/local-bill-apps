@@ -1082,7 +1082,7 @@ function openUpgradeModal(){
           ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
           ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
           ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
-          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว ฿1,990 (ราคาเปิดตัว) — ไม่มีค่ารายเดือน')}</div>
+          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน')}</div>
         </div>
       </div>
       <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
@@ -1092,7 +1092,8 @@ function openUpgradeModal(){
           <input id="lic_key" spellcheck="false" placeholder="eyJsaWNlbnNlIjo…" style="flex:1">
           <button class="btn btn-primary" onclick="activateLicense()">${tr('เปิดใช้งานรหัส')}</button>
         </div>
-        <div class="hint">${tr('สั่งซื้อ/สอบถามได้ที่ผู้พัฒนา — รหัส Pro จะส่งให้ทางอีเมล')}</div>
+        <div class="hint">${tr('ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย')}
+          <a href="https://lin.ee/pSl8nEH" target="_blank" rel="noopener" style="font-weight:700;margin-left:4px">${tr('ทักทาง LINE')} →</a></div>
       </div>
     </div>`;
   openModal();
@@ -2183,12 +2184,13 @@ const I18N_EN = {
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
   'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your machine',
-  'จ่ายครั้งเดียว ฿1,990 (ราคาเปิดตัว) — ไม่มีค่ารายเดือน':'One-time ฿1,990 (launch price) — no monthly fees',
+  'จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน':'One-time — Early Bird ฿590 (full price ฿1,990), no monthly fees',
   'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
   'BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'BillNgai never stores client documents on our servers — data syncs only through your own Google Drive',
   'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
   'เปิดใช้งานรหัส':'Activate',
-  'สั่งซื้อ/สอบถามได้ที่ผู้พัฒนา — รหัส Pro จะส่งให้ทางอีเมล':'Purchase or ask the developer — your Pro key arrives by email',
+  'ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย':'Buy Pro: pay via PromptPay, send the slip on LINE — your key comes right back in chat',
+  'ทักทาง LINE':'Chat on LINE',
   'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
   'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
