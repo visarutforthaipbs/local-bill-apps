@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:'Inter';src:url('../fonts/Inter-Bold.woff2') format('woff2');font-weight:700}
+  @font-face{font-family:'Inter';src:url('../fonts/Inter-SemiBold.woff2') format('woff2');font-weight:600}
+  @font-face{font-family:'LINE Seed Sans TH';src:url('../fonts/LINESeedSansTH_W_Bd.woff2') format('woff2');font-weight:700}
+  @font-face{font-family:'LINE Seed Sans TH';src:url('../fonts/LINESeedSansTH_W_Rg.woff2') format('woff2');font-weight:400}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1024px;height:1024px;overflow:hidden}
+  body{
+    background:#FFF9F3;
+    font-family:'Inter','LINE Seed Sans TH',sans-serif;
+    color:#2D3436;
+    display:flex;flex-direction:column;align-items:center;
+    text-align:center;
+    padding:88px 72px 0;
+    position:relative;
+  }
+  .logo{width:132px;height:132px;margin-bottom:36px}
+  .name{font-size:88px;font-weight:700;letter-spacing:-2px;line-height:1}
+  .name .pro{
+    display:inline-block;background:#FF6B00;color:#fff;
+    border-radius:24px;padding:6px 34px 14px;margin-left:18px;
+    letter-spacing:-1px;
+  }
+  .tag{
+    font-family:'LINE Seed Sans TH','Inter',sans-serif;
+    font-size:40px;font-weight:700;color:#B34B00;margin-top:30px;
+  }
+  .sub{
+    font-family:'LINE Seed Sans TH','Inter',sans-serif;
+    font-size:29px;font-weight:400;color:#6b6459;margin-top:14px;line-height:1.5;
+  }
+  .character{
+    position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);
+    width:430px;
+  }
+  .rule{
+    position:absolute;bottom:0;left:0;right:0;height:26px;background:#FF6B00;
+  }
+</style>
+</head>
+<body>
+  <img class="logo" src="../logo.svg" alt="">
+  <div class="name">BillNgai<span class="pro">Pro</span></div>
+  <div class="tag">ทำงานได้ทุกเครื่อง — Work Everywhere</div>
+  <div class="sub">ซิงก์ผ่าน Google Drive ของคุณเอง · สำรองอัตโนมัติ<br>จ่ายครั้งเดียว ไม่มีรายเดือน</div>
+  <img class="character" src="../assets/brand/characters/set-1-10-creator-giving-thumbs-up.png" alt="">
+  <div class="rule"></div>
+</body>
+</html>

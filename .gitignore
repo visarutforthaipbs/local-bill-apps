@@ -12,3 +12,6 @@ build/icon.iconset/
 # macOS
 .DS_Store
 secrets/
+
+# Apple provisioning profiles — เครื่อง/บัญชีเฉพาะ ห้ามเข้า repo (public)
+*.provisionprofile

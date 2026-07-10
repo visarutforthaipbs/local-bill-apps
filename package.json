@@ -15,7 +15,7 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac",
     "dist:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.notarize=false",
-    "dist:mas": "electron-builder --mac mas"
+    "dist:mas": "electron-builder --mac mas --universal"
   },
   "keywords": [
     "billing",
@@ -74,11 +74,17 @@
     "mas": {
       "type": "distribution",
       "category": "public.app-category.finance",
+      "icon": "build/icon.icns",
       "entitlements": "build/entitlements.mas.plist",
       "entitlementsInherit": "build/entitlements.mas.inherit.plist",
       "provisioningProfile": "build/embedded.provisionprofile",
       "target": [
-        "pkg"
+        {
+          "target": "pkg",
+          "arch": [
+            "universal"
+          ]
+        }
       ]
     },
     "dmg": {
