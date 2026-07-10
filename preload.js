@@ -3,6 +3,12 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 // Single, safe bridge for the renderer (billing.html).
 contextBridge.exposeInMainWorld('billingAPI', {
   isElectron: true,
+  // Mac App Store build: sandbox + In-App Purchase — renderer ใช้ flag เดียวนี้ gate ทุกอย่าง
+  isMas: process.mas === true || process.env.BILLNGAI_FAKE_MAS === '1',
+  iapProducts:    ()       => ipcRenderer.invoke('iap:products'),
+  iapBuy:         ()       => ipcRenderer.invoke('iap:buy'),
+  iapRestore:     ()       => ipcRenderer.invoke('iap:restore'),
+  onIapChanged:   (cb)     => ipcRenderer.on('iap:changed', cb),
   load:           ()       => ipcRenderer.invoke('data:load'),
   save:           (text)   => ipcRenderer.invoke('data:save', text),
   where:          ()       => ipcRenderer.invoke('data:where'),

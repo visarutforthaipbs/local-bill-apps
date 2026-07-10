@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "start:mas-dev": "BILLNGAI_FAKE_MAS=1 BILLNGAI_DEV_NAME=BillNgai-MAS-Dev electron .",
     "assets": "node prepare-brand-assets.js",
     "ai:addon:dev": "node scripts/create-dev-ai-addon.js",
     "ai:addon:build": "node scripts/build-ai-addon.js",

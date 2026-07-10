@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, inAppPurchase } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -6,7 +6,14 @@ const fsp = fs.promises;
 const crypto = require('crypto');
 const http = require('http');
 
-app.setName('BillNgai');
+/* ---------------- build flavor ----------------
+   IS_MAS = Mac App Store build (sandbox + In-App Purchase, ไม่มี AI/ไฟล์ภายนอก/รหัส Pro แบบวาง)
+   process.mas ถูกตั้งโดย electron-builder เฉพาะ mas target — BILLNGAI_FAKE_MAS=1 ไว้ dev UI เท่านั้น */
+const IS_MAS = process.mas === true || process.env.BILLNGAI_FAKE_MAS === '1';
+
+// dev เท่านั้น: แยกโฟลเดอร์ข้อมูลตอน npm start จาก worktree อื่น — ห้ามให้ pilot แตะข้อมูลจริง
+if (!app.isPackaged && process.env.BILLNGAI_DEV_NAME) app.setName(process.env.BILLNGAI_DEV_NAME);
+else app.setName('BillNgai');
 
 let win;
 const USER_DIR     = app.getPath('userData');
@@ -541,6 +548,8 @@ function parseLicenseKey(key) {
   } catch (e) { return null; }
 }
 function licenseStatusOf(cfg) {
+  // MAS build: Pro มาจาก In-App Purchase (ผูกกับ Apple ID) — ไม่มีวันหมดอายุ
+  if (IS_MAS && cfg.masPro) return { valid: true, expired: false, email: '', plan: 'pro-lifetime', validUntil: null, source: 'appstore' };
   const payload = parseLicenseKey(cfg.licenseKey);
   if (!payload) return { valid: false };
   const today = new Date();
@@ -560,7 +569,54 @@ ipcMain.handle('license:deactivate', async () => {
   const cfg = await readConfig();
   delete cfg.licenseKey;
   await writeConfig(cfg);
-  return { valid: false };
+  return licenseStatusOf(cfg);   // MAS: การซื้อผ่าน App Store ยังอยู่ — ลบได้เฉพาะรหัสแบบวาง
+});
+
+/* ---------------- Mac App Store In-App Purchase (Pro, MAS build เท่านั้น) ----------------
+   ปรัชญาเดิม: ไม่มีเซิร์ฟเวอร์เรา — เชื่อสถานะ transaction จาก StoreKit แล้วเก็บ flag ใน config.json
+   (แนวทางง่ายตาม PLAN-MAC-APP-STORE.md ข้อ 6.4 — อัปเกรดเป็น receipt validation เต็มได้ภายหลัง) */
+const IAP_PRO_ID = 'com.visarut.billngai.pro';
+async function masGrantPro() {
+  const cfg = await readConfig();
+  if (!cfg.masPro) { cfg.masPro = { product: IAP_PRO_ID, at: new Date().toISOString() }; await writeConfig(cfg); }
+}
+function iapNotifyRenderer() { if (win && !win.isDestroyed()) win.webContents.send('iap:changed'); }
+if (process.mas) {
+  inAppPurchase.on('transactions-updated', async (_event, transactions) => {
+    let changed = false;
+    for (const t of (transactions || [])) {
+      const state = t.transactionState;
+      if (state === 'purchased' || state === 'restored') {
+        if (((t.payment && t.payment.productIdentifier) || '') === IAP_PRO_ID) { await masGrantPro(); changed = true; }
+        inAppPurchase.finishTransactionByDate(t.transactionDate);
+      } else if (state === 'failed') {
+        inAppPurchase.finishTransactionByDate(t.transactionDate);
+        changed = true;   // ให้ UI เลิกหมุนและแสดงสถานะล่าสุด
+      }
+    }
+    if (changed) iapNotifyRenderer();
+  });
+}
+ipcMain.handle('iap:products', async () => {
+  if (!process.mas) {
+    // dev (BILLNGAI_FAKE_MAS=1): ราคาจำลองไว้ดู UI — ไม่มีทางหลุดไป build จริงเพราะเช็ค process.mas ก่อน
+    return IS_MAS ? [{ id: IAP_PRO_ID, name: 'BillNgai Pro', desc: 'dev preview', price: '฿1,900.00' }] : [];
+  }
+  const ps = await inAppPurchase.getProducts([IAP_PRO_ID]);
+  return ps.map(p => ({ id: p.productIdentifier, name: p.localizedTitle, desc: p.localizedDescription, price: p.formattedPrice }));
+});
+ipcMain.handle('iap:buy', async () => {
+  if (!process.mas) {
+    if (IS_MAS) { await masGrantPro(); setTimeout(iapNotifyRenderer, 400); return true; }   // dev: จำลองซื้อสำเร็จ
+    throw new Error('In-App Purchase is only available in the App Store build');
+  }
+  if (!inAppPurchase.canMakePayments()) throw new Error('การซื้อถูกปิดไว้บนเครื่องนี้ (Screen Time / การจัดการอุปกรณ์)');
+  return inAppPurchase.purchaseProduct(IAP_PRO_ID, 1);
+});
+ipcMain.handle('iap:restore', async () => {
+  if (process.mas) inAppPurchase.restoreCompletedTransactions();
+  else if (IS_MAS) setTimeout(iapNotifyRenderer, 400);
+  return true;
 });
 
 /* ---------------- Google Drive Workspace Sync (Pro, Phase D) ----------------
@@ -886,7 +942,10 @@ ipcMain.handle('sync:restore', async () => {
 
 ipcMain.handle('ai:status', async () => aiStatus());
 
-ipcMain.handle('ai:infer', async (_e, input) => runAiInference(input));
+ipcMain.handle('ai:infer', async (_e, input) => {
+  if (IS_MAS) throw new Error('not available in the App Store build');   // sandbox spawn llama-cli ไม่ได้
+  return runAiInference(input);
+});
 
 ipcMain.handle('ai:importTor', async (_e, filePath) => extractTorText(filePath));
 
@@ -905,7 +964,10 @@ ipcMain.handle('data:where', async () => {
 ipcMain.handle('data:reveal', async () => { shell.showItemInFolder(await activePath()); });
 
 // Pick an existing billing.json -> make it the active store, return its contents.
+// MAS v1: ปิดไฟล์ภายนอก — sandbox ทำสิทธิ์ไฟล์หายตอนเปิดแอปใหม่ (ต้องมี security-scoped
+// bookmarks ก่อนค่อยเปิด — PLAN-MAC-APP-STORE.md Phase 3) · UI ฝั่ง renderer ซ่อนไว้แล้ว
 ipcMain.handle('data:linkExisting', async () => {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const r = await dialog.showOpenDialog(win, {
     title: 'เปิดไฟล์ billing.json', properties: ['openFile'],
     filters: [{ name: 'Billing Data (.json)', extensions: ['json'] }]
@@ -919,6 +981,7 @@ ipcMain.handle('data:linkExisting', async () => {
 
 // Create a new external file at a chosen location, seed it with current data, make active.
 ipcMain.handle('data:createExternal', async (_e, text) => {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const r = await dialog.showSaveDialog(win, {
     title: 'เก็บเป็นไฟล์ (เช่นใน Drive/Dropbox)',
     defaultPath: path.join(app.getPath('documents'), 'billing.json'),
@@ -1020,7 +1083,7 @@ function buildMenu() {
 }
 
 app.whenReady().then(() => {
-  migrateFromBilliong();
+  if (!IS_MAS) migrateFromBilliong();   // sandbox อ่านโฟลเดอร์เก่านอก container ไม่ได้อยู่แล้ว
   buildMenu();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

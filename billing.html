@@ -667,6 +667,9 @@ const supportsFSA = 'showOpenFilePicker' in window && 'showSaveFilePicker' in wi
 /* When running inside the packaged desktop app, storage goes through the
    native bridge (window.billingAPI) instead of the browser File System APIs. */
 const IS_ELECTRON = !!(window.billingAPI && window.billingAPI.isElectron);
+/* Mac App Store build: Pro ผ่าน In-App Purchase เท่านั้น (ห้ามลิงก์ซื้อภายนอก/ช่องวางรหัส — กติกา 3.1.1)
+   ไม่มี AI (sandbox ห้าม spawn) และไม่มีไฟล์ข้อมูลภายนอก (รอ security-scoped bookmarks) */
+const IS_MAS = !!(window.billingAPI && window.billingAPI.isMas);
 let dataLoc = { mode:'app', path:'' };            // Electron: 'app' folder vs 'external' file
 const baseName = p => String(p||'').split(/[\\/]/).pop();
 
@@ -1059,6 +1062,7 @@ function resolveConflict(i, useRemote){
 
 /* ---------- Pro upgrade & license (Phase E) ---------- */
 function openUpgradeModal(){
+  if(IS_MAS){ openMasUpgradeModal(); return; }   // MAS: ซื้อผ่าน In-App Purchase เท่านั้น
   const m = document.getElementById('modal');
   const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
   m.innerHTML = `
@@ -1098,6 +1102,69 @@ function openUpgradeModal(){
     </div>`;
   openModal();
 }
+/* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
+   รายการขายไม่มี AI (sandbox ห้าม spawn llama-cli) — อย่าเพิ่มกลับโดยไม่แก้ข้อจำกัดนั้นก่อน */
+let iapBusy=false;
+function openMasUpgradeModal(){
+  const m = document.getElementById('modal');
+  const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
+  m.innerHTML = `
+    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="grid-2" style="align-items:start">
+        <div class="card-block" style="margin-bottom:0">
+          <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
+          <div class="desc">${tr('ฟรี — ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
+          ${li(tr('ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน'))}
+          ${li(tr('ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94'))}
+          ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
+          ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
+        </div>
+        <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
+          <h4>${tr('BillNgai Pro — Work Everywhere')}</h4>
+          <div class="desc">${tr('ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง')}</div>
+          ${li(tr('ทุกอย่างที่มีใน Local'))}
+          ${li(tr('ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน'))}
+          ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
+          ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
+          ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
+          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)" id="iapPrice">${tr('กำลังโหลดราคาจาก App Store…')}</div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn-primary" id="iapBuyBtn" onclick="iapBuyPro()">${ic('sparkles')} ${tr('ซื้อผ่าน App Store')}</button>
+            <button class="btn" onclick="iapRestorePro()">${tr('กู้คืนการซื้อ')}</button>
+          </div>
+        </div>
+      </div>
+      <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
+    </div>`;
+  openModal();
+  loadIapPrice();
+}
+async function loadIapPrice(){
+  let text;
+  try{
+    const ps = await window.billingAPI.iapProducts();
+    const p = ps && ps[0];
+    text = p ? tr('จ่ายครั้งเดียว {p} — ไม่มีค่ารายเดือน').replace('{p}',p.price)
+             : tr('เชื่อมต่อ App Store ไม่ได้ — ลองใหม่อีกครั้ง');
+  }catch(e){ text = tr('เชื่อมต่อ App Store ไม่ได้ — ลองใหม่อีกครั้ง'); }
+  const el = document.getElementById('iapPrice');
+  if(el) el.textContent = text;
+}
+async function iapBuyPro(){
+  if(iapBusy) return; iapBusy=true;
+  const btn=document.getElementById('iapBuyBtn'); if(btn) btn.disabled=true;
+  try{
+    await window.billingAPI.iapBuy();
+    toast(tr('เริ่มการซื้อแล้ว — ยืนยันกับ App Store ต่อได้เลย'),'ok');
+  }catch(e){ toast(tr('ซื้อไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+  iapBusy=false; if(btn) btn.disabled=false;
+}
+async function iapRestorePro(){
+  try{ await window.billingAPI.iapRestore(); toast(tr('กำลังกู้คืนการซื้อจาก App Store…'),'ok'); }
+  catch(e){ toast(tr('กู้คืนการซื้อไม่สำเร็จ'),'err'); }
+}
+
 async function activateLicense(){
   const key = (document.getElementById('lic_key')||{value:''}).value.trim();
   if(!key) return;
@@ -2207,7 +2274,22 @@ const I18N_EN = {
   'สถานะ Pro':'Pro status',
   'ตลอดชีพ':'Lifetime',
   'ใช้ได้ถึง {d}':'Valid until {d}',
-  'ปิดการใช้งานรหัสนี้':'Deactivate this key'
+  'ปิดการใช้งานรหัสนี้':'Deactivate this key',
+
+  // --- Mac App Store build (In-App Purchase) ---
+  'ฟรี — ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Free — create documents forever; your data stays on your Mac',
+  'กำลังโหลดราคาจาก App Store…':'Loading price from the App Store…',
+  'จ่ายครั้งเดียว {p} — ไม่มีค่ารายเดือน':'One-time {p} — no subscription',
+  'เชื่อมต่อ App Store ไม่ได้ — ลองใหม่อีกครั้ง':'Could not reach the App Store — please try again',
+  'ซื้อผ่าน App Store':'Buy via the App Store',
+  'กู้คืนการซื้อ':'Restore Purchases',
+  'เริ่มการซื้อแล้ว — ยืนยันกับ App Store ต่อได้เลย':'Purchase started — confirm with the App Store to finish',
+  'ซื้อไม่สำเร็จ:':'Purchase failed:',
+  'กำลังกู้คืนการซื้อจาก App Store…':'Restoring purchases from the App Store…',
+  'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
+  'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
+  'ซื้อผ่าน App Store แล้ว':'Purchased via the App Store',
+  'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)'
 };
 
 /* ---------- inline SVG icons (Lucide, MIT) — no emoji, works offline ---------- */
@@ -4004,11 +4086,13 @@ function renderSettings(c,ta){
       <div class="desc">
         ${dataLoc.mode==='external'
           ? `${tr('กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ').replace('{f}',`<code>${escapeHtml(baseName(dataLoc.path))}</code>`)}<br><span class="muted" style="font-size:11px">${escapeHtml(dataLoc.path)}</span>`
+          : IS_MAS ? tr('ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)')
           : tr('ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า) — หรือจะเก็บเป็นไฟล์ใน Drive/Dropbox เพื่อพกพา/สำรองก็ได้')}
       </div>
       <div style="display:flex;gap:9px;flex-wrap:wrap">
         ${dataLoc.mode==='external'
           ? `<button class="btn" onclick="elUseDefault()">${tr('ใช้ที่เก็บในแอปแทน')}</button>`
+          : IS_MAS ? ''   /* MAS v1: ไม่มีไฟล์ภายนอก — sandbox ทำสิทธิ์ไฟล์หายตอนเปิดใหม่ (รอ bookmarks) */
           : `<button class="btn" onclick="elCreate()">${tr('เก็บเป็นไฟล์ใน Drive/Dropbox…')}</button>
              <button class="btn" onclick="elLink()">${tr('เปิดไฟล์ billing.json ที่มีอยู่…')}</button>`}
         <button class="btn" onclick="elReveal()">${ic('folderOpen')} ${tr('เปิดที่เก็บไฟล์')}</button>
@@ -4095,7 +4179,9 @@ function renderSettings(c,ta){
         <div class="hint" style="margin-top:14px;font-weight:600">${tr('เครื่องที่เชื่อมต่อ')}</div>
         ${(syncInfo.devices||[]).map(d=>`<div class="hint" style="margin-top:4px">${d.id===DEVICE_ID?'●':'○'} ${escapeHtml(d.name||d.id)}${d.id===DEVICE_ID?' — '+tr('เครื่องนี้'):''} <span class="muted">· ${tr('ใช้งานล่าสุด')} ${d.lastSeen?fmtDate(d.lastSeen.slice(0,10)):'—'}</span></div>`).join('')}`:''}
       `}
-      ${isPro()?`<div class="hint" style="margin-top:14px">${tr('สถานะ Pro')}: ${escapeHtml(PRO.email||'')} · ${PRO.plan==='pro-lifetime'?tr('ตลอดชีพ'):PRO.validUntil?tr('ใช้ได้ถึง {d}').replace('{d}',fmtDate(PRO.validUntil)):''} <a href="#" onclick="deactivateLicense();return false" style="margin-left:8px">${tr('ปิดการใช้งานรหัสนี้')}</a></div>`:''}
+      ${isPro()?(PRO.source==='appstore'
+        ? `<div class="hint" style="margin-top:14px">${tr('สถานะ Pro')}: ${tr('ซื้อผ่าน App Store แล้ว')} · ${tr('ตลอดชีพ')}</div>`
+        : `<div class="hint" style="margin-top:14px">${tr('สถานะ Pro')}: ${escapeHtml(PRO.email||'')} · ${PRO.plan==='pro-lifetime'?tr('ตลอดชีพ'):PRO.validUntil?tr('ใช้ได้ถึง {d}').replace('{d}',fmtDate(PRO.validUntil)):''} <a href="#" onclick="deactivateLicense();return false" style="margin-left:8px">${tr('ปิดการใช้งานรหัสนี้')}</a></div>`):''}
     </div>`;
 
   const groups = { business: businessCards, docs: docsCards, data: dataCards, workspace: workspaceCards };
@@ -5058,6 +5144,14 @@ async function boot(){
     if(!DB) DB = blankDB();
     buildJournalIndex();   // baseline ของ journal — เริ่มนับความเปลี่ยนแปลงจากสถานะนี้
     try{ if(window.billingAPI.licenseStatus) PRO = await window.billingAPI.licenseStatus(); }catch(e){}
+    // MAS: การซื้อ/กู้คืนสำเร็จมาจาก StoreKit แบบ async — อัปเดตสถานะ Pro ทันทีที่ transaction จบ
+    if(IS_MAS && window.billingAPI.onIapChanged) window.billingAPI.onIapChanged(async ()=>{
+      const was = isPro();
+      try{ PRO = await window.billingAPI.licenseStatus(); }catch(e){}
+      await refreshSyncInfo();
+      render();
+      if(!was && isPro()){ closeModal(); toast(tr('เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!'),'ok'); }
+    });
     await refreshSyncInfo();
     if(isSyncEnabled()) setTimeout(()=>syncNow(true), 4000);        // ดึงงานจากเครื่องอื่นหลังเปิดแอป
     // ตัวจับเวลา/โฟกัสลงทะเบียนเสมอ — เผื่อเปิด Pro/เชื่อม Drive ระหว่างใช้งาน (เช็คเงื่อนไขตอนยิง)
@@ -5117,6 +5211,8 @@ async function boot(){
 }
 // paint the static sidebar nav icons
 document.querySelectorAll('.nav .ico[data-ic]').forEach(s=> s.innerHTML = ic(s.dataset.ic,18));
+// MAS build ไม่มี AI add-on — ซ่อนทั้งบล็อก Add-on ในแถบข้าง
+if(IS_MAS){ const an=document.getElementById('addonNav'); if(an) an.style.display='none'; }
 boot();
 </script>
 </body>
