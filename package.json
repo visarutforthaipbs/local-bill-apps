@@ -70,7 +70,10 @@
             "universal"
           ]
         }
-      ]
+      ],
+      "extendInfo": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "mas": {
       "type": "distribution",
@@ -86,7 +89,10 @@
             "universal"
           ]
         }
-      ]
+      ],
+      "extendInfo": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "dmg": {
       "title": "BillNgai ${version}",
