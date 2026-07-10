@@ -26,7 +26,7 @@ problem (plan `'local'` fits the existing license format if ever needed).
 
 ## 2. What gets built and hosted
 
-1. **`BillNgai-<version>-universal.dmg`** — `npm run dist`. One file for both tiers.
+1. **`BillNgai-<version>-universal.dmg`** — `npm run dist` (production, signed & notarized) or `npm run dist:unsigned` (local testing). One file for both tiers.
 2. **AI add-on PKG** (~2GB, Typhoon2-3B) — `npm run ai:addon:build -- --source <folder> --pkg …`
    Signed manifest; the app only activates verified modules.
 3. **Pro keys** — generated per-buyer, never pre-generated in bulk:

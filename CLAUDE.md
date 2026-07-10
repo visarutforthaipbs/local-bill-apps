@@ -56,8 +56,9 @@ Two independent systems:
   2. Add a section to `CHANGELOG.md` (Keep-a-Changelog style, ISO dates)
   3. Bump `version` in `package.json` (SemVer — it names the DMG)
   4. `git add -A && git commit` (descriptive message), then `git tag v<version>`
-  5. `npm run dist` → `dist/BillNgai-<version>-universal.dmg` (universal, unsigned —
-     `identity: null`; users right-click → Open past Gatekeeper)
+  5. Release packaging:
+     - Unsigned releases (local testing): `npm run dist:unsigned` → `dist/BillNgai-<version>-universal.dmg`
+     - Signed & Notarized releases (production): Export code signing environment variables (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_ISSUER`, `APPLE_API_KEY_ID`, `APPLE_API_KEY`), then run `npm run dist` to produce a notarized DMG.
   6. `git push` (tags too: `git push --tags`)
   7. Optionally attach the DMG to a GitHub Release on the tag (`gh release create`)
 - Don't commit without being asked; the owner drives releases.

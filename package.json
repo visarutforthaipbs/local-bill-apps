@@ -13,6 +13,7 @@
     "predist": "electron make-icon.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac",
+    "dist:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.notarize=false",
     "dist:mas": "electron-builder --mac mas"
   },
   "keywords": [
@@ -55,7 +56,11 @@
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.finance",
-      "identity": null,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true,
       "target": [
         {
           "target": "dmg",
@@ -76,7 +81,10 @@
       ]
     },
     "dmg": {
-      "title": "BillNgai ${version}"
+      "title": "BillNgai ${version}",
+      "sign": false,
+      "format": "UDZO",
+      "internetEnabled": false
     }
   }
 }
