@@ -1303,7 +1303,7 @@ function exportCSV(){
     return [d.number,typeName(d.type),tr(STATUS_LABEL[effectiveStatus(d)])||'',d.issueDate||'',d.dueDate||'',d.paidDate||'',
       cl?cl.name:'',cl?cl.taxId||'':'',d.project||'',d.incomeCategory||'',
       t.subtotal.toFixed(2),t.vatRate,t.vatAmount.toFixed(2),t.grandTotal.toFixed(2),
-      t.whtRate,t.whtAmount.toFixed(2),t.netPayable.toFixed(2),DB.business.currency].map(csvCell).join(',');
+      t.whtRate,t.whtAmount.toFixed(2),t.netPayable.toFixed(2),t.currency].map(csvCell).join(',');
   });
   downloadFile('﻿'+[head.map(csvCell).join(','),...rows].join('\r\n'),
     'billing-documents-'+todayISO()+'.csv','text/csv;charset=utf-8');
@@ -1312,7 +1312,7 @@ function exportCSV(){
 // 50 ทวิ CSV — builder คืนสตริง (ใช้ซ้ำในชุดส่งออกให้บัญชี); year=null = ทุกปี
 function buildWhtCSV(year){
   let list=whtTrackedDocs();
-  if(year!=null) list=list.filter(d=> new Date(d.paidDate||d.issueDate).getFullYear()===year);
+  if(year!=null) list=list.filter(d=> taxYearOf(d)===year);
   const head=['เอกสาร','ลูกค้า','เลขภาษีลูกค้า','วันที่รับเงิน','ฐานภาษี','อัตรา%','ภาษีถูกหัก','ได้รับใบ50ทวิ','เลขที่ใบ50ทวิ','วันที่ใบรับรอง'].map(s=>tr(s));
   const rows=list.map(d=>{ const cl=clientById(d.clientId); const t=compute(d);
     return [d.number,cl?cl.name:'',cl?cl.taxId||'':'',d.paidDate||d.issueDate||'',t.subtotal.toFixed(2),t.whtRate,
@@ -1410,6 +1410,15 @@ function migrate(data){
   merged.recurring = data.recurring||[];
   merged.counters = data.counters||{};
   merged.meta = {...base.meta, ...(data.meta||{})};
+  // counter เคยใช้ปีตาม yearMode — โหมด พ.ศ. ได้ key อย่าง "invoice-2568" ย้ายเป็นปี ค.ศ. (max-merge กันเลขถอยหลัง)
+  for(const k of Object.keys(merged.counters)){
+    const m = k.match(/^(.*)-(\d{4})$/);
+    if(m && Number(m[2])>=2500){
+      const ck = m[1]+'-'+(Number(m[2])-543);
+      merged.counters[ck] = Math.max(Number(merged.counters[ck]||0), Number(merged.counters[k])||0);
+      delete merged.counters[k];
+    }
+  }
   // fix legacy numbers that kept the braces, e.g. "QT-69-{001}" -> "QT-69-001"
   merged.documents.forEach(d=>{ if(d.number && /[{}]/.test(d.number)) d.number = d.number.replace(/[{}]/g,''); });
   // older documents predate per-document currency — inherit the business currency.
@@ -2446,17 +2455,22 @@ function isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart
 function todayISO(){ return isoLocal(new Date()); }
 function addDays(iso,n){ const d=parseDate(iso); d.setDate(d.getDate()+n); return isoLocal(d); }
 
+// key ของ counter ใช้ปี ค.ศ. ตามปฏิทินเสมอ — ห้ามผูกกับ yearMode (พ.ศ./ค.ศ.)
+// ไม่งั้นสลับโหมดปีกลางปีแล้ว counter เริ่มนับ 1 ใหม่ → เลขเอกสารซ้ำ
+function counterKey(type, dateStr){ return type+'-'+parseDate(dateStr).getFullYear(); }
 function nextNumber(type, dateStr){
   const fmt = DB.business.numberFormats[type] || (type.toUpperCase()+'-{YY}-{###}');
   const yy = yearToken(dateStr);
-  const ckey = type+'-'+fullYear(dateStr);
-  const n = (DB.counters[ckey]||0)+1;
+  const n = (DB.counters[counterKey(type,dateStr)]||0)+1;
   const pad = (fmt.match(/#+/)||['###'])[0].length;
+  const num = String(n).padStart(pad,'0');
   // strip optional braces around the number token, e.g. {###} -> 001
-  return fmt.replace('{YY}',yy).replace(/\{?#+\}?/, String(n).padStart(pad,'0'));
+  const out = fmt.replace('{YY}',yy).replace(/\{?#+\}?/, num);
+  // ฟอร์แมตที่ไม่มี # เลย (ผู้ใช้พิมพ์เอง) — ต่อเลขลำดับให้เสมอ ไม่งั้นทุกใบได้เลขเดียวกัน
+  return /#/.test(fmt) ? out : out+'-'+num;
 }
 function commitNumber(type, dateStr){
-  const ckey = type+'-'+fullYear(dateStr);
+  const ckey = counterKey(type, dateStr);
   DB.counters[ckey] = (DB.counters[ckey]||0)+1;
 }
 
@@ -2712,7 +2726,9 @@ async function importTorFile(filePath){
 function aiTorDrop(event){
   event.preventDefault();
   const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-  if(file && file.path) importTorFile(file.path);
+  if(!file) return;
+  const p = (window.billingAPI && window.billingAPI.pathForFile) ? window.billingAPI.pathForFile(file) : file.path;
+  if(p) importTorFile(p);
 }
 function aiTorDrag(event){ event.preventDefault(); }
 function aiBackToInput(){ aiTorDraft=null; aiTorOutput=''; aiTorShowRaw=false; render(); }
@@ -3272,7 +3288,7 @@ function docTable(list){
     ${list.map(d=>{
       const cl=clientById(d.clientId); const t=compute(d); const st=effectiveStatus(d);
       return `<tr onclick="viewDoc('${d.id}')">
-        <td class="doc-no">${d.number}${d.milestone?`<div class="muted" style="font-size:11px;font-weight:400">${tr('งวดที่ {i}/{n}').replace('{i}',d.milestone.seq).replace('{n}',d.milestone.of)}</div>`:''}</td>
+        <td class="doc-no">${escapeHtml(d.number)}${d.milestone?`<div class="muted" style="font-size:11px;font-weight:400">${tr('งวดที่ {i}/{n}').replace('{i}',d.milestone.seq).replace('{n}',d.milestone.of)}</div>`:''}</td>
         <td>${typeName(d.type)}</td>
         <td>${cl?escapeHtml(cl.name):'<span class="muted">—</span>'}${d.project?`<div class="muted" style="font-size:11.5px">${escapeHtml(d.project)}</div>`:''}</td>
         <td class="muted">${fmtDate(d.issueDate)}</td>
@@ -3326,7 +3342,7 @@ function renderWht(c,ta){
     ${list.map(d=>{
       const cl=clientById(d.clientId); const t=compute(d);
       return `<tr style="cursor:default">
-        <td class="doc-no" style="cursor:pointer" onclick="viewDoc('${d.id}')">${d.number}</td>
+        <td class="doc-no" style="cursor:pointer" onclick="viewDoc('${d.id}')">${escapeHtml(d.number)}</td>
         <td>${cl?escapeHtml(cl.name):'—'}</td>
         <td class="muted">${fmtDate(d.paidDate||d.issueDate)}</td>
         <td class="num">${money(t.subtotal)}</td>
@@ -3344,7 +3360,7 @@ function openWhtCert(id){
   const d=DB.documents.find(x=>x.id===id);
   const m=document.getElementById('modal');
   m.innerHTML=`
-    <div class="modal-head"><h3>${tr('ใบ 50 ทวิ —')} ${d.number}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr('ใบ 50 ทวิ —')} ${escapeHtml(d.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
     <div class="modal-body">
       <div class="field"><label class="toggle"><input type="checkbox" id="w_got" ${d.whtCertReceived?'checked':''}><span class="track"></span><span>${tr('ได้รับใบหนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ) แล้ว')}</span></label></div>
       <div class="grid-2">
@@ -3533,9 +3549,11 @@ function renderClients(c,ta){
 /* ---------- YEAR-END TAX SUMMARY ---------- */
 let reportYear = new Date().getFullYear();
 function docTaxDate(d){ return d.paidDate || d.issueDate || ''; }
+// ปีภาษีคิดจากวันที่แบบ local เสมอ (กติกาเดียวกับ todayISO) — เอกสารไม่มีวันที่ = NaN ไม่ถูกนับปีไหน
+function taxYearOf(d){ const ds=docTaxDate(d); return ds ? parseDate(ds).getFullYear() : NaN; }
 function realizedDocs(){ return activeDocs().filter(d=> d.type==='receipt' || d.type==='tax_invoice'); }
 function reportYears(){
-  const ys = new Set(realizedDocs().map(d=> new Date(docTaxDate(d)).getFullYear()).filter(y=>!isNaN(y)));
+  const ys = new Set(realizedDocs().map(taxYearOf).filter(y=>!isNaN(y)));
   ys.add(new Date().getFullYear());
   return [...ys].sort((a,b)=>b-a);
 }
@@ -3544,7 +3562,7 @@ function displayYear(g){ return DB.business.yearMode==='be' ? g+543 : g; }
 
 // รวมยอดรายรับทั้งปี — ใช้ร่วมกันระหว่างหน้าสรุปภาษี หน้ายื่นภาษี และชุดส่งออกให้บัญชี
 function taxYearAgg(year){
-  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===year);
+  const docs = realizedDocs().filter(d=> taxYearOf(d)===year);
   const thb = docs.filter(d=> docCurrency(d)==='THB');
   const agg = {subtotal:0,vat:0,wht:0,grand:0,net:0,count:thb.length};
   const byMonth = Array.from({length:12},()=>0);
@@ -3650,7 +3668,7 @@ function renderReport(c,ta){
   `;
 }
 function buildReportCSV(year){
-  const docs = realizedDocs().filter(d=> new Date(docTaxDate(d)).getFullYear()===year)
+  const docs = realizedDocs().filter(d=> taxYearOf(d)===year)
     .sort((a,b)=> docTaxDate(a).localeCompare(docTaxDate(b)));
   const head=['เลขที่','ประเภท','วันที่','ลูกค้า','เลขผู้เสียภาษี','ประเภทเงินได้','สกุลเงิน','ก่อนVAT','VAT','รวม','หักณที่จ่าย','สุทธิ','อัตราแลกเปลี่ยน','เทียบเท่าบาท'].map(s=>tr(s));
   const rows=docs.map(d=>{ const t=compute(d); const cl=clientById(d.clientId);
@@ -3660,7 +3678,7 @@ function buildReportCSV(year){
       t.subtotal.toFixed(2),t.vatAmount.toFixed(2),t.grandTotal.toFixed(2),t.whtAmount.toFixed(2),t.netPayable.toFixed(2),
       rate,thbEq].map(csvCell).join(',');
   });
-  return '﻿'+[head.join(','),...rows].join('\n');
+  return '﻿'+[head.join(','),...rows].join('\r\n');
 }
 function exportReportCSV(){
   downloadFile(buildReportCSV(reportYear), 'tax-summary-'+displayYear(reportYear)+'.csv', 'text/csv;charset=utf-8');
@@ -4329,7 +4347,7 @@ function drawDocEditor(){
   const typeOpts = {quotation:tr('ใบเสนอราคา'),invoice:tr('ใบแจ้งหนี้'),receipt:tr('ใบเสร็จรับเงิน'),tax_invoice:tr('ใบเสร็จรับเงิน / ใบกำกับภาษี')};
   m.innerHTML = `
     <div class="modal-head"><h3>${tr(isNew?'สร้าง':'แก้ไข')} ${typeOpts[d.type]}</h3>
-      ${d.number?`<span class="muted" style="margin-left:10px;font-size:13px">${d.number}</span>`:''}
+      ${d.number?`<span class="muted" style="margin-left:10px;font-size:13px">${escapeHtml(d.number)}</span>`:''}
       <div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
     <div class="modal-body">
       <div class="grid-3">
@@ -4472,8 +4490,8 @@ function saveDoc(){
   // tax invoice guardrail
   if(d.type==='tax_invoice'){
     const cl=clientById(d.clientId);
-    if(!cl.taxId){ toast(tr('ออกใบกำกับภาษีไม่ได้ — ลูกค้ายังไม่มีเลขประจำตัวผู้เสียภาษี'),'err');
-      if(confirm(tr('ลูกค้ายังไม่มีเลขภาษี ต้องการเพิ่มตอนนี้?'))){ closeModal(); openClientEditor(cl.id); } return; }
+    if(!cl || !cl.taxId){ toast(tr('ออกใบกำกับภาษีไม่ได้ — ลูกค้ายังไม่มีเลขประจำตัวผู้เสียภาษี'),'err');
+      if(cl && confirm(tr('ลูกค้ายังไม่มีเลขภาษี ต้องการเพิ่มตอนนี้?'))){ closeModal(); openClientEditor(cl.id); } return; }
   }
   touch(d);
   if(d.id){
@@ -4507,7 +4525,8 @@ function viewDoc(id){ viewingId=id; currentView='docview';
 function renderDocView(c,ta){
   const d=DB.documents.find(x=>x.id===viewingId);
   if(!d || d.deletedAt){ setView('documents'); return; }
-  const cl=clientById(d.clientId); const t=compute(d); const st=effectiveStatus(d);
+  // ลูกค้าอาจหายไปจริง ๆ (tombstone ถูกล้างหลัง 180 วัน / hard delete จากเครื่องอื่น) — เอกสารต้องยังเปิดได้
+  const cl=clientById(d.clientId)||{}; const t=compute(d); const st=effectiveStatus(d);
   document.getElementById('pageTitle').textContent = d.number;
 
   // contextual actions
@@ -4796,10 +4815,10 @@ function convertToInvoice(id){
 }
 function createReceipt(id){
   const inv=DB.documents.find(x=>x.id===id);
-  const cl=clientById(inv.clientId);
+  const cl=clientById(inv.clientId)||{};   // ลูกค้าอาจถูกลบถาวรไปแล้ว — ออกใบเสร็จธรรมดาได้เสมอ
   const asTax = DB.business.isVatRegistered;
   if(asTax && !cl.taxId){
-    if(confirm(tr('ลูกค้ายังไม่มีเลขภาษี — ออกได้เฉพาะใบเสร็จธรรมดา (ไม่ใช่ใบกำกับภาษี)\nต้องการเพิ่มเลขภาษีก่อน?'))){
+    if(cl.id && confirm(tr('ลูกค้ายังไม่มีเลขภาษี — ออกได้เฉพาะใบเสร็จธรรมดา (ไม่ใช่ใบกำกับภาษี)\nต้องการเพิ่มเลขภาษีก่อน?'))){
       openClientEditor(cl.id); return;
     }
   }

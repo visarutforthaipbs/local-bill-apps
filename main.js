@@ -996,17 +996,19 @@ function createWindow() {
 
 function buildMenu() {
   const isMac = process.platform === 'darwin';
+  // บน macOS แอปอยู่ต่อหลังปิดหน้าต่าง — win กลายเป็น object ที่ destroyed แล้ว (ยัง truthy)
+  const liveWin = () => (win && !win.isDestroyed()) ? win : null;
   const template = [
     ...(isMac ? [{ role: 'appMenu' }] : []),
     {
       label: 'ไฟล์',
       submenu: [
-        { label: 'สำรองข้อมูล (Export)…', accelerator: 'CmdOrCtrl+E', click: () => win && win.webContents.send('menu:export') },
-        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => win && win.webContents.send('menu:import') },
+        { label: 'สำรองข้อมูล (Export)…', accelerator: 'CmdOrCtrl+E', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:export'); } },
+        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:import'); } },
         { label: 'เปิดที่เก็บไฟล์ข้อมูล', click: async () => shell.showItemInFolder(await activePath()) },
         { label: 'เปิดโฟลเดอร์สำรองอัตโนมัติ', click: async () => { await fsp.mkdir(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },
         { type: 'separator' },
-        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => win && win.webContents.print() },
+        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => { const w = liveWin(); if (w) w.webContents.print(); } },
         ...(isMac ? [] : [{ role: 'quit' }])
       ]
     },

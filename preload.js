@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 // Single, safe bridge for the renderer (billing.html).
 contextBridge.exposeInMainWorld('billingAPI', {
@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('billingAPI', {
   syncCommitPull: (cur)    => ipcRenderer.invoke('sync:commitPull', cur),
   syncSnapshot:   (text)   => ipcRenderer.invoke('sync:snapshot', text),
   syncRestore:    ()       => ipcRenderer.invoke('sync:restore'),
+  // File.path ถูกถอดใน Electron 32+ — ทางที่รองรับคือ webUtils.getPathForFile (ใช้กับ drag & drop TOR)
+  pathForFile:    (file)   => { try{ return webUtils.getPathForFile(file); }catch(e){ return (file && file.path) || ''; } },
   aiStatus:       ()       => ipcRenderer.invoke('ai:status'),
   aiInfer:        (text)   => ipcRenderer.invoke('ai:infer', text),
   importTor:      (path)   => ipcRenderer.invoke('ai:importTor', path),
