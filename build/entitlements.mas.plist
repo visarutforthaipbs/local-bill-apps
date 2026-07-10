@@ -11,7 +11,12 @@
     <true/>
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
-    <!-- ห้ามใส่ com.apple.security.cs.* ที่นี่ — เป็น entitlements ของ hardened runtime
-         (Developer ID/DMG เท่านั้น) App Store validation จะปัดตกด้วย ITMS-90285 -->
+    <!-- V8/Electron ต้องการสองตัวนี้แม้ใน MAS — ถอดออกแล้วแอป crash ตอนเปิด
+         (EXC_BREAKPOINT ใน v8::Isolate::Initialize — จอง JIT memory ไม่ได้) -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- ห้ามใส่ com.apple.security.cs.allow-dyld-shared-cache — Apple ปัดตก ITMS-90285 -->
   </dict>
 </plist>

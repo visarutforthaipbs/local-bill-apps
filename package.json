@@ -35,7 +35,7 @@
   "build": {
     "appId": "com.visarut.billngai",
     "productName": "BillNgai",
-    "buildVersion": "2.0.2",
+    "buildVersion": "2.0.3",
     "directories": {
       "output": "dist"
     },

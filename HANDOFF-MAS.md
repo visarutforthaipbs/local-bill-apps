@@ -25,8 +25,10 @@ BillNgai มี **สอง SKU สองที่**:
   (sandbox spawn llama-cli ไม่ได้), external billing.json (รอ security-scoped bookmarks
   = Phase 3 ใน PLAN-MAC-APP-STORE.md), `migrateFromBilliong()`
 - Entitlements: `build/entitlements.mas.plist` = app-sandbox + network.client +
-  network.server (OAuth loopback ของ Drive sync) + user-selected files —
-  **ห้ามมี `com.apple.security.cs.*` เด็ดขาด** (โดน ITMS-90285 มาแล้ว)
+  network.server (OAuth loopback ของ Drive sync) + user-selected files
+  **+ `cs.allow-jit` + `cs.allow-unsigned-executable-memory` (V8 ต้องใช้ —
+  ถอดออกแล้วแอป crash ตอนเปิดใน v8::Isolate::Initialize, เจอใน TestFlight build 2.0.2)**
+  · ตัวเดียวที่ห้ามมีคือ `cs.allow-dyld-shared-cache` (โดน ITMS-90285)
 - ทดสอบ: harness 13 เคส MAS gating + 16 เคส regression (ดูประวัติ commit)
 
 ### บิลด์และอัปโหลด (บทเรียนราคาแพง — อย่าทำซ้ำ)
@@ -34,10 +36,12 @@ BillNgai มี **สอง SKU สองที่**:
   `dist/mas-universal/BillNgai-<ver>-universal.pkg`
 - **ก่อนบิลด์ครั้งแรกใน worktree ใหม่ต้องรัน `npx electron make-icon.js`**
   (build/icon.icns ถูก gitignore — ไม่มีแล้วได้ไอคอน Electron เปล่า)
-- upload รอบ 1 ❌ ITMS-90285: entitlements มี `cs.allow-dyld-shared-cache` → ลบ cs.* หมดแล้ว
+- upload รอบ 1 ❌ ITMS-90285: entitlements มี `cs.allow-dyld-shared-cache`
 - upload รอบ 2 ❌ ITMS-90257: `CFBundleVersion` เกิน 3 ตัวเลข (2.0.1.1) → ใช้ `buildVersion`
-  ใน package.json = `2.0.2`
-- upload รอบ 3 ✅ สำเร็จ — **รี-อัปโหลดครั้งถัดไปต้อง bump `buildVersion` เสมอ** (เช่น 2.0.3)
+- upload รอบ 3 (build 2.0.2) ✅ ผ่าน validation แต่ ❌ **crash ตอนเปิดใน TestFlight**
+  เพราะตอนแก้รอบ 1 ถอด cs.* ออกหมด — V8 ขาด allow-jit → คืน allow-jit +
+  allow-unsigned-executable-memory แล้ว (build 2.0.3)
+- **รี-อัปโหลดครั้งถัดไปต้อง bump `buildVersion` เสมอ**
 - codesign/บิลด์ต้องรัน **นอก sandbox ของ Bash tool** (dangerouslyDisableSandbox)
   ไม่งั้น "internal error in Code Signing subsystem"
 
