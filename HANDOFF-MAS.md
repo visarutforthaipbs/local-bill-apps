@@ -41,6 +41,14 @@ BillNgai มี **สอง SKU สองที่**:
 - upload รอบ 3 (build 2.0.2) ✅ ผ่าน validation แต่ ❌ **crash ตอนเปิดใน TestFlight**
   เพราะตอนแก้รอบ 1 ถอด cs.* ออกหมด — V8 ขาด allow-jit → คืน allow-jit +
   allow-unsigned-executable-memory แล้ว (build 2.0.3)
+- upload รอบ 4 (build 2.0.3) ✅ เปิดได้แต่ ❌ **หน้าต่างว่างเปล่า** — Chromium ใช้ Mach port
+  `TEAMID.bundleid.MachPortRendezvousServer` คุยกับ renderer, sandbox อนุญาตต่อเมื่อมี
+  entitlement `com.apple.security.application-groups = [79QFYKTJMN.com.visarut.billngai]`
+  → เพิ่มแล้ว + เพิ่ม jit ให้ helper (inherit plist) ด้วย = build 2.0.4
+- **วิธีทดสอบ MAS build ในเครื่องโดยไม่ต้องรอ TestFlight** (ใช้จับบั๊กหน้าต่างว่างได้จริง):
+  ก๊อป .app → ลบ embedded.provisionprofile → re-sign ทุกชั้นด้วย **Developer ID** identity
+  (team เดียวกัน — app group ผ่าน) ด้วย entitlements ชุดเดียวกับ MAS → รัน binary ตรง ๆ
+  จาก terminal จะเห็น log/FATAL ทันที (ad-hoc ใช้ไม่ได้ — ไม่มี team id, app group ไม่ผ่าน)
 - **รี-อัปโหลดครั้งถัดไปต้อง bump `buildVersion` เสมอ**
 - codesign/บิลด์ต้องรัน **นอก sandbox ของ Bash tool** (dangerouslyDisableSandbox)
   ไม่งั้น "internal error in Code Signing subsystem"

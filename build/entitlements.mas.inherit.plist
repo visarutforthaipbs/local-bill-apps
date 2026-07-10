@@ -6,5 +6,10 @@
     <true/>
     <key>com.apple.security.inherit</key>
     <true/>
+    <!-- inherit ไม่ครอบ cs.* — renderer/GPU helper ต้องมี JIT เอง ไม่งั้น renderer ตาย → หน้าต่างว่างเปล่า -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
   </dict>
 </plist>

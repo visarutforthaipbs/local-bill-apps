@@ -4,6 +4,13 @@
   <dict>
     <key>com.apple.security.app-sandbox</key>
     <true/>
+    <!-- Electron/Chromium ใช้ Mach port ชื่อ TEAMID.bundleid.MachPortRendezvousServer
+         คุยระหว่าง process — sandbox อนุญาตเฉพาะเมื่อประกาศ application-group นี้
+         (ไม่มี = renderer ต่อไม่ได้ = หน้าต่างว่างเปล่าใน TestFlight build 2.0.3) -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+      <string>79QFYKTJMN.com.visarut.billngai</string>
+    </array>
     <key>com.apple.security.network.client</key>
     <true/>
     <!-- Google Drive sync: OAuth loopback server บน 127.0.0.1 (รับ code หลังล็อกอิน) -->
