@@ -9,9 +9,10 @@ BillNgai มี **สอง SKU สองที่**:
 - **DMG + Windows (ช่องทางเดิม, ขาย Pro ผ่าน LINE/PromptPay)** → worktree `../Billiong-App`, branch `main`, ล่าสุด v2.0.1 (tag `v2.0.1` push แล้ว)
 - **Mac App Store (SKU ใหม่, Pro = In-App Purchase)** → worktree นี้ (`BillNgai-MAS-Pilot`), branch `mas-pilot` (push แล้ว)
 
-**สถานะตอนจบเซสชัน:** build **2.0.1 (CFBundleVersion 2.0.2)** อัปโหลดผ่าน Transporter
-**สำเร็จแล้ว** (Delivery UUID `41f59bd3-07f6-4c9b-8511-fd63beeb7b72`) — สถานะ `PROCESSING` ฝั่ง Apple
-รอโผล่ในแท็บ TestFlight ของ App Store Connect
+**สถานะล่าสุด:** build **2.0.5** คือ submission candidate — ผ่านการทดสอบ local sandbox ครบ:
+UI แสดงผล, ราคา IAP จริง (฿599) โหลดจาก StoreKit, ซื้อ sandbox ผ่าน TestFlight สำเร็จ (2.0.4),
+**Google Drive sync เชื่อมต่อ+ใช้งานได้ใน sandbox** (2.0.5 local test) —
+เหลือ: อัปโหลด 2.0.5 → TestFlight ยืนยัน → หน้า version → Submit for Review
 
 ## สิ่งที่เสร็จแล้ว
 
@@ -34,8 +35,13 @@ BillNgai มี **สอง SKU สองที่**:
 ### บิลด์และอัปโหลด (บทเรียนราคาแพง — อย่าทำซ้ำ)
 - คำสั่งบิลด์: `npm run dist:mas` (= `electron-builder --mac mas --universal`) →
   `dist/mas-universal/BillNgai-<ver>-universal.pkg`
-- **ก่อนบิลด์ครั้งแรกใน worktree ใหม่ต้องรัน `npx electron make-icon.js`**
-  (build/icon.icns ถูก gitignore — ไม่มีแล้วได้ไอคอน Electron เปล่า)
+- **เช็คลิสต์ก่อนบิลด์ใน worktree ใหม่ — ไฟล์ gitignored 3 ตัวที่ไม่ตามมาเอง:**
+  1. `npx electron make-icon.js` → build/icon.icns (ไม่มี = ไอคอน Electron เปล่า)
+  2. `build/embedded.provisionprofile` (โหลดจาก developer.apple.com)
+  3. `secrets/gdrive-oauth.json` (ก๊อปจาก worktree หลัก — **ไม่มี = Drive sync ใช้ไม่ได้
+     ทั้ง build** โชว์แบนเนอร์ "ยังไม่ได้ฝังค่า Google OAuth client"; เจอจริงใน build 2.0.4
+     เพราะ electron-builder ข้ามไฟล์ที่หายไปเงียบ ๆ — เช็คด้วย
+     `npx asar list .../app.asar | grep gdrive` หลังบิลด์เสมอ)
 - upload รอบ 1 ❌ ITMS-90285: entitlements มี `cs.allow-dyld-shared-cache`
 - upload รอบ 2 ❌ ITMS-90257: `CFBundleVersion` เกิน 3 ตัวเลข (2.0.1.1) → ใช้ `buildVersion`
 - upload รอบ 3 (build 2.0.2) ✅ ผ่าน validation แต่ ❌ **crash ตอนเปิดใน TestFlight**
