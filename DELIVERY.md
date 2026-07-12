@@ -12,15 +12,18 @@ Never ship separate Local/Pro builds; Local→Pro is "paste a key", not a reinst
 
 | | BillNgai Local | BillNgai Pro |
 |---|---|---|
-| Price | ฿59 Early Bird → ฿299–499 one-time | ฿590 Early Bird → ฿1,990 one-time |
+| Price | **ฟรี** (ตัดสินใจแล้ว 2026-07-12 — เดิม ฿59 Early Bird honor system, ดู SKU.md §6.A) | ฿599 Early Bird → ฿1,900 one-time (ตัดสินใจแล้ว 2026-07-12, ดู SKU.md §6.B) |
 | Buyer receives | DMG download link | DMG link + **Pro key** + **AI add-on PKG link** |
 | License key | none (soft enforcement — the download *is* the product) | Ed25519 signed key, verified offline in-app |
 | Unlocks | all core billing + tax features, local backup/restore | + TOR → Invoice AI · Google Drive sync · income categories (มาตรา 40) |
 | Upgrade path | — | buy Pro → paste key in ตั้งค่า → Workspace. No reinstall |
 
-Rationale for no Local key: ฿299-tier friction isn't worth it; the valuable
-features (AI, sync) are gated anyway. Revisit only if sharing becomes a real
-problem (plan `'local'` fits the existing license format if ever needed).
+Rationale: Local is free with no key at all (decided 2026-07-12 — was a ฿59
+Early Bird honor-system charge before). The valuable features (AI, sync) are
+gated behind Pro anyway, so free Local removes the "why is App Store free but
+web costs ฿59" friction entirely and makes the website one funnel into Pro.
+Revisit only if sharing becomes a real problem (plan `'local'` fits the
+existing license format if ever needed).
 
 ---
 
@@ -40,12 +43,12 @@ marketing site (`promote-billiong`, Cloudflare Pages) + **Cloudflare R2** for
 the DMG/AI PKG downloads + **PromptPay** for payment + **LINE OA** for
 fulfillment. No Gumroad/Stripe at launch (see §6 for the Phase-2 trigger).
 
-- **BillNgai Local (฿59 Early Bird)** — website dialog: PromptPay QR →
-  download from R2. Honor system, no key, unchanged.
-- **BillNgai Pro (฿590 Early Bird)** — website "จองสิทธิ์" dialog: PromptPay
-  QR ฿590 → buyer sends **slip + email** via LINE OA → you reply with the key.
+- **BillNgai Local (ฟรี)** — website: direct download from R2, no payment
+  dialog, no key. (Decided 2026-07-12 — was ฿59 Early Bird honor system.)
+- **BillNgai Pro (฿599 Early Bird)** — website "จองสิทธิ์" dialog: PromptPay
+  QR ฿599 → buyer sends **slip + email** via LINE OA → you reply with the key.
   The site and the in-app upgrade modal both state the flow, and promise
-  **"รับรหัสทาง LINE ปกติไม่กี่นาที ไม่เกิน 24 ชม."**
+  **"รับรหัสทาง LINE ปกติไม่กี่นาที ไม่เกิน 24 ชม."** (Decided 2026-07-12 — was ฿590.)
 
 Why LINE, not a cart: PromptPay transfers carry no buyer identity — LINE is
 the identity + delivery + support channel in one, and it's the channel Thai
@@ -91,7 +94,7 @@ Uploaded artifacts (2026-07-09):
 
 When a buyer sends a payment slip in LINE:
 
-1. Check the slip amount (฿590) against your bank/PromptPay notification.
+1. Check the slip amount (฿599) against your bank/PromptPay notification.
 2. Ask for their **email** if not included with the slip.
 3. Generate the key:
 
@@ -100,11 +103,12 @@ When a buyer sends a payment slip in LINE:
    ```
 
 4. Reply in the same LINE chat (template below).
-5. Log the sale — this spreadsheet **is** the customer database
-   (keys are offline-verified and cannot be revoked remotely):
-
-   | date | email | LINE name | product | key (or key prefix) | notes |
-   |---|---|---|---|---|---|
+5. Log the sale in the **BillNgai Sales Log** Notion database — this **is**
+   the customer database (keys are offline-verified and cannot be revoked
+   remotely). Migrated from a Google Sheet on 2026-07-12; the sheet is no
+   longer updated. Columns: Name (title) · Date · Email · Product
+   (Local Early Bird / Pro Early Bird / Local / Pro) · Amount THB ·
+   License Key · Key Prefix · Sale Status · Notes.
 
 LINE reply template (Thai):
 
