@@ -1060,48 +1060,14 @@ function resolveConflict(i, useRemote){
   else { closeModal(); render(); toast(tr('บันทึกการตัดสินแล้ว — จะซิงก์ให้ทุกเครื่องตามนี้'),'ok'); }
 }
 
-/* ---------- Pro upgrade & license (Phase E) ---------- */
-function openUpgradeModal(){
-  if(IS_MAS){ openMasUpgradeModal(); return; }   // MAS: ซื้อผ่าน In-App Purchase เท่านั้น
-  const m = document.getElementById('modal');
-  const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
-  m.innerHTML = `
-    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
-    <div class="modal-body">
-      <div class="grid-2" style="align-items:start">
-        <div class="card-block" style="margin-bottom:0">
-          <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
-          <div class="desc">${tr('ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
-          ${li(tr('ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน'))}
-          ${li(tr('ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94'))}
-          ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
-          ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
-        </div>
-        <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
-          <h4>${tr('BillNgai Pro — Work Everywhere')}</h4>
-          <div class="desc">${tr('ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง')}</div>
-          ${li(tr('ทุกอย่างที่มีใน Local'))}
-          ${li(tr('AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ'))}
-          ${li(tr('ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน'))}
-          ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
-          ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
-          ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
-          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน')}</div>
-        </div>
-      </div>
-      <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
-      <div class="field" style="margin-top:16px;margin-bottom:0">
-        <label>${tr('มีรหัส Pro แล้ว? วางที่นี่')}</label>
-        <div style="display:flex;gap:9px">
-          <input id="lic_key" spellcheck="false" placeholder="eyJsaWNlbnNlIjo…" style="flex:1">
-          <button class="btn btn-primary" onclick="activateLicense()">${tr('เปิดใช้งานรหัส')}</button>
-        </div>
-        <div class="hint">${tr('ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย')}
-          <a href="https://lin.ee/pSl8nEH" target="_blank" rel="noopener" style="font-weight:700;margin-left:4px">${tr('ทักทาง LINE')} →</a></div>
-      </div>
-    </div>`;
-  openModal();
-}
+/* ---------- Pro upgrade & license (Phase E)
+   mas-pilot branch note (Guideline 3.1.1): this branch only ever ships the Mac App
+   Store build (`npm run dist:mas`) — the direct-channel purchase UI (PromptPay price,
+   LINE link, paste-a-license box) has been removed from this file entirely, not just
+   runtime-gated, so no external purchase/price string can ship inside the MAS
+   app.asar even as unreachable code. The direct-channel modal lives on the `main`
+   branch only. */
+function openUpgradeModal(){ openMasUpgradeModal(); }
 /* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
    รายการขายไม่มี AI (sandbox ห้าม spawn llama-cli) — อย่าเพิ่มกลับโดยไม่แก้ข้อจำกัดนั้นก่อน */
 let iapBusy=false;
@@ -1160,8 +1126,20 @@ async function iapBuyPro(){
   }catch(e){ toast(tr('ซื้อไม่สำเร็จ:')+' '+(e.message||e),'err'); }
   iapBusy=false; if(btn) btn.disabled=false;
 }
+let iapRestoreTimer = null;
 async function iapRestorePro(){
-  try{ await window.billingAPI.iapRestore(); toast(tr('กำลังกู้คืนการซื้อจาก App Store…'),'ok'); }
+  try{
+    await window.billingAPI.iapRestore();
+    toast(tr('กำลังกู้คืนการซื้อจาก App Store…'),'ok');
+    // StoreKit ไม่ส่ง event ใด ๆ กลับมาเลยถ้าบัญชีนี้ไม่เคยซื้อ Pro มาก่อน — ตั้งเวลาไว้
+    // แจ้งผู้ใช้ตรง ๆ ถ้าไม่มี iap:changed เข้ามาภายในเวลานี้ (กัน reviewer เข้าใจว่าปุ่มพัง)
+    const wasPro = isPro();
+    if(iapRestoreTimer) clearTimeout(iapRestoreTimer);
+    iapRestoreTimer = setTimeout(()=>{
+      iapRestoreTimer = null;
+      if(!wasPro && !isPro()) toast(tr('ไม่พบการซื้อ Pro ก่อนหน้านี้ในบัญชี Apple นี้'));
+    }, 4000);
+  }
   catch(e){ toast(tr('กู้คืนการซื้อไม่สำเร็จ'),'err'); }
 }
 
@@ -2247,7 +2225,6 @@ const I18N_EN = {
   // --- Pro packaging (Phase E) ---
   'อัปเกรดเป็น BillNgai Pro':'Upgrade to BillNgai Pro',
   'BillNgai Local — ของคุณตลอดไป':'BillNgai Local — yours forever',
-  'ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Buy once, issue documents forever, data stays on your machine',
   'ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน':'Every document type, unlimited',
   'ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94':'Full Thai tax handling: VAT · withholding · PND 90/94',
   'ข้อมูลอยู่ในเครื่องคุณ 100%':'Your data stays 100% on your machine',
@@ -2259,14 +2236,7 @@ const I18N_EN = {
   'สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม':'Automatic cloud backup + restore on a new computer',
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
-  'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your machine',
-  'จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน':'One-time — Early Bird ฿590 (full price ฿1,990), no monthly fees',
   'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
-  'BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'BillNgai never stores client documents on our servers — data syncs only through your own Google Drive',
-  'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
-  'เปิดใช้งานรหัส':'Activate',
-  'ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย':'Buy Pro: pay via PromptPay, send the slip on LINE — your key comes right back in chat',
-  'ทักทาง LINE':'Chat on LINE',
   'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
   'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
@@ -2287,6 +2257,7 @@ const I18N_EN = {
   'ซื้อไม่สำเร็จ:':'Purchase failed:',
   'กำลังกู้คืนการซื้อจาก App Store…':'Restoring purchases from the App Store…',
   'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
+  'ไม่พบการซื้อ Pro ก่อนหน้านี้ในบัญชี Apple นี้':'No previous Pro purchase found on this Apple ID',
   'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
   'ซื้อผ่าน App Store แล้ว':'Purchased via the App Store',
   'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)'
@@ -5146,6 +5117,7 @@ async function boot(){
     try{ if(window.billingAPI.licenseStatus) PRO = await window.billingAPI.licenseStatus(); }catch(e){}
     // MAS: การซื้อ/กู้คืนสำเร็จมาจาก StoreKit แบบ async — อัปเดตสถานะ Pro ทันทีที่ transaction จบ
     if(IS_MAS && window.billingAPI.onIapChanged) window.billingAPI.onIapChanged(async ()=>{
+      if(iapRestoreTimer){ clearTimeout(iapRestoreTimer); iapRestoreTimer=null; }   // StoreKit ตอบกลับจริงแล้ว ไม่ต้องขึ้น "ไม่พบ" ซ้ำ
       const was = isPro();
       try{ PRO = await window.billingAPI.licenseStatus(); }catch(e){}
       await refreshSyncInfo();
