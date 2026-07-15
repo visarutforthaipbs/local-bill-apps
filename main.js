@@ -1057,6 +1057,16 @@ function createWindow() {
   });
 }
 
+// บน macOS แอปยังรันอยู่หลังผู้ใช้ปิดหน้าต่าง — ต้องมีทางกลับเข้าหน้าต่างหลักเสมอ
+// (เมนู Window + คลิกไอคอนใน Dock). มีหน้าต่างอยู่แล้ว = โฟกัสตัวเดิม ไม่เปิดซ้ำ
+function showMainWindow() {
+  const w = (win && !win.isDestroyed()) ? win : null;
+  if (!w) { createWindow(); return; }
+  if (w.isMinimized()) w.restore();
+  w.show();
+  w.focus();
+}
+
 function buildMenu() {
   const isMac = process.platform === 'darwin';
   // บน macOS แอปอยู่ต่อหลังปิดหน้าต่าง — win กลายเป็น object ที่ destroyed แล้ว (ยัง truthy)
@@ -1077,7 +1087,19 @@ function buildMenu() {
     },
     { role: 'editMenu' },   // Cmd+C/V/X/A — required for inputs on macOS
     { role: 'viewMenu' },
-    { role: 'windowMenu' }
+    // คง role 'windowMenu' ไว้ (macOS ผูกเมนูนี้เป็น NSApp.windowsMenu) แต่ใส่ submenu เอง
+    // เพื่อเพิ่มรายการเปิดหน้าต่างหลักกลับมา — role เดิม (Minimize/Zoom/Bring All to Front) ครบเหมือนเดิม
+    {
+      role: 'windowMenu',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [{ role: 'close' }]),
+        { type: 'separator' },
+        // ไม่ผูกคีย์ลัด: Cmd+0 ถูก View → Actual Size (resetZoom) จองไว้แล้ว
+        { label: 'หน้าต่างหลัก BillNgai (Main Window)', click: () => showMainWindow() }
+      ]
+    }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -1086,7 +1108,7 @@ app.whenReady().then(() => {
   if (!IS_MAS) migrateFromBilliong();   // sandbox อ่านโฟลเดอร์เก่านอก container ไม่ได้อยู่แล้ว
   buildMenu();
   createWindow();
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  app.on('activate', () => showMainWindow());   // คลิกไอคอน Dock — ทางกลับเส้นที่สอง (เมนู Window คือเส้นแรก)
 });
 
 /* flush ก่อนปิดแอป (Pro sync): ดัน journal ที่ค้างขึ้น Drive ให้จบก่อนปิด —
