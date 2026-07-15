@@ -704,6 +704,10 @@ async function oauthConnect() {
     ...(GOOGLE_CLIENT_SECRET ? { client_secret: GOOGLE_CLIENT_SECRET } : {}),
     redirect_uri: redirectUri, code_verifier: verifier
   });
+  // Granular consent ของ Google: บัญชีที่ล็อกอินครั้งแรกจะเห็นช่องติ๊กสิทธิ์ Drive แยกต่างหาก —
+  // ถ้าไม่ติ๊ก การล็อกอิน "สำเร็จ" แต่ token แตะ Drive ไม่ได้เลย (403 ทุก call)
+  // ต้องเช็ค scope ที่ได้จริงก่อนบันทึก ไม่งั้นค้างในสถานะ "เชื่อมต่อแล้วแต่ซิงก์พังหมด"
+  if (!String(j.scope || '').includes(GDRIVE_SCOPE)) throw new Error('drive-scope-not-granted');
   let email = '';
   try { email = JSON.parse(Buffer.from(j.id_token.split('.')[1], 'base64').toString('utf8')).email || ''; } catch (e) {}
   await saveTokens({ access_token: j.access_token, refresh_token: j.refresh_token, expiry: Date.now() + (j.expires_in || 3600) * 1000, email });

@@ -977,7 +977,13 @@ async function connectDrive(){
     // เครื่องเปล่า (เครื่องใหม่/ลงใหม่) → เข้าโฟลว์กู้คืนก่อนเลย — ห้าม sync ก่อน ไม่งั้นจะดันสถานะว่างขึ้นไป
     if(!activeDocs().length && !activeClients().length) restoreFromCloudFlow();
     else syncNow(true);
-  }catch(e){ toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+  }catch(e){
+    const msg = String((e&&e.message)||e);
+    // main ปฏิเสธเพราะผู้ใช้ไม่ติ๊กช่องสิทธิ์ Drive ในหน้า Google — บอกวิธีแก้ตรง ๆ ดีกว่าโชว์ error ดิบ
+    if(msg.includes('drive-scope-not-granted'))
+      toast(tr('Google ยังไม่ได้ให้สิทธิ์ Google Drive แก่แอป — กด "เชื่อมต่อ Google Drive" อีกครั้ง แล้วติ๊กช่องอนุญาต Google Drive ในหน้าของ Google'),'err');
+    else toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+msg,'err');
+  }
 }
 async function disconnectDrive(){
   if(!confirm(tr('ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ'))) return;
@@ -2202,6 +2208,7 @@ const I18N_EN = {
   'เปิดหน้าล็อกอิน Google ในเบราว์เซอร์แล้ว — ล็อกอินเสร็จแล้วกลับมาที่แอป':'Google sign-in opened in your browser — come back to the app when done',
   'เชื่อมต่อ Google Drive แล้ว':'Google Drive connected',
   'เชื่อมต่อไม่สำเร็จ:':'Could not connect:',
+  'Google ยังไม่ได้ให้สิทธิ์ Google Drive แก่แอป — กด "เชื่อมต่อ Google Drive" อีกครั้ง แล้วติ๊กช่องอนุญาต Google Drive ในหน้าของ Google':'Google did not grant this app access to Google Drive — click "Connect Google Drive" again and tick the Google Drive checkbox on Google\'s consent page',
   'ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ':'Disconnect Google Drive? Your local data stays intact and nothing in your Drive is deleted',
   'ยกเลิกการเชื่อมต่อแล้ว':'Disconnected',
   'ยกเลิกไม่สำเร็จ':'Could not disconnect',
