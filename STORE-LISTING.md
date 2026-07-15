@@ -206,6 +206,11 @@ only to files BillNgai itself creates in the user's own Drive. This syncs the
 user's own documents between their own Macs — it is not an app account and is
 not required to use any other part of the app.
 
+Note: on Google's consent screen, please make sure the Google Drive permission
+checkbox is ticked before continuing. If it is left unticked, the app detects
+that the permission was not granted and asks you to reconnect (it does not
+enter a broken state).
+
 ENTITLEMENTS — WHAT EACH ONE IS FOR AND WHERE TO SEE IT
 
 - com.apple.security.network.server — the ONLY use is the loopback OAuth
