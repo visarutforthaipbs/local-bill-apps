@@ -1059,29 +1059,49 @@ function createWindow() {
 
 // บน macOS แอปยังรันอยู่หลังผู้ใช้ปิดหน้าต่าง — ต้องมีทางกลับเข้าหน้าต่างหลักเสมอ
 // (เมนู Window + คลิกไอคอนใน Dock). มีหน้าต่างอยู่แล้ว = โฟกัสตัวเดิม ไม่เปิดซ้ำ
+// คืน created=true เมื่อเพิ่งสร้างใหม่ — คนเรียกจะได้รู้ว่า renderer ยังโหลดไม่เสร็จ
 function showMainWindow() {
   const w = (win && !win.isDestroyed()) ? win : null;
-  if (!w) { createWindow(); return; }
-  if (w.isMinimized()) w.restore();
-  w.show();
-  w.focus();
+  if (w) {
+    if (w.isMinimized()) w.restore();
+    w.show();
+    w.focus();
+    return { win: w, created: false };
+  }
+  createWindow();
+  return { win, created: true };
+}
+
+/* สั่งงาน renderer จากเมนู — ปิดหน้าต่างแล้วต้องไม่เงียบหาย
+   เดิม: ไม่มีหน้าต่าง = click แล้วไม่เกิดอะไรเลย (dead UI แบบเดียวกับที่ Apple ตีกลับ G4)
+   ตอนนี้: มีหน้าต่างอยู่ = ทำงานตามปกติ · ไม่มีหน้าต่าง = เอาหน้าต่างกลับมา แล้วจบแค่นั้น
+     ทำไมไม่ส่ง IPC ต่อเลยหลังเปิดใหม่: billing.html ผูก onMenuExport/onMenuImport
+     ไว้ท้าย boot() ซึ่งเป็น async (รอ deviceId/load/licenseStatus/where ครบก่อน)
+     พอเปิดรอบสอง ฟอนต์ถูก cache แล้ว did-finish-load จึงมาถึงก่อน boot เสร็จ →
+     ข้อความหายเงียบ = no-op แบบเดิมที่กำลังแก้อยู่ (ทดสอบแล้วตกจริง ไม่ใช่ทฤษฎี)
+     การเอาหน้าต่างกลับมา = คำตอบที่เห็นได้ของคลิกนี้ กด Cmd+E ซ้ำก็ทำงานเต็มรูปแบบ */
+function onMainWindow(fn) {
+  const { win: w, created } = showMainWindow();
+  if (!created) fn(w);
 }
 
 function buildMenu() {
   const isMac = process.platform === 'darwin';
-  // บน macOS แอปอยู่ต่อหลังปิดหน้าต่าง — win กลายเป็น object ที่ destroyed แล้ว (ยัง truthy)
-  const liveWin = () => (win && !win.isDestroyed()) ? win : null;
   const template = [
     ...(isMac ? [{ role: 'appMenu' }] : []),
     {
       label: 'ไฟล์',
       submenu: [
-        { label: 'สำรองข้อมูล (Export)…', accelerator: 'CmdOrCtrl+E', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:export'); } },
-        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:import'); } },
+        // Export/Import ทำงานกับ DB ทั้งก้อน ไม่ขึ้นกับหน้าที่เปิดอยู่ — เปิดหน้าต่างกลับมาแล้วสั่งต่อได้เลย
+        { label: 'สำรองข้อมูล (Export)…', accelerator: 'CmdOrCtrl+E', click: () => onMainWindow(w => w.webContents.send('menu:export')) },
+        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => onMainWindow(w => w.webContents.send('menu:import')) },
+        // สองอันนี้เป็นงานฝั่ง main ล้วน ไม่ต้องมีหน้าต่าง — ปิดหน้าต่างแล้วยังใช้ได้ปกติอยู่แล้ว
         { label: 'เปิดที่เก็บไฟล์ข้อมูล', click: async () => shell.showItemInFolder(await activePath()) },
         { label: 'เปิดโฟลเดอร์สำรองอัตโนมัติ', click: async () => { await fsp.mkdir(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },
         { type: 'separator' },
-        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => { const w = liveWin(); if (w) w.webContents.print(); } },
+        // Print พิมพ์ "หน้าที่เห็นอยู่" — เปิดหน้าต่างใหม่ได้ dashboard ไม่ใช่เอกสารที่ตั้งใจพิมพ์อยู่ดี
+        // จึงเข้าทางเดียวกัน: เอาหน้าต่างกลับมาก่อน ให้ผู้ใช้เลือกเอกสารเอง
+        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => onMainWindow(w => w.webContents.print()) },
         ...(isMac ? [] : [{ role: 'quit' }])
       ]
     },
