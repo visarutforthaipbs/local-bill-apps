@@ -67,3 +67,27 @@ Port shared fixes to MAS deliberately, preserving StoreKit and sandbox behavior.
 Use the same app SemVer and a new build number; run MAS checks before submission.
 Windows needs its own build and verification. Record these channels as pending
 until verified; a direct macOS release must not imply those channels are updated.
+
+## Verified production targets (22 September 2026)
+
+- R2 bucket: `billiong-releases`, public base URL
+  `https://pub-4ed16d146bff4f168839661507e1748a.r2.dev`.
+- Pages project: `billiong-landing`, production site
+  `https://billiong-landing.pages.dev`, GitHub `visarutforthaipbs/billiong-releases`
+  branch `main`, build `npm run build`, output `dist`.
+- The 2.0.2 website commit was pushed successfully but did not trigger a Pages
+  deployment during the release, despite enabled trigger settings. The tested
+  local build was deployed to that same project using Wrangler. The underlying
+  Git integration issue is unresolved; do not equate push success with deployment.
+
+Supported fallback, from a clean, verified marketing checkout after `npm run build`:
+
+```sh
+release_site_commit=$(git rev-parse HEAD)
+npx --yes wrangler@4.136.2 pages deploy dist --project-name=billiong-landing --branch=main --commit-hash="$release_site_commit" --commit-dirty=false
+```
+
+Use the existing Cloudflare login and verify the resulting production commit and
+live links. Do not upload the repository root or credential files. Cloudflare
+documents manual deployment for existing Git-integrated projects in its
+[Direct Upload guide](https://developers.cloudflare.com/pages/get-started/direct-upload/).
