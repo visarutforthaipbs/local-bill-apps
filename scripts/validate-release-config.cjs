@@ -28,7 +28,7 @@ function validatePackaged(archive) {
   validateOAuth(text);
 }
 
-async function beforePack(context) { validateSource(context.appDir); }
+async function beforePack(context) { validateSource(context.packager.info.appDir); }
 async function afterPack(context) {
   const resources = ['darwin', 'mas'].includes(context.electronPlatformName)
     ? path.join(context.appOutDir, context.packager.appInfo.productFilename + '.app', 'Contents', 'Resources')

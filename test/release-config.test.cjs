@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const asar = require('@electron/asar');
-const { validateOAuth, validateSource, afterPack } = require('../scripts/validate-release-config.cjs');
+const { validateOAuth, validateSource, beforePack, afterPack } = require('../scripts/validate-release-config.cjs');
 const fixture = JSON.stringify({ installed: {client_id:'123-test.apps.googleusercontent.com',client_secret:'test-placeholder'} });
 
 test('production config rejects the observed prefix corruption without leaking its contents', () => {
@@ -23,6 +23,7 @@ test('packaging rejects missing/malformed embedded configuration even when the s
     assert.throws(()=>validateSource(source), /missing or unreadable/);
     await fs.writeFile(path.join(source,'secrets/gdrive-oauth.json'),fixture);
     validateSource(source);
+    await beforePack({packager:{info:{appDir:source}}});
     const resources=path.join(root,'out','BillNgai.app','Contents','Resources');
     await fs.mkdir(resources,{recursive:true});
     const context={electronPlatformName:'darwin',appOutDir:path.join(root,'out'),packager:{appInfo:{productFilename:'BillNgai'}}};
