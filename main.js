@@ -7,6 +7,8 @@ const crypto = require('crypto');
 const http = require('http');
 
 app.setName('BillNgai');
+const primaryInstance = app.requestSingleInstanceLock();
+if (!primaryInstance) app.quit();
 
 let win;
 const USER_DIR     = app.getPath('userData');
@@ -43,13 +45,20 @@ function migrateFromBilliong() {
 // config.json remembers an optional external file (e.g. one in Drive/Dropbox).
 // When externalPath is null, data lives in the app folder (DEFAULT_DATA).
 async function readConfig() {
-  try { return JSON.parse(await fsp.readFile(CONFIG_PATH, 'utf8')); }
-  catch (e) { return { externalPath: null }; }
+  try {
+    const cfg = JSON.parse(await fsp.readFile(CONFIG_PATH, 'utf8'));
+    if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg) ||
+        (cfg.externalPath != null && (typeof cfg.externalPath !== 'string' || !path.isAbsolute(cfg.externalPath)))) {
+      throw new Error('DATA_CONFIG_INVALID');
+    }
+    return cfg;
+  } catch (e) {
+    if (e.code === 'ENOENT') return { externalPath: null };
+    throw new Error('DATA_CONFIG_UNREADABLE', { cause: e });
+  }
 }
 async function writeConfig(cfg) {
-  try { await fsp.mkdir(USER_DIR, { recursive: true });
-        await fsp.writeFile(CONFIG_PATH, JSON.stringify(cfg, null, 2), 'utf8'); }
-  catch (e) { console.error('config write failed', e); }
+  await atomicWrite(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 async function activePath() {
   const cfg = await readConfig();
@@ -57,9 +66,13 @@ async function activePath() {
 }
 async function atomicWrite(file, text) {
   await fsp.mkdir(path.dirname(file), { recursive: true });
-  const tmp = file + '.tmp';
-  await fsp.writeFile(tmp, text, 'utf8');
-  await fsp.rename(tmp, file);
+  const tmp = file + '.' + crypto.randomBytes(8).toString('hex') + '.tmp';
+  try {
+    const handle = await fsp.open(tmp, 'wx');
+    try { await handle.writeFile(text, 'utf8'); await handle.sync(); }
+    finally { await handle.close(); }
+    await fsp.rename(tmp, file);
+  } finally { await fsp.unlink(tmp).catch(() => {}); }
 }
 
 /* ---------------- offline AI add-on ---------------- */
@@ -426,47 +439,140 @@ async function runAiInference(input) {
 const BACKUP_DIR    = path.join(USER_DIR, 'backups');
 const SNAP_INTERVAL = 30 * 60 * 1000; // 30 min
 const SNAP_KEEP     = 30;
-let lastSnap = 0;
+let lastSnap = null;
 async function maybeSnapshot(text) {
-  try {
+    // Keep the interval across app restarts; restarting must not rapidly rotate old backups out.
+    if (lastSnap === null) {
+      await fsp.mkdir(BACKUP_DIR, { recursive: true });
+      const names = (await fsp.readdir(BACKUP_DIR)).filter(isAutomaticBackup);
+      const times = await Promise.all(names.map(async name => (await fsp.stat(path.join(BACKUP_DIR, name))).mtimeMs));
+      lastSnap = Math.min(Date.now(), Math.max(0, ...times));
+    }
     if (Date.now() - lastSnap < SNAP_INTERVAL) return;
     await fsp.mkdir(BACKUP_DIR, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    await fsp.writeFile(path.join(BACKUP_DIR, 'billing-' + stamp + '.json'), text, 'utf8');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    await atomicWrite(path.join(BACKUP_DIR, 'billing-' + stamp + '.json'), text);
     lastSnap = Date.now();
     // ลบวนเฉพาะสแนปช็อตอัตโนมัติ — ไฟล์มีป้ายกำกับ (pre-v2 / pre-restore / manual) เก็บไว้เสมอ
     const files = (await fsp.readdir(BACKUP_DIR))
-      .filter(f => /^billing-\d{4}-\d{2}-\d{2}T[\d-]+\.json$/.test(f)).sort();
+      .filter(isAutomaticBackup).sort();
     for (const f of files.slice(0, Math.max(0, files.length - SNAP_KEEP))) {
       await fsp.unlink(path.join(BACKUP_DIR, f)).catch(() => {});
     }
-  } catch (e) { console.warn('snapshot skipped', e.message); }
+}
+function isAutomaticBackup(name) { return /^billing-\d{4}-\d{2}-\d{2}T[\d-]+Z?\.json$/.test(name); }
+async function snapshotText(text, label) {
+  // Content hash avoids overwriting another backup or duplicating the same recovery copy.
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const safe = String(label || 'manual').replace(/[^a-z0-9_-]/gi, '') || 'manual';
+  const hash = crypto.createHash('sha256').update(text).digest('hex');
+  const name = safe === 'pre-replace' ? 'billing-pre-replace-' + hash + '.json'
+    : 'billing-' + safe + '-' + stamp + '-' + crypto.randomBytes(4).toString('hex') + '.json';
+  await atomicWrite(path.join(BACKUP_DIR, name), text);
+  return name;
 }
 // สำรองแบบระบุเหตุผล (pre-v2 / pre-restore / manual) — ไฟล์กลุ่มนี้ไม่ถูกลบวนตาม SNAP_KEEP
 async function labeledSnapshot(label) {
   const src = await activePath();
   let text;
-  try { text = await fsp.readFile(src, 'utf8'); } catch (e) { return null; } // ยังไม่มีไฟล์ข้อมูล = ไม่มีอะไรให้สำรอง
-  await fsp.mkdir(BACKUP_DIR, { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const safe = String(label || 'manual').replace(/[^a-z0-9_-]/gi, '') || 'manual';
-  const name = 'billing-' + safe + '-' + stamp + '.json';
-  await fsp.writeFile(path.join(BACKUP_DIR, name), text, 'utf8');
-  return name;
+  try { text = await fsp.readFile(src, 'utf8'); }
+  catch (e) { if (e.code === 'ENOENT') return null; throw e; }
+  return snapshotText(text, label);
 }
 
 /* ---------------- IPC: data ---------------- */
-ipcMain.handle('data:load', async () => {
-  const file = await activePath();
+// All reads/replacements/saves share a queue. A renderer may save only to the exact
+// store it successfully loaded; a missing Drive file is never treated as first launch.
+let dataQueue = Promise.resolve();
+let dataSession = null;
+const DATA_MARKER = path.join(USER_DIR, '.data-initialized');
+function withDataLock(action) {
+  const result = dataQueue.then(action);
+  dataQueue = result.catch(() => {});
+  return result;
+}
+function validateData(text) {
+  let data;
+  try { data = JSON.parse(text); } catch (e) { throw new Error('DATA_INVALID_JSON'); }
+  if (!data || typeof data !== 'object' || Array.isArray(data) ||
+      !data.business || typeof data.business !== 'object' || Array.isArray(data.business) ||
+      !Array.isArray(data.documents) || !Array.isArray(data.clients) ||
+      (data.recurring != null && !Array.isArray(data.recurring))) throw new Error('DATA_INVALID_SCHEMA');
+  return data;
+}
+async function readDataFile(file) {
   try { return await fsp.readFile(file, 'utf8'); }
   catch (e) { if (e.code === 'ENOENT') return null; throw e; }
-});
-
-ipcMain.handle('data:save', async (_e, text) => {
-  await atomicWrite(await activePath(), text);
-  maybeSnapshot(text);   // throttled rolling backup (fire-and-forget)
+}
+async function hasDataHistory() {
+  if (await readDataFile(DATA_MARKER) !== null) return true;
+  for (const dir of [BACKUP_DIR, path.join(USER_DIR, 'journal')]) {
+    try { if ((await fsp.readdir(dir)).some(name => /\.(json|ndjson)$/.test(name))) return true; }
+    catch (e) { if (e.code !== 'ENOENT') throw e; }
+  }
+  return false;
+}
+async function markDataInitialized() {
+  if (await readDataFile(DATA_MARKER) === null) await atomicWrite(DATA_MARKER, '1');
+}
+async function loadData() {
+  dataSession = null;
+  const cfg = await readConfig();
+  const file = cfg.externalPath || DEFAULT_DATA;
+  const text = await readDataFile(file);
+  if (text === null) {
+    if (cfg.externalPath || await hasDataHistory()) throw new Error('DATA_MISSING');
+  } else {
+    validateData(text);
+    await markDataInitialized();
+  }
+  dataSession = { file, text };
+  return text;
+}
+async function currentSession() {
+  if (!dataSession) throw new Error('DATA_NOT_LOADED');
+  const file = await activePath();
+  if (file !== dataSession.file || await readDataFile(file) !== dataSession.text) {
+    dataSession = null;
+    throw new Error('DATA_CHANGED_ON_DISK');
+  }
+  return dataSession;
+}
+async function saveData(text) {
+  const next = validateData(text);
+  const session = await currentSession();
+  if (session.text !== null) {
+    const prev = validateData(session.text);
+    if (['documents', 'clients', 'recurring'].some(key => (prev[key] || []).length > (next[key] || []).length)) {
+      await snapshotText(session.text, 'pre-replace');
+    }
+    // A due rolling snapshot preserves old contents BEFORE replacement.
+    await maybeSnapshot(session.text);
+  } else { await maybeSnapshot(text); }
+  await markDataInitialized();
+  await currentSession(); // Recheck after backup I/O, before replacing a Drive-managed file.
+  await atomicWrite(session.file, text);
+  session.text = text;
   return true;
-});
+}
+async function recoverData(text) {
+  validateData(text); // Validate selected recovery data before touching the current file.
+  const cfg = await readConfig();
+  const file = cfg.externalPath || DEFAULT_DATA;
+  // Recovery must not recreate an absent Drive mount as an ordinary local directory.
+  if (cfg.externalPath && !(await fsp.stat(path.dirname(file))).isDirectory()) throw new Error('DATA_MISSING');
+  const previous = await readDataFile(file);
+  if (previous !== null) await snapshotText(previous, 'pre-restore');
+  await markDataInitialized();
+  await atomicWrite(file, text);
+  dataSession = { file, text };
+  return true;
+}
+ipcMain.handle('data:load', () => withDataLock(loadData));
+ipcMain.handle('data:save', (_e, text) => withDataLock(() => saveData(text)));
+// Explicit import/cloud restore only; ordinary autosaves cannot clear a failed-load lock.
+ipcMain.handle('data:recover', (_e, text) => withDataLock(() => recoverData(text)));
+
 
 ipcMain.handle('data:revealBackups', async () => {
   await fsp.mkdir(BACKUP_DIR, { recursive: true });
@@ -475,11 +581,11 @@ ipcMain.handle('data:revealBackups', async () => {
 
 /* ---------------- IPC: schema v2 — device id, change journal, backups ---------------- */
 // device id อยู่ใน config.json (ประจำเครื่อง ไม่ปนไปกับข้อมูลที่จะ sync)
-ipcMain.handle('device:id', async () => {
+ipcMain.handle('device:id', () => withDataLock(async () => {
   const cfg = await readConfig();
   if (!cfg.deviceId) { cfg.deviceId = crypto.randomBytes(4).toString('hex'); await writeConfig(cfg); }
   return cfg.deviceId;
-});
+}));
 
 // change journal: NDJSON แยกไฟล์รายเดือน — ฐานของ Google Drive sync (Pro) ในเฟสถัดไป
 const JOURNAL_DIR = path.join(USER_DIR, 'journal');
@@ -512,16 +618,14 @@ ipcMain.handle('backups:list', async () => {
   } catch (e) { return []; }
 });
 
-ipcMain.handle('backups:snapshot', async (_e, label) => labeledSnapshot(label));
+ipcMain.handle('backups:snapshot', (_e, label) => withDataLock(() => labeledSnapshot(label)));
 
-ipcMain.handle('backups:restore', async (_e, name) => {
+ipcMain.handle('backups:restore', (_e, name) => withDataLock(async () => {
   if (!/^billing-[A-Za-z0-9._-]+\.json$/.test(String(name || ''))) throw new Error('invalid backup name');
   const text = await fsp.readFile(path.join(BACKUP_DIR, name), 'utf8');
-  JSON.parse(text);                       // ไฟล์สำรองต้อง parse ได้ก่อนถึงจะแตะของจริง
-  await labeledSnapshot('pre-restore');   // เก็บของปัจจุบันไว้ก่อนเสมอ — กู้คืนแล้วย้อนกลับได้
-  await atomicWrite(await activePath(), text);
+  await recoverData(text);
   return text;
-});
+}));
 
 /* ---------------- BillNgai Pro — license (Phase E) ----------------
    รหัส Pro = base64(payload).base64(signature) เซ็น Ed25519 ด้วยคีย์เดียวกับ AI add-on
@@ -549,19 +653,19 @@ function licenseStatusOf(cfg) {
   return { valid: !expired, expired, email: payload.email || '', plan: payload.plan || 'pro', validUntil: payload.validUntil || null };
 }
 ipcMain.handle('license:status', async () => licenseStatusOf(await readConfig()));
-ipcMain.handle('license:activate', async (_e, key) => {
+ipcMain.handle('license:activate', (_e, key) => withDataLock(async () => {
   if (!parseLicenseKey(key)) throw new Error('invalid license key');
   const cfg = await readConfig();
   cfg.licenseKey = String(key).trim();
   await writeConfig(cfg);
   return licenseStatusOf(cfg);
-});
-ipcMain.handle('license:deactivate', async () => {
+}));
+ipcMain.handle('license:deactivate', () => withDataLock(async () => {
   const cfg = await readConfig();
   delete cfg.licenseKey;
   await writeConfig(cfg);
   return { valid: false };
-});
+}));
 
 /* ---------------- Google Drive Workspace Sync (Pro, Phase D) ----------------
    main = transport เท่านั้น (OAuth, อัปโหลด/ดาวน์โหลด) — ตรรกะ merge อยู่ฝั่ง renderer ที่ถือ DB
@@ -912,9 +1016,14 @@ ipcMain.handle('data:linkExisting', async () => {
   });
   if (r.canceled || !r.filePaths.length) return null;
   const file = r.filePaths[0];
-  const text = await fsp.readFile(file, 'utf8');
-  const cfg = await readConfig(); cfg.externalPath = file; await writeConfig(cfg);
-  return { text, path: file };
+  return withDataLock(async () => {
+    const text = await fsp.readFile(file, 'utf8');
+    validateData(text); // Never switch the store to an empty/unrelated JSON file.
+    const cfg = await readConfig(); cfg.externalPath = file; await writeConfig(cfg);
+    await markDataInitialized();
+    dataSession = { file, text };
+    return { text, path: file };
+  });
 });
 
 // Create a new external file at a chosen location, seed it with current data, make active.
@@ -925,17 +1034,23 @@ ipcMain.handle('data:createExternal', async (_e, text) => {
     filters: [{ name: 'Billing Data (.json)', extensions: ['json'] }]
   });
   if (r.canceled || !r.filePath) return null;
-  await atomicWrite(r.filePath, text);
-  const cfg = await readConfig(); cfg.externalPath = r.filePath; await writeConfig(cfg);
-  return { path: r.filePath };
+  return withDataLock(() => moveDataStore(r.filePath, text));
 });
 
 // Switch back to the in-app folder; write current data there.
-ipcMain.handle('data:useDefault', async (_e, text) => {
-  const cfg = await readConfig(); cfg.externalPath = null; await writeConfig(cfg);
-  if (typeof text === 'string') await atomicWrite(DEFAULT_DATA, text);
-  return { path: DEFAULT_DATA };
-});
+async function moveDataStore(file, text) {
+  validateData(text);
+  await currentSession();
+  const previous = await readDataFile(file);
+  if (previous !== null) await snapshotText(previous, 'pre-replace');
+  await markDataInitialized();
+  await atomicWrite(file, text);
+  const cfg = await readConfig(); cfg.externalPath = file === DEFAULT_DATA ? null : file;
+  await writeConfig(cfg);
+  dataSession = { file, text };
+  return { path: file };
+}
+ipcMain.handle('data:useDefault', (_e, text) => withDataLock(() => moveDataStore(DEFAULT_DATA, text)));
 
 // Export a backup copy (does NOT change the active store).
 ipcMain.handle('data:export', async (_e, text) => {
@@ -1020,10 +1135,15 @@ function buildMenu() {
 }
 
 app.whenReady().then(() => {
+  if (!primaryInstance) return;
   migrateFromBilliong();
   buildMenu();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+});
+app.on('second-instance', () => {
+  if (!win || win.isDestroyed()) createWindow();
+  else { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 
 /* flush ก่อนปิดแอป (Pro sync): ดัน journal ที่ค้างขึ้น Drive ให้จบก่อนปิด —

@@ -1,9 +1,11 @@
 {
   "name": "billngai-app",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
+    "test": "node --test test/storage-safety.test.cjs test/renderer-storage.test.cjs test/release-config.test.cjs",
+    "release:check": "node scripts/validate-release-config.cjs",
     "start": "electron .",
     "assets": "node prepare-brand-assets.js",
     "ai:addon:dev": "node scripts/create-dev-ai-addon.js",
@@ -26,12 +28,14 @@
   "author": "Visarut Sankham",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^24.13.3",
+    "electron": "43.7.3",
+    "electron-builder": "26.15.3",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4"
   },
   "build": {
+    "beforePack": "scripts/before-pack.cjs",
+    "afterPack": "scripts/after-pack.cjs",
     "appId": "com.visarut.billngai",
     "productName": "BillNgai",
     "directories": {
@@ -54,6 +58,7 @@
       "package.json"
     ],
     "mac": {
+      "minimumSystemVersion": "12.0.0",
       "icon": "build/icon.icns",
       "category": "public.app-category.finance",
       "hardenedRuntime": true,
@@ -82,7 +87,7 @@
     },
     "dmg": {
       "title": "BillNgai ${version}",
-      "sign": false,
+      "sign": true,
       "format": "UDZO",
       "internetEnabled": false
     }

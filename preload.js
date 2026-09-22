@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('billingAPI', {
   isElectron: true,
   load:           ()       => ipcRenderer.invoke('data:load'),
   save:           (text)   => ipcRenderer.invoke('data:save', text),
+  recoverData:    (text)   => ipcRenderer.invoke('data:recover', text),
   where:          ()       => ipcRenderer.invoke('data:where'),
   reveal:         ()       => ipcRenderer.invoke('data:reveal'),
   linkExisting:   ()       => ipcRenderer.invoke('data:linkExisting'),

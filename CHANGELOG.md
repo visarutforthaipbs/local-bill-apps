@@ -3,6 +3,20 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.2] — 2026-09-22
+
+### Changed
+- Upgrade the direct-download runtime from Electron 31 to pinned Electron 43.7.3 and the packager to electron-builder 26.15.3. This update requires macOS 12 Monterey or later (Intel and Apple Silicon).
+- Replace the development runtime blocked by macOS; do not disable Gatekeeper or remove quarantine to run it. The warning's underlying cause has not been established.
+
+### Fixed
+- Correct the packaged Google OAuth configuration and stop packaging if the source or embedded Desktop client JSON is missing or malformed.
+- เวลาในประวัติสำรองข้อมูลแสดงตามเขตเวลาของเครื่อง รวมไฟล์สำรองเก่า และระบุว่าเป็นเวลาเครื่อง
+- หากไฟล์ที่เลือกใน Drive/Dropbox ยังไม่พร้อม อ่านไม่ได้ ว่าง หรือผิดรูปแบบ แอปหยุดบันทึกและซิงก์แทนการเริ่มฐานข้อมูลว่าง
+- ป้องกันการเขียนทับเมื่อไฟล์หรือตำแหน่งข้อมูลเปลี่ยนหลังเปิดแอป; เก็บข้อมูลเดิมก่อนบันทึก/กู้คืน/ย้ายที่เก็บ
+- เรียงคิวการบันทึก ใช้ไฟล์ชั่วคราวแยกกัน และป้องกันการเปิดแอปซ้ำหลายโปรเซส; ไฟล์ตั้งค่าเสียไม่ถูกเขียนทับด้วยค่าเริ่มต้น
+- รักษาช่วงสำรองอัตโนมัติ 30 นาทีข้ามการเปิดแอปใหม่ และไม่แจ้งว่าบันทึกสำเร็จเมื่อบันทึกล้มเหลว
+
 ## [2.0.1] — 2026-07-10
 
 ### Fixed

@@ -830,7 +830,7 @@ let PRO = { valid:false };
 function isPro(){ return !!(PRO && PRO.valid); }
 let syncInfo = { configured:false, connected:false, email:'', lastSyncAt:null, devices:[] };
 let syncBusy = false, syncErr = '', syncConflicts = [], syncTimer = null;
-function isSyncEnabled(){ return IS_ELECTRON && isPro() && syncInfo.connected; }
+function isSyncEnabled(){ return IS_ELECTRON && !loadFailed && isPro() && syncInfo.connected; }
 
 // ฟิลด์การเงิน/ทางการ — ห้าม merge เงียบ ๆ เด็ดขาด (PRD §17)
 const SYNC_PROTECTED = ['number','status','paidDate','issueDate','dueDate','currency','fxRate','vatRate','whtRate','incomeCategory','whtCertReceived','whtCertNo','whtCertDate'];
@@ -938,7 +938,10 @@ async function syncNow(silent){
     const pushed = await window.billingAPI.syncPush();
     const r = await window.billingAPI.syncPull();
     const out = applySyncEvents(r.events||[], r.lastPullAt||'');
-    if(out.applied || out.renumbered){ await persist(true); render(); }
+    if(out.applied || out.renumbered){
+      if(!await persist(true)) throw new Error('DATA_SAVE_FAILED');
+      render();
+    }
     await window.billingAPI.syncCommitPull(r.cursors||{});
     // ห้ามอัปโหลดสแนปช็อตของ DB ว่าง — เครื่องใหม่จะสร้างสแนปช็อตเปล่ามาบังของจริงใน Drive
     let snapped = false;
@@ -987,14 +990,16 @@ async function disconnectDrive(){
 async function restoreFromCloudFlow(){
   if(!confirm(tr('กู้คืนพื้นที่ทำงานจาก Google Drive? ข้อมูลปัจจุบันในเครื่องจะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจากคลาวด์'))) return;
   try{
-    await window.billingAPI.snapshotBackup('pre-restore');
     const r = await window.billingAPI.syncRestore();
     if(!r || !r.snapshot){ toast(tr('ยังไม่มีสแนปช็อตในคลาวด์'),'err'); return; }
-    DB = migrate(JSON.parse(r.snapshot));
+    const recovered = migrate(JSON.parse(r.snapshot));
+    await window.billingAPI.recoverData(r.snapshot);
+    DB = recovered;
     applySyncEvents(r.events||[], '', true);   // replay event ของทุกเครื่องทับสแนปช็อต
     buildJournalIndex();                       // สถานะที่กู้มา = baseline ใหม่ของ journal
     loadFailed = false;
-    await persist(true); setView('dashboard');
+    if(!await persist(true)) return;
+    setView('dashboard');
     // บอกจำนวนที่กู้มาตรง ๆ — "สำเร็จ" ที่ได้ 0 รายการต้องมองเห็นได้ทันที ไม่ใช่เงียบ
     toast(tr('กู้คืนจากคลาวด์แล้ว — เอกสาร {n} ใบ · ลูกค้า {c} ราย')
       .replace('{n}',activeDocs().length).replace('{c}',activeClients().length),'ok');
@@ -1082,7 +1087,7 @@ function openUpgradeModal(){
           ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
           ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
           ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
-          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน')}</div>
+          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน')}</div>
         </div>
       </div>
       <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
@@ -1118,14 +1123,20 @@ async function deactivateLicense(){
 async function persist(silent){
   if(loadFailed){
     toast(tr('ไฟล์ข้อมูลเดิมอ่านไม่ได้ — ระงับการบันทึกไว้ก่อนเพื่อไม่ให้ทับข้อมูลเดิม (กู้จากโฟลเดอร์สำรองหรือนำเข้าไฟล์ก่อน)'),'err');
-    return;
+    return false;
   }
   if(IS_ELECTRON){
     try{ await window.billingAPI.save(JSON.stringify(DB,null,2)); dirty=false; appendJournal(); scheduleSync(); }
-    catch(e){ toast(tr('บันทึกไม่สำเร็จ:')+' '+e.message,'err'); }
+    catch(e){
+      dirty=true;
+      if(String(e.message).includes('DATA_')){ loadFailed=true; clearTimeout(syncTimer); render(); }
+      toast(String(e.message).includes('DATA_') ? tr('ไฟล์ข้อมูลไม่พร้อมหรือเปลี่ยนไป หยุดบันทึกเพื่อป้องกันข้อมูลเดิม') : tr('บันทึกไม่สำเร็จ:')+' '+e.message,'err');
+      updateFileStatus();
+      return false;
+    }
     updateFileStatus();
     if(!silent) toast(tr('บันทึกแล้ว'),'ok');
-    return;
+    return true;
   }
   saveLocal();
   if(fileHandle){
@@ -1135,6 +1146,7 @@ async function persist(silent){
     dirty = true;
     updateFileStatus();
   }
+  return storageOK;
 }
 
 /* ---------- desktop-app (Electron) storage actions ---------- */
@@ -1161,7 +1173,12 @@ async function elExport(){
 }
 async function elImport(){
   try{ const t = await window.billingAPI.importData(); if(!t) return;
-    DB = migrate(JSON.parse(t)); loadFailed=false; await persist(true); render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
+    const recovered = migrate(JSON.parse(t));
+    // Main validates the original schema; an unrelated JSON file must not become blankDB().
+    await window.billingAPI.recoverData(t);
+    DB = recovered; loadFailed=false;
+    if(!await persist(true)) return;
+    render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
   }catch(e){ toast(tr('ไฟล์ไม่ถูกต้อง'),'err'); }
 }
 function elReveal(){ window.billingAPI.reveal(); }
@@ -1454,7 +1471,10 @@ function updateFileStatus(){
         ? ` · <a href="#" onclick="openConflictsModal();return false" style="color:var(--amber);font-weight:600">${tr('ข้อขัดแย้ง {n} รายการ').replace('{n}',syncConflicts.length)}</a>` : '';
       syncLine = `<div style="margin-top:6px">${ic('repeat',12)} ${stx}${cf}</div>`;
     }
-    el.innerHTML = `<span class="dot"></span>${tr('บันทึกอัตโนมัติ')} · ${where}${syncLine}`;
+    if(loadFailed){
+      el.className='file-status unsaved';
+      el.innerHTML = `${ic('alert',12)} ${tr('หยุดบันทึกและซิงก์ชั่วคราว')} · ${where}`;
+    }else el.innerHTML = `<span class="dot"></span>${tr('บันทึกอัตโนมัติ')} · ${where}${syncLine}`;
     return;
   }
   el.className='file-status';
@@ -2094,6 +2114,11 @@ const I18N_EN = {
   'ประวัติไฟล์สำรองในเครื่อง — กู้คืนได้ทันที ระบบจะสำรองข้อมูลปัจจุบันให้ก่อนกู้คืนเสมอ':'Local backup history — restore anytime; your current data is always backed up first',
   'ยังไม่มีไฟล์สำรอง — จะถูกสร้างอัตโนมัติระหว่างใช้งาน':'No backups yet — they are created automatically as you work',
   'วันที่สำรอง':'Backed up',
+  'วันที่สำรอง (เวลาเครื่อง)':'Backed up (device time)',
+  'หยุดบันทึกและซิงก์ชั่วคราว':'Saving and sync paused',
+  'ไฟล์ข้อมูลไม่พร้อมหรือเปลี่ยนไป หยุดบันทึกเพื่อป้องกันข้อมูลเดิม':'Data is unavailable or changed on disk. Saving is paused to protect it.',
+  'ก่อนแทนที่ข้อมูล':'Before replacing data',
+  'หยุดบันทึกและซิงก์เพื่อป้องกันข้อมูลเดิม ตรวจว่า Drive พร้อมแล้ว จากนั้นเปิดแอปใหม่ หรือกู้ข้อมูลจากสำรอง':'Saving and sync are paused to protect your data. Check that Drive is ready, then reopen the app or restore a backup.',
   'ที่มา':'Source',
   'ขนาด':'Size',
   'อัตโนมัติ':'Automatic',
@@ -2193,7 +2218,7 @@ const I18N_EN = {
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
   'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your machine',
-  'จ่ายครั้งเดียว — Early Bird ฿590 (ราคาเต็ม ฿1,990) ไม่มีค่ารายเดือน':'One-time — Early Bird ฿590 (full price ฿1,990), no monthly fees',
+  'จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน':'One-time — Early Bird ฿599 (full price ฿1,900), no monthly fees',
   'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
   'BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'BillNgai never stores client documents on our servers — data syncs only through your own Google Drive',
   'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
@@ -2396,9 +2421,9 @@ function backupVerb(){ return IS_ELECTRON ? 'elExport()' : 'exportJSON()'; }
 // until the user recovers from a snapshot or imports a backup.
 function loadFailBanner(){
   if(!loadFailed) return '';
-  return `<div class="banner" style="background:var(--red-bg);border-color:#e6c5bd;color:#9c3022">
-    ${ic('alert')} <span style="flex:1"><b>${tr('อ่านไฟล์ข้อมูลเดิมไม่ได้')}</b> ${tr('— ระงับการบันทึกไว้ก่อนเพื่อไม่ให้ทับข้อมูลเดิม กู้ข้อมูลจากสำรองอัตโนมัติ (ทุก 30 นาที) หรือนำเข้าไฟล์ที่เคยสำรองไว้')}</span>
-    ${IS_ELECTRON?`<button class="btn btn-sm" onclick="elRevealBackups()">${ic('folderOpen')} ${tr('เปิดโฟลเดอร์สำรอง')}</button>
+  return `<div class="banner" style="background:var(--red-bg);border-color:var(--red);color:var(--red)">
+    ${ic('alert')} <span style="flex:1"><b>${tr('อ่านไฟล์ข้อมูลเดิมไม่ได้')}</b> ${tr('หยุดบันทึกและซิงก์เพื่อป้องกันข้อมูลเดิม ตรวจว่า Drive พร้อมแล้ว จากนั้นเปิดแอปใหม่ หรือกู้ข้อมูลจากสำรอง')}</span>
+    ${IS_ELECTRON?`<button class="btn btn-sm" onclick="setView('settings');setSettingsTab('data')">${ic('clock')} ${tr('สำรองและกู้คืน')}</button>
     <button class="btn btn-sm btn-primary" onclick="elImport()">${ic('upload')} ${tr('นำเข้าข้อมูล')}</button>`:''}
   </div>`;
 }
@@ -2624,6 +2649,7 @@ function render(){
   else if(currentView==='filing'){ renderFiling(c,ta); }
   else if(currentView==='settings'){ renderSettings(c,ta); }
   else if(currentView==='docview'){ renderDocView(c,ta); }
+  if(loadFailed) c.insertAdjacentHTML('afterbegin', loadFailBanner());
   updateFileStatus();
   updateBrand();
   applyTheme();
@@ -2949,9 +2975,8 @@ function renderDashboard(c,ta){
   const pendingCerts = whtPendingList();
 
   c.innerHTML = `
-    ${loadFailBanner()}
     ${demoBanner()}
-    ${!activeClients().length && !activeDocs().length ? welcomeBanner() : ''}
+    ${!loadFailed && !activeClients().length && !activeDocs().length ? welcomeBanner() : ''}
     ${backupReminder()}
     ${filingReminder()}
     ${due.length?`<div class="banner" style="background:var(--blue-bg);border-color:#cdd9e2;color:#2f5878">${ic('repeat')} ${tr('มีรายการประจำถึงกำหนด {n} รายการ').replace('{n}',`<b style="margin:0 3px">${due.length}</b>`)} <button class="btn btn-sm btn-primary" style="margin-left:8px" onclick="setView('recurring')">${tr('ดูและสร้าง')}</button></div>`:''}
@@ -4111,8 +4136,17 @@ function renderSettings(c,ta){
 /* ---------- backup history & restore (Phase B) — desktop app only ---------- */
 const BK_LABELS = {'pre-v2':'ก่อนอัปเกรด','pre-restore':'ก่อนกู้คืน','manual':'สำรองเอง'};
 function backupLabelOf(name){
+  if(String(name).startsWith('billing-pre-replace-')) return tr('ก่อนแทนที่ข้อมูล');
   const m = String(name).match(/^billing-(.+?)-\d{4}-\d{2}-\d{2}T/);
   return m ? tr(BK_LABELS[m[1]]||m[1]) : tr('อัตโนมัติ');
+}
+function backupTimeLabel(backup){
+  // Old filenames contain UTC without Z; restore it before converting to the device timezone.
+  const m = backup.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})(?:-(\d{3})Z)?/);
+  const date = new Date(m ? `${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5]||'000'}Z` : backup.mtime);
+  if(!Number.isFinite(date.getTime())) return '—';
+  const calendar = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  return fmtDate(calendar)+' '+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
 }
 async function loadBackupHistory(){
   if(!IS_ELECTRON || !window.billingAPI.listBackups) return;
@@ -4125,11 +4159,10 @@ async function loadBackupHistory(){
     return;
   }
   el.innerHTML = `<table><thead><tr>
-      <th>${tr('วันที่สำรอง')}</th><th>${tr('ที่มา')}</th><th class="num">${tr('เอกสาร')}</th><th class="num">${tr('ขนาด')}</th><th></th>
+      <th>${tr('วันที่สำรอง (เวลาเครื่อง)')}</th><th>${tr('ที่มา')}</th><th class="num">${tr('เอกสาร')}</th><th class="num">${tr('ขนาด')}</th><th></th>
     </tr></thead><tbody>
     ${list.map(b=>{
-      const m = b.name.match(/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})/);
-      const when = m ? fmtDate(m[1])+' '+m[2]+':'+m[3] : fmtDate(b.mtime.slice(0,10));
+      const when = backupTimeLabel(b);
       return `<tr style="cursor:default">
         <td>${when}</td>
         <td class="muted">${backupLabelOf(b.name)}</td>
@@ -4142,7 +4175,7 @@ async function loadBackupHistory(){
 }
 async function makeManualSnapshot(){
   try{
-    await persist(true);   // ให้ไฟล์บนดิสก์ตรงกับข้อมูลล่าสุดก่อนคัดลอก
+    if(!await persist(true)) return;   // Never claim a backup of unsaved/failed-load data succeeded.
     const n = await window.billingAPI.snapshotBackup('manual');
     if(n){ toast(tr('สร้างไฟล์สำรองแล้ว'),'ok'); loadBackupHistory(); }
   }catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
@@ -4153,7 +4186,7 @@ async function restoreBackupFile(name){
     const text = await window.billingAPI.restoreBackup(name);   // main สำรองของปัจจุบันก่อนแล้วค่อยสลับไฟล์
     DB = migrate(JSON.parse(text));
     loadFailed = false;
-    await persist(true);   // normalize เป็น v2 + journal บันทึกความต่างจากการกู้คืน
+    if(!await persist(true)) return;   // normalize เป็น v2 + journal บันทึกความต่างจากการกู้คืน
     render();
     toast(tr('กู้คืนข้อมูลแล้ว'),'ok');
   }catch(e){ toast(tr('กู้คืนไม่สำเร็จ:')+' '+(e.message||e),'err'); }
@@ -4483,7 +4516,7 @@ function drawLadder(){
     <div class="row net"><span class="lbl">${tr('ยอดชำระสุทธิ')}</span><span class="amt">${M(t.netPayable)}</span></div>
   `;
 }
-function saveDoc(){
+async function saveDoc(){
   const d=editDoc;
   d.items = d.items.filter(it=> (it.description||'').trim() || Number(it.price)>0 );
   if(!d.items.length){ toast(tr('เพิ่มอย่างน้อยหนึ่งรายการ'),'err'); return; }
@@ -4504,7 +4537,8 @@ function saveDoc(){
     if(d.type==='receipt'||d.type==='tax_invoice'){ d.status='issued'; if(!d.paidDate) d.paidDate=todayISO(); }
     DB.documents.push(d);
   }
-  persist(); closeModal(); viewDoc(d.id);
+  if(!await persist(true)) return;
+  closeModal(); viewDoc(d.id);
   toast(tr('บันทึกเอกสารแล้ว'),'ok');
 }
 function deleteDoc(id){
@@ -5043,7 +5077,7 @@ async function boot(){
     try{ DEVICE_ID = await window.billingAPI.deviceId(); }catch(e){ DEVICE_ID = browserDeviceId(); }
     let raw = null;
     try{ raw = await window.billingAPI.load(); }catch(e){ loadFailed = true; }
-    if(raw){
+    if(raw !== null){
       // A data file EXISTS — if it won't parse, never autosave a blank DB over it.
       try{
         const parsed = JSON.parse(raw);

@@ -50,16 +50,17 @@ Two independent systems:
 ## Version control & releases
 
 - Repo: https://github.com/visarutforthaipbs/local-bill-apps (remote `origin`, branch `main`).
+- Current production checklist: `DEPLOYMENT.md`; signing details: `mac_signing_notarization_plan.md`.
 - `dist/` and generated icons are gitignored; `build/icon_source.png` is the tracked icon source.
 - **Release routine (follow in order):**
   1. Make and verify changes
   2. Add a section to `CHANGELOG.md` (Keep-a-Changelog style, ISO dates)
   3. Bump `version` in `package.json` (SemVer — it names the DMG)
-  4. `git add -A && git commit` (descriptive message), then `git tag v<version>`
+  4. Stage only reviewed release files and commit; tag the verified release commit as `v<version>`.
   5. Release packaging:
      - Unsigned releases (local testing): `npm run dist:unsigned` → `dist/BillNgai-<version>-universal.dmg`
-     - Signed & Notarized releases (production): Export code signing environment variables (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_ISSUER`, `APPLE_API_KEY_ID`, `APPLE_API_KEY`), then run `npm run dist` to produce a notarized DMG.
-  6. `git push` (tags too: `git push --tags`)
+     - Signed & Notarized releases (production): use the existing Keychain identity or CI certificate, validate packaged OAuth configuration, and follow `DEPLOYMENT.md`. `APPLE_API_KEY` is the .p8 path; verify notarization, stapling and final downloaded bytes.
+  6. Push the reviewed release branch and its specific tag after verification.
   7. Optionally attach the DMG to a GitHub Release on the tag (`gh release create`)
 - Don't commit without being asked; the owner drives releases.
 
