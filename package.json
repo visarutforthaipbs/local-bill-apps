@@ -1,10 +1,10 @@
 {
   "name": "billngai-app",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
-    "test": "node --test test/storage-safety.test.cjs test/renderer-storage.test.cjs test/release-config.test.cjs",
+    "test": "node --test test/*.test.cjs",
     "release:check": "node scripts/validate-release-config.cjs",
     "start": "electron .",
     "assets": "node prepare-brand-assets.js",

@@ -869,7 +869,11 @@ async function syncStatusInfo() {
 }
 
 ipcMain.handle('sync:status', async () => syncStatusInfo());
+// Safety-release boundary: renderer controls are not sufficient IPC protection.
+// Do not resume until persisted conflict history and offline numbering are verified.
+function requireCloudSyncEnabled() { throw new Error('CLOUD_SYNC_PAUSED_2_0_3'); }
 ipcMain.handle('sync:connect', async (_e, deviceName) => {
+  requireCloudSyncEnabled();
   await oauthConnect();
   const st = await ensureWorkspace();
   await beatDevice(st, String(deviceName || '').slice(0, 60));
@@ -884,6 +888,7 @@ ipcMain.handle('sync:disconnect', async () => {
 
 // push: อัปโหลด journal รายเดือนของเครื่องนี้ (เฉพาะเดือนล่าสุด 2 ไฟล์ — ไฟล์เก่ากว่านั้นนิ่งแล้ว)
 ipcMain.handle('sync:push', async () => {
+  requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   st.uploads = st.uploads || {}; st.remoteFiles = st.remoteFiles || {};
   let uploaded = 0;   // นับไฟล์ที่ส่งขึ้นจริง — ให้ UI บอกได้ว่า sync รอบนี้ทำอะไรไปบ้าง
@@ -906,6 +911,7 @@ ipcMain.handle('sync:push', async () => {
 
 // pull: อ่าน event ใหม่จากเครื่องอื่น (cursor = จำนวนไบต์ที่อ่านแล้วต่อไฟล์ — ไฟล์เป็น append-only)
 ipcMain.handle('sync:pull', async () => {
+  requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   const cfg = await readConfig();
   st.cursors = st.cursors || {};
@@ -931,6 +937,7 @@ ipcMain.handle('sync:pull', async () => {
 });
 // commit หลัง renderer merge+บันทึกสำเร็จเท่านั้น — pull ล้มเหลวแล้ว event ไม่หาย
 ipcMain.handle('sync:commitPull', async (_e, cursors) => {
+  requireCloudSyncEnabled();
   const st = await readSyncState();
   st.cursors = { ...(st.cursors || {}), ...(cursors || {}) };
   st.lastPullAt = new Date().toISOString();
@@ -940,6 +947,7 @@ ipcMain.handle('sync:commitPull', async (_e, cursors) => {
 });
 
 ipcMain.handle('sync:snapshot', async (_e, text) => {
+  requireCloudSyncEnabled();
   // กันชั้นที่สอง (นอกจาก renderer): สแนปช็อตว่างห้ามขึ้น Drive ไม่ว่ามาจาก build ไหน
   try {
     const j = JSON.parse(text);
@@ -959,6 +967,7 @@ ipcMain.handle('sync:snapshot', async (_e, text) => {
 
 // เครื่องใหม่: สแนปช็อตล่าสุด + event ทั้งหมด (renderer เอาไป migrate + replay)
 ipcMain.handle('sync:restore', async () => {
+  requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   const snaps = (await driveList(`'${st.folders.snapshots}' in parents and trashed=false`)).sort((a, b) => b.name.localeCompare(a.name));
   if (!snaps.length) return null;

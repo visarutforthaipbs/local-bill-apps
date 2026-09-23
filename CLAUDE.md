@@ -1,5 +1,10 @@
 # บิลง่าย / BillNgai — agent hand-off
 
+**Current-session handoff (2026-09-23):** read `SESSION-HANDOFF-2.0.3.md` before
+continuing. Version 2.0.3 is an uncommitted source candidate, not a public release.
+Its containment restrictions supersede the general feature description below
+for that candidate; do not infer that tax estimates, e-Tax or sync remain enabled.
+
 Local-first quotation / invoice / receipt desktop app with Thai tax handling
 (VAT, หัก ณ ที่จ่าย / 50 ทวิ tracking, ภ.ง.ด. 90/94 estimates, e-Tax XML draft, PromptPay QR).
 Built for Thai freelancers/small businesses; has real users giving feedback.

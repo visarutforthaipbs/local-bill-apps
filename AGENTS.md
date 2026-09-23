@@ -25,6 +25,8 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 ## Cross-references
 
+- `SESSION-HANDOFF-2.0.3.md` — read first when resuming the September 2026 work:
+  candidate status, completed checks, unresolved release gates and safe next steps.
 - `BRAND.md` — visual identity, tokens, voice (the brand guardian; it wins).
 - `CLAUDE.md` — architecture, i18n system, release routine, how to verify
   changes (extract-script syntax check, i18n cross-check, localhost drive).

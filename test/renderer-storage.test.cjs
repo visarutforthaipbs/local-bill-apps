@@ -59,10 +59,13 @@ test('successful save triggers journal and sync only after disk confirms', async
   assert.deepEqual(h.actions, ['journal', 'sync']);
   assert.equal(h.messages.filter(m => m.kind === 'ok').length, 1);
 });
-test('load failure also disables automatic Pro sync', () => {
-  const context = vm.createContext({ IS_ELECTRON: true, loadFailed: true, isPro: () => true, syncInfo: { connected: true } });
+test('2.0.3 pauses automatic Pro sync even after load recovery', () => {
+  const context = vm.createContext({ CLOUD_SYNC_PAUSED: true, IS_ELECTRON: true, loadFailed: true, isPro: () => true, syncInfo: { connected: true } });
   vm.runInContext(section('function isSyncEnabled()', '// ฟิลด์การเงิน'), context);
   assert.equal(context.isSyncEnabled(), false);
   context.loadFailed = false;
-  assert.equal(context.isSyncEnabled(), true);
+  assert.equal(context.isSyncEnabled(), false);
+  context.CLOUD_SYNC_PAUSED = false;
+  context.loadFailed = true;
+  assert.equal(context.isSyncEnabled(), false);
 });

@@ -1,5 +1,28 @@
 # BillNgai 2.0 — Delivery & Fulfillment
 
+## Current override — 2026-09-23, Direct macOS 2.0.3 preparation
+
+The current release is a containment candidate, not yet a verified public artifact.
+Use `DEPLOYMENT.md` for build/sign/notarize/staple, exact packaged smoke, immutable
+versioned R2 upload, public checksum, GitHub fallback and live Pages verification.
+Old version URLs, hashes and launch checkboxes below are historical evidence only.
+Do not send the old LINE template without replacing links with verified artifacts
+and disclosing the current restrictions; sending still requires owner authorization.
+
+Local is free. Pro prices stay ฿599 Early Bird → ฿1,900; no refund or new license
+policy is created. Both tiers can classify income and use limited bookkeeping
+summaries. Both tiers pause cloud connect/sync/restore, PIT payable/refund estimates
+and custom e-Tax XML. New receipts are ordinary non-VAT THB full-payment only;
+tax-invoice/registered-seller, partial/deposit/refund and FX-receipt issuance are
+unavailable. Local backup/export remains. Pro retains its existing AI add-on
+entitlement, not a new AI compatibility guarantee. See `SKU.md` and `FAQ.md`.
+
+The owner authorized reviewed Direct macOS commits/signing/publication and matching
+website changes. Windows and MAS stay pending; no customer broadcasts, MAS submit,
+pricing changes, refunds or key generation are included. Existing Pro customer
+handling is tracked in `BACKLOG.md`. AI-assisted audit is owner-directed, not
+practitioner approval or legal certification. All installer gates remain required.
+
 How the two packages reach customers. Companion to `PRD-2.0-LOCAL-PRO.md`
 (§8 packaging, §25 entitlement) — this file is the operational side.
 
@@ -12,15 +35,18 @@ Never ship separate Local/Pro builds; Local→Pro is "paste a key", not a reinst
 
 | | BillNgai Local | BillNgai Pro |
 |---|---|---|
-| Price | ฿59 Early Bird → ฿299–499 one-time | ฿590 Early Bird → ฿1,990 one-time |
+| Price | **ฟรี** (ตัดสินใจแล้ว 2026-07-12 — เดิม ฿59 Early Bird honor system, ดู SKU.md §6.A) | ฿599 Early Bird → ฿1,900 one-time (ตัดสินใจแล้ว 2026-07-12, ดู SKU.md §6.B) |
 | Buyer receives | DMG download link | DMG link + **Pro key** + **AI add-on PKG link** |
 | License key | none (soft enforcement — the download *is* the product) | Ed25519 signed key, verified offline in-app |
-| Unlocks | all core billing + tax features, local backup/restore | + TOR → Invoice AI · Google Drive sync · income categories (มาตรา 40) |
+| Unlocks (Direct 2.0.3 candidate) | supported ordinary billing, local backup/export, income classification and limited summaries | + existing TOR → Quotation AI entitlement; sync remains paused |
 | Upgrade path | — | buy Pro → paste key in ตั้งค่า → Workspace. No reinstall |
 
-Rationale for no Local key: ฿299-tier friction isn't worth it; the valuable
-features (AI, sync) are gated anyway. Revisit only if sharing becomes a real
-problem (plan `'local'` fits the existing license format if ever needed).
+Rationale: Local is free with no key at all (decided 2026-07-12 — was a ฿59
+Early Bird honor-system charge before). Historically AI and sync were
+gated behind Pro (sync is paused in 2.0.3), so free Local removes the "why is App Store free but
+web costs ฿59" friction entirely and makes the website one funnel into Pro.
+Revisit only if sharing becomes a real problem (plan `'local'` fits the
+existing license format if ever needed).
 
 ---
 
@@ -40,12 +66,12 @@ marketing site (`promote-billiong`, Cloudflare Pages) + **Cloudflare R2** for
 the DMG/AI PKG downloads + **PromptPay** for payment + **LINE OA** for
 fulfillment. No Gumroad/Stripe at launch (see §6 for the Phase-2 trigger).
 
-- **BillNgai Local (฿59 Early Bird)** — website dialog: PromptPay QR →
-  download from R2. Honor system, no key, unchanged.
-- **BillNgai Pro (฿590 Early Bird)** — website "จองสิทธิ์" dialog: PromptPay
-  QR ฿590 → buyer sends **slip + email** via LINE OA → you reply with the key.
+- **BillNgai Local (ฟรี)** — website: direct download from R2, no payment
+  dialog, no key. (Decided 2026-07-12 — was ฿59 Early Bird honor system.)
+- **BillNgai Pro (฿599 Early Bird)** — website "จองสิทธิ์" dialog: PromptPay
+  QR ฿599 → buyer sends **slip + email** via LINE OA → you reply with the key.
   The site and the in-app upgrade modal both state the flow, and promise
-  **"รับรหัสทาง LINE ปกติไม่กี่นาที ไม่เกิน 24 ชม."**
+  **"รับรหัสทาง LINE ปกติไม่กี่นาที ไม่เกิน 24 ชม."** (Decided 2026-07-12 — was ฿590.)
 
 Why LINE, not a cart: PromptPay transfers carry no buyer identity — LINE is
 the identity + delivery + support channel in one, and it's the channel Thai
@@ -91,7 +117,7 @@ Uploaded artifacts (2026-07-09):
 
 When a buyer sends a payment slip in LINE:
 
-1. Check the slip amount (฿590) against your bank/PromptPay notification.
+1. Check the slip amount (฿599) against your bank/PromptPay notification.
 2. Ask for their **email** if not included with the slip.
 3. Generate the key:
 
@@ -100,11 +126,12 @@ When a buyer sends a payment slip in LINE:
    ```
 
 4. Reply in the same LINE chat (template below).
-5. Log the sale — this spreadsheet **is** the customer database
-   (keys are offline-verified and cannot be revoked remotely):
-
-   | date | email | LINE name | product | key (or key prefix) | notes |
-   |---|---|---|---|---|---|
+5. Log the sale in the **BillNgai Sales Log** Notion database — this **is**
+   the customer database (keys are offline-verified and cannot be revoked
+   remotely). Migrated from a Google Sheet on 2026-07-12; the sheet is no
+   longer updated. Columns: Name (title) · Date · Email · Product
+   (Local Early Bird / Pro Early Bird / Local / Pro) · Amount THB ·
+   License Key · Key Prefix · Sale Status · Notes.
 
 LINE reply template (Thai):
 
@@ -137,25 +164,43 @@ Local sales need no action — the website serves the DMG from R2 directly.
 
 ---
 
-## 4. Launch checklist (blockers before selling Pro)
+## 4. Historical 2.0 launch checklist (not the current 2.0.3 release checklist)
 
-- [ ] **Google OAuth app published to Production**
-      (console.cloud.google.com → project `billngai` → OAuth consent screen → Publish).
-      Testing mode limits: 100 test users, refresh tokens expire every 7 days.
-      Scopes are non-sensitive (`drive.file` + `email`) → no Google review needed.
+- [x] **Google OAuth app published to Production** — done, verified 2026-07-15 in
+      the console: Publishing status **In production**, User type **External**,
+      zero sensitive and zero restricted scopes registered. App requests only
+      `drive.file` + `email` (`main.js:641,697`) — both non-sensitive, so no Google
+      review, no "unverified app" screen, and the 100-user cap does not apply
+      (it only bites on unapproved sensitive scopes; the "2 users / 100" shown is
+      inert leftover from Testing mode).
+      Why this mattered beyond our own launch: while in Testing, only allowlisted
+      test users could sign in — so an **App Review reviewer could not reach Drive
+      sync at all**, which is the functionality justifying the
+      `com.apple.security.network.server` entitlement they queried under
+      Guideline 2.4.5(i). Testing mode would have re-triggered that citation.
       **Do not add a logo** to the consent screen — that alone triggers brand review.
+      **Do not press "Back to testing"** — same failure returns.
+      Note: the Data Access page lists no scopes at all. Harmless — non-sensitive
+      scopes need no pre-declaration; the consent screen renders what's requested
+      at runtime. Leave it alone.
 - [ ] **Google Drive API enabled** in the `billngai` project.
 - [ ] **Two-device end-to-end test**: connect A → edit → see on B → force a
       conflict (edit the same invoice's amount on both while offline) → resolve →
       "กู้คืนจากคลาวด์" on a clean userData dir.
-- [ ] **Code signing + notarization** for the DMG *and* the AI PKG
-      (per `mac_signing_notarization_plan.md`). Unsigned right-click-to-open is
-      acceptable for free downloads, not for a ฿1,990 purchase.
+- [ ] **Code signing + notarization** for production artifacts
+      (per `mac_signing_notarization_plan.md`). Current policy requires signed,
+      verified production downloads for both tiers. Do not bypass Gatekeeper.
 - [ ] Release routine per `CLAUDE.md` (CHANGELOG → version bump → tag → dist → push).
 - [ ] `BillNgai-2.0.0-universal.dmg` + AI PKG uploaded to **R2**; website download
       links flipped from 1.4.0 to 2.0.0.
-- [ ] Website Pro dialog live (PromptPay ฿590 + LINE steps); LINE OA auto-reply
-      or rich menu covers the "ซื้อ Pro" flow after hours.
+- [x] Website Pro dialog live (PromptPay ฿599 + LINE steps) — deployed and
+      verified live 2026-07-13. Local is now a free download with no payment step
+      (SKU.md §6.A), so the old ฿290 Local QR is gone; the Pro QR was regenerated
+      at ฿599 and its payload decode-verified. The previous ฿290 QR was corrupt
+      and unscannable — a customer could not pay at all. Never hand-place a QR
+      SVG again without decoding it first.
+- [ ] LINE OA auto-reply or rich menu covers the "ซื้อ Pro" flow after hours
+      (still open — tracked as P1 in BACKLOG.md).
 - [ ] Selling-page copy uses PRD §24 landing text.
 - [ ] `secrets/gdrive-oauth.json` present at build time (git-ignored, but
       packaged into the DMG via `build.files` — sync silently degrades to
@@ -196,5 +241,5 @@ Local sales need no action — the website serves the DMG from R2 directly.
   confirmed payment. The Ed25519 private key never touches any server; a
   compromised dispenser burns at most the unsold pool.
 - ~~Windows delivery~~ — **unblocked 2026-07-09**: Windows app exe + Windows AI
-  add-on zip are both live on R2. Remaining: end-to-end test of TOR → Invoice
+  add-on zip are both live on R2. Remaining: end-to-end test of TOR → Quotation
   on a real Windows machine before advertising AI for Windows.

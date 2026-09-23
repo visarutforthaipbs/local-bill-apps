@@ -85,8 +85,27 @@ app.on('browser-window-created', (_event, win) => {
       }
       assert.equal(await run('DB.documents.length'),4);
       assert.equal(await run('loadFailed'),false);
+      // Actual 2.0.3 receipt issuance through renderer + preload + native disk.
+      await run(`(async()=>{
+        Object.assign(DB.business,{businessName:'Native receipt issuer',address:'Bangkok',taxId:'1234567890123',vatStatus:'non_registered',isVatRegistered:false});
+        openDocEditor('receipt');updItem(0,'description','Native ordinary receipt');updItem(0,'price',10000);
+        editField('paidDate',todayISO());editField('incomeCategory','40(2)');editField('whtRate',3);
+        editField('whtReviewed',true);editField('fullPaymentConfirmed',true);editField('issueConfirmed',true);
+        await saveDoc();
+      })()`);
+      assert.equal(JSON.parse(await fsp.readFile(external,'utf8')).documents.length,5);
+      assert.equal(await run("document.querySelector('.paper').textContent.includes('ไม่ใช่ใบกำกับภาษี')"),true);
+      const receiptPaper=await run("document.querySelector('.paper').innerHTML");
+      await run("DB.business.businessName='Changed profile';DB.clients[0].name='Changed buyer';DB.business.isVatRegistered=true;render();");
+      assert.equal(await run("document.querySelector('.paper').innerHTML"),receiptPaper);
+      await run('document.fonts.ready.then(()=>{applyPrintZoom(); return true;})');
+      const receiptPDF=await win.webContents.printToPDF({printBackground:true,preferCSSPageSize:true});
+      assert.equal(receiptPDF.subarray(0,5).toString(),'%PDF-');
+      await fsp.writeFile(path.join(root,'ordinary-receipt.pdf'),receiptPDF);
+      await run('clearPrintZoom()');
       // A Drive change while an editor is open must not get a success toast.
-      await run("openDocEditor('invoice','test-0'); window.__messages=[]; toast=(s,k)=>window.__messages.push({s,k}); void 0;");
+      // This legacy draft must pass the new non-VAT validation to reach disk I/O.
+      await run("openDocEditor('invoice','test-0'); editField('vatRate',0); window.__messages=[]; toast=(s,k)=>window.__messages.push({s,k}); void 0;");
       const changed=JSON.parse(await fsp.readFile(external,'utf8'));
       changed.business.businessName='External update';
       const changedText=JSON.stringify(changed);
@@ -95,7 +114,7 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(await run('loadFailed'),true);
       assert.equal(await run("window.__messages.some(m=>m.k==='ok')"),false);
       assert.equal(await fsp.readFile(external,'utf8'),changedText);
-      console.log('PASS: Electron '+process.versions.electron+' boot lock, 3-document preservation, IPC recovery, document save/reload, TH/EN backup history, PDF, and failed editor save.');
+      console.log('PASS: Electron '+process.versions.electron+' boot lock, 3-document preservation, IPC recovery, document save/reload, TH/EN backup history, ordinary receipt issuance/frozen paper/PDF, and failed editor save.');
       console.log('Isolated fixture/screenshots:', root);
       clearTimeout(timeout);
       app.exit(0);
