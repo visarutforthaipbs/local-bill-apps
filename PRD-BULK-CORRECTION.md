@@ -1,5 +1,14 @@
 # Bulk historical document review — local candidate
 
+**Superseding installation work:** owner subsequently authorized replacing the
+private installed app. The source is committed as
+`8da524f7a33d17d3bff516adb27cc245ac91154b`, with provisional dashboard and explicit
+payment-pair review added (182 tests pass). See `INSTALL-2.0.6.md` for actual
+packaging/installation evidence: private signed/notarized 2.0.6 is now installed
+and verified on lighthouse-control (2026-09-25), old app and current profile
+preserved. Earlier implementation-only notes below are
+historical; no public publication or live payment/document confirmation is implied.
+
 Owner request (2026-09-24): build a bulk review-and-correct screen; owner confirms
 they were not VAT-registered when the historical documents were issued. Owner
 subsequently answered that they are unsure whether the documents were sent;

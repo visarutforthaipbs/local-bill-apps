@@ -3,7 +3,7 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [2.0.6] — Unreleased local candidate
+## [2.0.6] — 2026-09-25 (Private owner update)
 
 ### Added
 - Dashboard historical-payment totals, separated from included income; incomplete
@@ -16,7 +16,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
   prevention, local review-packet export and Thai/English UI.
 - Proposals remain non-issued review records, not replacement receipts; originals,
   payment totals and output restrictions are unchanged. Sent/unknown documents need
-  delivery/practitioner review. No public release or installed-app update yet.
+  delivery/practitioner review. Signed/notarized private app installed and verified
+  on lighthouse-control; prior app and data retained. No public release.
 
 ## [2.0.5] — 2026-09-24 (Private owner recovery)
 

@@ -2,12 +2,17 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
-**Latest source work:** [PRD-BULK-CORRECTION.md](PRD-BULK-CORRECTION.md) records
-the implemented, tested, uncommitted 2.0.6 bulk review/proposal screen. Owner confirms
-historical non-VAT registration but is unsure of delivery. Originals stay unchanged;
-no issued replacements or automatic payment reconciliation. 178 tests and isolated
-native workflows pass. Installed private app remains 2.0.5; public release remains
-2.0.4. Do not mistake the source version bump for installation/publication.
+**Latest work:** owner authorized replacing private 2.0.5 with private 2.0.6.
+Read [INSTALL-2.0.6.md](INSTALL-2.0.6.md) for current build/install/rollback status;
+source commit `8da524f7a33d17d3bff516adb27cc245ac91154b` includes the bulk review
+screen and provisional dashboard plus explicit payment-pair confirmation.
+182 tests and isolated native workflows pass. **Private signed/notarized 2.0.6 is
+installed and verified on lighthouse-control as of 2026-09-25**, with original
+2.0.5 and full profile retained in `BillNgai-update-2.0.6`. Public remains 2.0.4.
+Dashboard now shows THB 52,100 provisional (7 pairs), 12 other groups need review;
+47 visible documents and 38 active customers preserved across quit/relaunch.
+Owner confirms historical non-VAT registration but is unsure of delivery.
+No issued replacements, automatic payment reconciliation or live review events.
 
 **Post-release diagnosis:** owner-selected legacy backup is valid JSON but contains
 12 type-less deletion tombstones that both 2.0.4 validators reject. Read
