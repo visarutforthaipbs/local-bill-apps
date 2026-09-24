@@ -111,7 +111,7 @@ test('cannot edit issued records or use preset metadata to forge history',()=>{
 test('payment records date explicitly and preserves issued financial snapshot',async()=>{
   const ctx=context();
   run(ctx,"const inv=fixture({id:'inv',number:'INV-001',type:'invoice',status:'issued',paidDate:null,fullPaymentConfirmed:false});freezeIssuedDocument(inv);DB.documents=[inv];originalPaper=DB.documents[0].issuedSnapshot.renderedHtml");
-  await run(ctx,"DB.business.taxId='';DB.business.businessName='';DB.clients[0].name='';setStatus('inv','paid')");
+  await run(ctx,"DB.business.taxId='';DB.business.businessName='';DB.clients[0].name='';setStatus('inv','paid',{paidDate:'2026-01-10',fullPaymentConfirmed:true})");
   assert.equal(run(ctx,'DB.documents[0].status'),'paid');
   assert.equal(run(ctx,'DB.documents[0].paidDate'),'2026-01-10');
   assert.ok(run(ctx,'DB.documents[0].paymentId'));

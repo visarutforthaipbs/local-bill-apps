@@ -3,6 +3,26 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.4] — Unreleased candidate
+
+### Fixed
+- Replace unsupported native void/payment prompts with validated in-app dialogs; retain evidence and roll back failed saves.
+- Keep draft markings in printed output; block every legacy tax-invoice output path, including drafts.
+- Drain renderer transactions and native disk writes on quit and window close; reject malformed imports and unsafe inline-handler interpolation.
+- Preserve referenced customer tombstones and a permanent, verified pre-2.0.4 source backup.
+- Await settings, client and recurring saves; fix quotation decline, void/overdue state, month-end recurrence and planned-versus-issued split totals.
+- Freeze reporting identity, retain unknown currency/date/ambiguous-payment exclusions, and avoid collapsing supported distinct payments or asserting uncertain historical totals.
+
+### Added
+- Read-only historical facts, separate reversible archive visibility, append-only review notes and locally hash-verified original evidence.
+- Separate evidence bundle backup/restore; database JSON does not contain attachment bytes.
+- Evidence-based full-payment review for supported non-VAT THB legacy invoices without rewriting originals, with separate idempotent new ordinary-receipt issuance.
+- Focused regression suites and `PRD-2.0.4.md`, `VERIFICATION-2.0.4.md`, `SESSION-HANDOFF-2.0.4.md`.
+
+### Restrictions
+- No automated tax-invoice correction, invented historical snapshot, VAT/FX/partial-payment recovery, cloud sync, e-Tax export or tax-payable calculation. This is not professional tax/legal certification.
+- Not packaged, signed, notarized, installed or published as 2.0.4. Release gates remain separate.
+
 ## [2.0.3] — 2026-09-24 (Mac Direct)
 
 ### Safety scope

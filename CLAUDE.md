@@ -1,5 +1,9 @@
 # บิลง่าย / BillNgai — agent hand-off
 
+**Current candidate (2026-09-24):** start with `SESSION-HANDOFF-2.0.4.md` and
+`VERIFICATION-2.0.4.md`. The owner authorized implementing the post-release audit.
+The local uncommitted 2.0.4 candidate is not the installed or published 2.0.3 app.
+
 **Current-session handoff (2026-09-23):** read `SESSION-HANDOFF-2.0.3.md` before
 continuing, then check `RELEASE-2.0.3.md` for exact commit, artifact and publication
 evidence. Do not infer current publication status from older preparation records.

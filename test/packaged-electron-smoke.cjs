@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
     instance = await electron.launch({ executablePath: path.resolve(process.argv[2]),
       args: ['--user-data-dir=' + profile], timeout: 30000 });
     assert.equal(await instance.evaluate(({app}) => app.getPath('userData')), await fs.realpath(profile));
-    assert.equal(await instance.evaluate(({app}) => app.getVersion()), '2.0.3');
+    assert.equal(await instance.evaluate(({app}) => app.getVersion()), require('../package.json').version);
     const page = await instance.firstWindow();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -86,7 +86,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.evaluate(()=>DB.documents.length),2);
     assert.equal(await page.evaluate(()=>hasIssuedSnapshot(DB.documents[1])),true);
     assert.deepEqual(errors,[]);
-    console.log('PASS: packaged BillNgai 2.0.3 executable, isolated storage recovery, sync containment, ordinary receipt, frozen paper, PDF, EN summary and reload.');
+    console.log('PASS: packaged BillNgai '+require('../package.json').version+' executable, isolated storage recovery, sync containment, ordinary receipt, frozen paper, PDF, EN summary and reload.');
     console.log('Fixture/screenshot:',root);
   } finally { if(instance) await instance.close(); }
 })().catch(error => { console.error(error); process.exitCode=1; });

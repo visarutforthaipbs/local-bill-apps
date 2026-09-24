@@ -4,6 +4,34 @@ Last updated: 2026-09-24. Owner: Visarut. Engineering manager: Codex.
 
 ## Read this first
 
+**Superseding implementation session:** owner subsequently said “implement it all”.
+The local 2.0.4 candidate now implements the audited fixes and supported legacy
+review/recovery workflow. Read `SESSION-HANDOFF-2.0.4.md` and
+`VERIFICATION-2.0.4.md` for current work/test evidence. The incident below describes
+the unchanged installed/public 2.0.3 binary, not the modified candidate source.
+No customer records or installed app were changed, and 2.0.4 is not released.
+
+### Post-release incident — 2026-09-24 (unresolved)
+
+Owner subsequently requested a swarm audit and legacy-handling design. Completed
+three native parallel audits plus an external agy design critique (accepted only in
+part; unsupported conclusions rejected). Coordinator independently reproduced 19
+defect/risk scenarios. Read `review/2026-09-24/POST-RELEASE-AUDIT.md` and
+`review/2026-09-24/LEGACY-RECOVERY-PLAN.md` before further work. Critical additions
+include a second unsupported payment prompt, disappearing draft print labels,
+quit-before-save completion, imported-ID handler execution and referenced-customer
+purge. No application changes, customer-data mutations, Git publication or 2.0.4
+release performed. Audit/proposals remain local uncommitted files pending direction.
+
+Owner reports old documents show only the historical-review warning, and the
+void/archive button does nothing in the installed 2.0.3 Mac app. Diagnosis confirms
+the released code uses unsupported Electron `prompt()` and fails before persistence.
+Legacy previews are deliberately suppressed by the current rendering guard; retained
+records are still present. No real document was changed. See
+`review/2026-09-24/LEGACY-DOCUMENT-DIAGNOSIS.md` for evidence and the missing test.
+Implementation/new patch release awaits owner authorization; do not treat the
+published release's earlier passing tests as covering this broken UI interaction.
+
 **Current state: Direct macOS 2.0.3 released; public binaries and website verified.**
 
 ### Final publication checkpoint — 2026-09-24

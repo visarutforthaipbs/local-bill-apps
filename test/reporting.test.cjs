@@ -23,9 +23,10 @@ test('paid invoice counts once without a receipt',()=>{
   const r=run(`DB.documents=[fixture()];({a:taxYearAgg(2026).agg.subtotal,f:filingIncome(2026,0,11),w:whtTrackedDocs().length})`);
   assert.equal(r.a,10000);assert.equal(r.f.grossThb,10000);assert.equal(r.w,1);
 });
-test('receipt/source payment identity deduplicates and flags duplicate receipts',()=>{
+test('explicit receipt/source identity deduplicates but unidentified extra receipt remains ambiguous',()=>{
   const r=run(`DB.documents=[fixture({paymentId:'p'}),fixture({id:'r',type:'receipt',status:'issued',parentId:'i',paymentId:'p'}),fixture({id:'r2',type:'receipt',status:'issued',parentId:'i'})];taxYearAgg(2026)`);
-  assert.equal(r.agg.subtotal,10000);assert.equal(r.docs.length,1);assert.equal(r.duplicateCount,1);assert.equal(r.incomplete,true);
+  assert.equal(r.agg.subtotal,10000);assert.equal(r.docs.length,1);assert.equal(r.duplicateCount,0);
+  assert.equal(r.ambiguousCount,1);assert.equal(r.unallocatedDocs.length,1);assert.equal(r.incomplete,true);
 });
 test('matching payment IDs deduplicate receipts without parent IDs',()=>{
   const r=run(`DB.documents=[fixture({paymentId:'p'}),fixture({id:'r',type:'receipt',status:'issued',paymentId:'p'})];taxYearAgg(2026)`);

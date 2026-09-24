@@ -7,7 +7,7 @@ const os = require('node:os');
 const { mainHarness } = require('./helpers/main-harness.cjs');
 
 const data = (count = 3, note = '') => JSON.stringify({ version: 2, business: { businessName: 'Test' },
-  documents: Array.from({ length: count }, (_, i) => ({ id: 'doc-' + i, note })), clients: [], recurring: [] });
+  documents: Array.from({ length: count }, (_, i) => ({ id: 'doc-' + i, type: 'invoice', note })), clients: [], recurring: [] });
 async function fixture(t, source, customFs) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'billngai-storage-test-'));
   t.after(() => fsp.rm(root, { recursive: true, force: true }));
@@ -81,8 +81,8 @@ test('overlapping saves finish in order, preserve previous data, and leave no te
   await Promise.all(Array.from({ length: 25 }, (_, i) => h.call('data:save', data(3, 'save-' + i))));
   assert.equal(await fsp.readFile(h.file, 'utf8'), data(3, 'save-24'));
   const list = await backups(h.root);
-  assert.equal(list.length, 1);
-  assert.equal(list[0].text, data());
+  assert.equal(list.filter(b => !b.name.startsWith('billing-pre-2.0.4-')).length, 1);
+  assert.ok(list.every(b => b.text === data()));
   assert.equal((await fsp.readdir(h.root)).some(n => n.endsWith('.tmp')), false);
 });
 
@@ -161,6 +161,7 @@ test('backup failure aborts replacement and leaves the original file intact', as
   const h = await fixture(t);
   await fsp.writeFile(h.file, data());
   await h.call('data:load');
+  await fsp.rename(path.join(h.root, 'backups'), path.join(h.root, 'preserved-backups'));
   await fsp.writeFile(path.join(h.root, 'backups'), 'not a directory');
   await assert.rejects(h.call('data:save', data(4)));
   assert.equal(await fsp.readFile(h.file, 'utf8'), data());
@@ -174,7 +175,7 @@ test('restart within 30 minutes does not create another automatic snapshot', asy
   const reopened = mainHarness(h.root);
   await reopened.call('data:load');
   await reopened.call('data:save', data(5));
-  assert.equal((await backups(h.root)).length, 1);
+  assert.equal((await backups(h.root)).filter(b => !b.name.startsWith('billing-pre-2.0.4-')).length, 1);
 });
 
 test('failed atomic rename keeps original bytes and cleans the unique temp file', async t => {

@@ -36,7 +36,7 @@ function renderer(save, failed = false) {
     clearTimeout() {}, render: () => actions.push('render'), updateFileStatus() {},
     appendJournal: () => actions.push('journal'), scheduleSync: () => actions.push('sync'),
     window: { billingAPI: { save } } });
-  vm.runInContext(section('async function persist(', '/* ---------- desktop-app'), context);
+  vm.runInContext(section('let pendingPersist=', '/* ---------- desktop-app'), context);
   return { context, messages, actions };
 }
 test('failed load never sends a save and does not claim success', async () => {
@@ -58,6 +58,17 @@ test('successful save triggers journal and sync only after disk confirms', async
   assert.equal(await h.context.persist(false), true);
   assert.deepEqual(h.actions, ['journal', 'sync']);
   assert.equal(h.messages.filter(m => m.kind === 'ok').length, 1);
+});
+test('pending persistence tracks the real disk promise until completion for quit coordination', async () => {
+  let finish;
+  const h = renderer(() => new Promise(resolve => { finish = resolve; }));
+  const pending = h.context.persist(true);
+  assert.equal(vm.runInContext('pendingPersist', h.context), 1);
+  assert.deepEqual(h.actions, []);
+  finish(true);
+  assert.equal(await pending, true);
+  assert.equal(vm.runInContext('pendingPersist', h.context), 0);
+  assert.deepEqual(h.actions, ['journal', 'sync']);
 });
 test('2.0.3 pauses automatic Pro sync even after load recovery', () => {
   const context = vm.createContext({ CLOUD_SYNC_PAUSED: true, IS_ELECTRON: true, loadFailed: true, isPro: () => true, syncInfo: { connected: true } });

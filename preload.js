@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('billingAPI', {
   listBackups:    ()       => ipcRenderer.invoke('backups:list'),
   snapshotBackup: (label)  => ipcRenderer.invoke('backups:snapshot', label),
   restoreBackup:  (name)   => ipcRenderer.invoke('backups:restore', name),
+  attachEvidence: ()       => ipcRenderer.invoke('evidence:attach'),
+  evidenceInfo:   (hash)   => ipcRenderer.invoke('evidence:info', hash),
+  exportEvidence: (hash)   => ipcRenderer.invoke('evidence:export', hash),
+  exportEvidenceBundle: (hashes) => ipcRenderer.invoke('evidence:exportBundle', hashes),
+  importEvidenceBundle: () => ipcRenderer.invoke('evidence:importBundle'),
   licenseStatus:  ()       => ipcRenderer.invoke('license:status'),
   licenseActivate:(key)    => ipcRenderer.invoke('license:activate', key),
   licenseDeactivate: ()    => ipcRenderer.invoke('license:deactivate'),
@@ -40,5 +45,6 @@ contextBridge.exposeInMainWorld('billingAPI', {
   onMenuExport:   (cb)     => ipcRenderer.on('menu:export', cb),
   onMenuImport:   (cb)     => ipcRenderer.on('menu:import', cb),
   onQuitFlush:    (cb)     => ipcRenderer.on('app:quitFlush', cb),
-  quitFlushDone:  ()       => ipcRenderer.send('app:quitFlushDone')
+  onQuitCancelled: (cb)    => ipcRenderer.on('app:quitCancelled', cb),
+  quitFlushDone:  (result) => ipcRenderer.send('app:quitFlushDone', result)
 });

@@ -25,6 +25,8 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 ## Cross-references
 
+- `RELEASE-2.0.4.md` and `SESSION-HANDOFF-2.0.4.md` — current authorized release
+  continuation and stabilization/recovery evidence. Check actual publication state.
 - `SESSION-HANDOFF-2.0.3.md` — read first when resuming the September 2026 work:
   released Direct macOS evidence, completed checks, pending other channels and safe next steps.
 - `BRAND.md` — visual identity, tokens, voice (the brand guardian; it wins).

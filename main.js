@@ -5,12 +5,24 @@ const fs = require('fs');
 const fsp = fs.promises;
 const crypto = require('crypto');
 const http = require('http');
+const { pathToFileURL } = require('url');
 
 app.setName('BillNgai');
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 
 let win;
+function trustedRenderer(event) {
+  return !!(win && !win.isDestroyed() && event && event.sender === win.webContents &&
+    event.senderFrame === win.webContents.mainFrame &&
+    event.senderFrame.url === pathToFileURL(path.join(__dirname, 'billing.html')).href);
+}
+function handleIPC(channel, handler) {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (!trustedRenderer(event)) throw new Error('IPC_UNTRUSTED_SENDER');
+    return handler(event, ...args);
+  });
+}
 const USER_DIR     = app.getPath('userData');
 const CONFIG_PATH  = path.join(USER_DIR, 'config.json');
 const DEFAULT_DATA = path.join(USER_DIR, 'billing.json');
@@ -485,6 +497,7 @@ async function labeledSnapshot(label) {
 // store it successfully loaded; a missing Drive file is never treated as first launch.
 let dataQueue = Promise.resolve();
 let dataSession = null;
+let lastSaveError = null;
 const DATA_MARKER = path.join(USER_DIR, '.data-initialized');
 function withDataLock(action) {
   const result = dataQueue.then(action);
@@ -492,13 +505,108 @@ function withDataLock(action) {
   return result;
 }
 function validateData(text) {
+  if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > 64 * 1024 * 1024) throw new Error('DATA_INVALID_SIZE');
   let data;
   try { data = JSON.parse(text); } catch (e) { throw new Error('DATA_INVALID_JSON'); }
   if (!data || typeof data !== 'object' || Array.isArray(data) ||
       !data.business || typeof data.business !== 'object' || Array.isArray(data.business) ||
       !Array.isArray(data.documents) || !Array.isArray(data.clients) ||
       (data.recurring != null && !Array.isArray(data.recurring))) throw new Error('DATA_INVALID_SCHEMA');
+  const object = value => value && typeof value === 'object' && !Array.isArray(value);
+  const invalid = () => { throw new Error('DATA_INVALID_SCHEMA'); };
+  const strings = (record, keys) => keys.forEach(key => {
+    if (record[key] != null && typeof record[key] !== 'string') invalid();
+  });
+  const party = record => {
+    if (!object(record)) invalid();
+    strings(record, ['id','name','businessName','businessNameEn','address','addressEn','taxId','phone','email','contactPerson','notes','docLang','lang','uiLang','yearMode','updatedAt','deletedAt','createdAt']);
+    if ('name' in record && typeof record.name !== 'string') invalid();
+  };
+  const document = record => {
+    if (!object(record)) invalid();
+    strings(record, ['id','type','number','status','clientId','parentId','paymentId','issueDate','dueDate','paidDate','currency','project','notes','docLang','incomeCategory','updatedAt','deletedAt','createdAt','voidedAt','voidReason','whtCertNo','whtCertDate']);
+    for (const key of ['vatRate','whtRate','fxRate']) {
+      if (record[key] != null && !((typeof record[key] === 'number' || typeof record[key] === 'string') && Number.isFinite(Number(record[key])))) invalid();
+    }
+    if (record.items !== undefined) {
+      if (!Array.isArray(record.items)) invalid();
+      record.items.forEach(item => {
+        if (!object(item)) invalid();
+        strings(item, ['description','unit']);
+        for (const key of ['qty','price']) if (item[key] != null &&
+          !((typeof item[key] === 'number' || typeof item[key] === 'string') && Number.isFinite(Number(item[key])))) invalid();
+      });
+    }
+    if (record.milestone != null && !object(record.milestone)) invalid();
+  };
+  party(data.business);
+  if (data.business.numberFormats != null && !object(data.business.numberFormats)) invalid();
+  if (data.business.numberFormats) strings(data.business.numberFormats, ['quotation','invoice','receipt','tax_invoice']);
+  for (const key of ['meta','counters']) if (data[key] !== undefined && !object(data[key])) invalid();
+  for (const key of ['clients','documents','recurring','reviewEvents']) {
+    if (data[key] === undefined) continue;
+    if (!Array.isArray(data[key])) invalid();
+    const ids = new Set();
+    for (const record of data[key]) {
+      if (!object(record) || typeof record.id !== 'string' || !record.id || ids.has(record.id)) invalid();
+      ids.add(record.id);
+      if (key === 'documents' && !['quotation','invoice','receipt','tax_invoice'].includes(record.type)) invalid();
+    }
+  }
+  data.clients.forEach(party);
+  for (const record of [...data.documents, ...(data.recurring || [])]) {
+    document(record);
+    const snapshot = record.issuedSnapshot;
+    // Missing historical particulars stay missing; validate structure, never invent them.
+    if (snapshot != null) {
+      if (!object(snapshot)) invalid();
+      if (snapshot.document != null) document(snapshot.document);
+      if (snapshot.business != null) party(snapshot.business);
+      if (snapshot.buyer != null) party(snapshot.buyer);
+      if (snapshot.amounts != null) {
+        if (!object(snapshot.amounts)) invalid();
+        strings(snapshot.amounts, ['currency']);
+        for (const key of ['subtotal','vatRate','whtRate','vatAmount','whtAmount','grandTotal','netPayable'])
+          if (snapshot.amounts[key] != null && (typeof snapshot.amounts[key] !== 'number' || !Number.isFinite(snapshot.amounts[key]))) invalid();
+      }
+    }
+  }
+  for (const event of data.reviewEvents || []) {
+    strings(event, ['documentId','type','recordedAt','note','paymentId','paidDate','currency','vatStatus']);
+    if (!event.documentId || !event.type || !event.recordedAt) invalid();
+    if (event.evidence !== undefined) {
+      if (!Array.isArray(event.evidence)) invalid();
+      for (const evidence of event.evidence) {
+        if (!object(evidence) || typeof evidence.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sha256)) invalid();
+        strings(evidence, ['fileName','mime','attachedAt']);
+        if (evidence.size != null && (!Number.isInteger(evidence.size) || evidence.size < 1 || evidence.size > 20 * 1024 * 1024)) invalid();
+      }
+    }
+    for (const key of ['issuer','buyer']) if (event[key] !== undefined) party(event[key]);
+    if (event.sourceRecordAtReview !== undefined) document(event.sourceRecordAtReview);
+    if (event.type === 'legacy_payment') {
+      if (!event.paymentId || !event.paidDate || !event.currency || !object(event.issuer) || !object(event.buyer) ||
+          typeof event.fullPaymentConfirmed !== 'boolean' || typeof event.historicalVatConfirmed !== 'boolean' ||
+          !['gross','wht','net'].every(key => typeof event[key] === 'number' && Number.isFinite(event[key]))) invalid();
+    }
+  }
   return data;
+}
+async function preserveBefore204(file, text) {
+  const sourceHash = crypto.createHash('sha256').update(file).digest('hex');
+  const marker = path.join(USER_DIR, '.pre-2.0.4-' + sourceHash);
+  const existing = await readDataFile(marker);
+  if (existing) {
+    if (!/^billing-pre-2\.0\.4-[a-f0-9]{64}-[a-f0-9]{64}\.json$/.test(existing)) throw new Error('DATA_PRESERVATION_INVALID');
+    const original = await fsp.readFile(path.join(BACKUP_DIR, existing), 'utf8');
+    if (crypto.createHash('sha256').update(original).digest('hex') !== existing.slice(-69, -5)) throw new Error('DATA_PRESERVATION_INVALID');
+    return;
+  }
+  const hash = crypto.createHash('sha256').update(text).digest('hex');
+  const name = 'billing-pre-2.0.4-' + sourceHash + '-' + hash + '.json';
+  await atomicWrite(path.join(BACKUP_DIR, name), text);
+  if (await fsp.readFile(path.join(BACKUP_DIR, name), 'utf8') !== text) throw new Error('DATA_PRESERVATION_INVALID');
+  await atomicWrite(marker, name);
 }
 async function readDataFile(file) {
   try { return await fsp.readFile(file, 'utf8'); }
@@ -524,6 +632,7 @@ async function loadData() {
     if (cfg.externalPath || await hasDataHistory()) throw new Error('DATA_MISSING');
   } else {
     validateData(text);
+    await preserveBefore204(file, text);
     await markDataInitialized();
   }
   dataSession = { file, text };
@@ -542,6 +651,7 @@ async function saveData(text) {
   const next = validateData(text);
   const session = await currentSession();
   if (session.text !== null) {
+    await preserveBefore204(session.file, session.text);
     const prev = validateData(session.text);
     if (['documents', 'clients', 'recurring'].some(key => (prev[key] || []).length > (next[key] || []).length)) {
       await snapshotText(session.text, 'pre-replace');
@@ -568,20 +678,25 @@ async function recoverData(text) {
   dataSession = { file, text };
   return true;
 }
-ipcMain.handle('data:load', () => withDataLock(loadData));
-ipcMain.handle('data:save', (_e, text) => withDataLock(() => saveData(text)));
+handleIPC('data:load', () => withDataLock(loadData));
+handleIPC('data:save', (_e, text) => withDataLock(async () => {
+  try { const result = await saveData(text); lastSaveError = null; return result; }
+  catch (error) { lastSaveError = error; throw error; }
+}));
 // Explicit import/cloud restore only; ordinary autosaves cannot clear a failed-load lock.
-ipcMain.handle('data:recover', (_e, text) => withDataLock(() => recoverData(text)));
+handleIPC('data:recover', (_e, text) => withDataLock(async () => {
+  const result = await recoverData(text); lastSaveError = null; return result;
+}));
 
 
-ipcMain.handle('data:revealBackups', async () => {
+handleIPC('data:revealBackups', async () => {
   await fsp.mkdir(BACKUP_DIR, { recursive: true });
   shell.openPath(BACKUP_DIR);
 });
 
 /* ---------------- IPC: schema v2 — device id, change journal, backups ---------------- */
 // device id อยู่ใน config.json (ประจำเครื่อง ไม่ปนไปกับข้อมูลที่จะ sync)
-ipcMain.handle('device:id', () => withDataLock(async () => {
+handleIPC('device:id', () => withDataLock(async () => {
   const cfg = await readConfig();
   if (!cfg.deviceId) { cfg.deviceId = crypto.randomBytes(4).toString('hex'); await writeConfig(cfg); }
   return cfg.deviceId;
@@ -589,7 +704,7 @@ ipcMain.handle('device:id', () => withDataLock(async () => {
 
 // change journal: NDJSON แยกไฟล์รายเดือน — ฐานของ Google Drive sync (Pro) ในเฟสถัดไป
 const JOURNAL_DIR = path.join(USER_DIR, 'journal');
-ipcMain.handle('journal:append', async (_e, lines) => {
+handleIPC('journal:append', async (_e, lines) => {
   if (!lines || typeof lines !== 'string') return false;
   const d = new Date(); // เดือนตามเวลาท้องถิ่น (ไทย UTC+7) — ห้ามใช้ toISOString()
   const month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -599,7 +714,7 @@ ipcMain.handle('journal:append', async (_e, lines) => {
   return true;
 });
 
-ipcMain.handle('backups:list', async () => {
+handleIPC('backups:list', async () => {
   try {
     await fsp.mkdir(BACKUP_DIR, { recursive: true });
     const names = (await fsp.readdir(BACKUP_DIR)).filter(f => /^billing-.*\.json$/.test(f));
@@ -618,14 +733,153 @@ ipcMain.handle('backups:list', async () => {
   } catch (e) { return []; }
 });
 
-ipcMain.handle('backups:snapshot', (_e, label) => withDataLock(() => labeledSnapshot(label)));
+handleIPC('backups:snapshot', (_e, label) => withDataLock(() => labeledSnapshot(label)));
 
-ipcMain.handle('backups:restore', (_e, name) => withDataLock(async () => {
+handleIPC('backups:restore', (_e, name) => withDataLock(async () => {
   if (!/^billing-[A-Za-z0-9._-]+\.json$/.test(String(name || ''))) throw new Error('invalid backup name');
   const text = await fsp.readFile(path.join(BACKUP_DIR, name), 'utf8');
   await recoverData(text);
+  lastSaveError = null;
   return text;
 }));
+
+/* Evidence is selected explicitly, retained byte-for-byte, and never injected
+   into the renderer. A hash identifies bytes, not authenticity or legal validity. */
+const EVIDENCE_DIR = path.join(USER_DIR, 'evidence');
+const EVIDENCE_LIMIT = 20 * 1024 * 1024;
+function evidencePath(hash) {
+  if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) throw new Error('EVIDENCE_INVALID_HASH');
+  return path.join(EVIDENCE_DIR, hash + '.bin');
+}
+function evidenceMime(bytes) {
+  if (bytes.subarray(0, 5).toString('ascii') === '%PDF-') return 'application/pdf';
+  if (bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return 'image/png';
+  if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return 'image/jpeg';
+  throw new Error('EVIDENCE_UNSUPPORTED_TYPE');
+}
+async function readEvidenceBytes(file, limit = EVIDENCE_LIMIT) {
+  const handle = await fsp.open(file, 'r');
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size < 1 || stat.size > limit) throw new Error('EVIDENCE_INVALID_SIZE');
+    const bytes = Buffer.alloc(stat.size + 1);
+    let length = 0;
+    while (length < bytes.length) {
+      const result = await handle.read(bytes, length, bytes.length - length, null);
+      if (!result.bytesRead) break;
+      length += result.bytesRead;
+    }
+    if (length !== stat.size) throw new Error('EVIDENCE_CHANGED_DURING_READ');
+    return bytes.subarray(0, length);
+  } finally { await handle.close(); }
+}
+async function verifiedEvidence(hash) {
+  const bytes = await readEvidenceBytes(evidencePath(hash));
+  if (crypto.createHash('sha256').update(bytes).digest('hex') !== hash) throw new Error('EVIDENCE_HASH_MISMATCH');
+  return { bytes, mime: evidenceMime(bytes) };
+}
+async function storeEvidence(hash, bytes) {
+  await fsp.mkdir(EVIDENCE_DIR, { recursive: true });
+  let handle;
+  try {
+    handle = await fsp.open(evidencePath(hash), 'wx', 0o600);
+    await handle.writeFile(bytes); await handle.sync();
+  } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  finally { if (handle) await handle.close(); }
+  await verifiedEvidence(hash);
+}
+async function protectedEvidenceExport(file) {
+  const destination = path.join(await fsp.realpath(path.dirname(file)), path.basename(file));
+  const relative = path.relative(await fsp.realpath(USER_DIR), destination);
+  if (relative === '' || (!relative.startsWith('..' + path.sep) && !path.isAbsolute(relative))) throw new Error('EVIDENCE_PROTECTED_DESTINATION');
+  const store = await activePath();
+  const storePath = path.join(await fsp.realpath(path.dirname(store)), path.basename(store));
+  if (destination === storePath) throw new Error('EVIDENCE_PROTECTED_DESTINATION');
+}
+handleIPC('evidence:attach', async () => {
+  const selected = await dialog.showOpenDialog(win, {
+    title: 'เลือกไฟล์ต้นฉบับ / Attach original evidence', properties: ['openFile'],
+    filters: [{ name: 'PDF / PNG / JPEG (20 MB)', extensions: ['pdf','png','jpg','jpeg'] }]
+  });
+  if (selected.canceled || !selected.filePaths.length) return null;
+  const file = selected.filePaths[0], bytes = await readEvidenceBytes(file);
+  const mime = evidenceMime(bytes), sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  await storeEvidence(sha256, bytes);
+  return { schemaVersion: 1, sha256, fileName: path.basename(file), mime, size: bytes.length, attachedAt: new Date().toISOString() };
+});
+handleIPC('evidence:info', async (_event, hash) => {
+  evidencePath(hash);
+  try {
+    const { bytes, mime } = await verifiedEvidence(hash);
+    return { sha256: hash, size: bytes.length, mime, available: true };
+  } catch (error) {
+    if (error.code === 'ENOENT') return { sha256: hash, available: false };
+    throw error;
+  }
+});
+handleIPC('evidence:export', async (_event, hash) => {
+  const { bytes, mime } = await verifiedEvidence(hash);
+  const extension = mime === 'application/pdf' ? 'pdf' : mime === 'image/png' ? 'png' : 'jpg';
+  const selected = await dialog.showSaveDialog(win, {
+    title: 'ส่งออกไฟล์ต้นฉบับ / Export original evidence',
+    defaultPath: path.join(app.getPath('documents'), 'evidence-' + hash + '.' + extension),
+    filters: [{ name: 'Original evidence', extensions: [extension] }]
+  });
+  if (selected.canceled || !selected.filePath) return null;
+  // Never permit a save dialog to overwrite the app's immutable evidence store.
+  await protectedEvidenceExport(selected.filePath);
+  await atomicWrite(selected.filePath, bytes);
+  const output = await fsp.readFile(selected.filePath);
+  if (!output.equals(bytes)) throw new Error('EVIDENCE_EXPORT_VERIFY_FAILED');
+  return { sha256: hash, size: bytes.length, exported: true };
+});
+const EVIDENCE_BUNDLE_LIMIT = 64 * 1024 * 1024;
+handleIPC('evidence:exportBundle', async (_event, hashes) => {
+  if (!Array.isArray(hashes) || hashes.length > 1000 || hashes.some(hash => typeof hash !== 'string')) throw new Error('EVIDENCE_INVALID_MANIFEST');
+  const files = []; let total = 0;
+  for (const hash of new Set(hashes)) {
+    const { bytes, mime } = await verifiedEvidence(hash);
+    total += bytes.length;
+    if (total > 40 * 1024 * 1024) throw new Error('EVIDENCE_BUNDLE_TOO_LARGE');
+    files.push({ sha256: hash, mime, size: bytes.length, base64: bytes.toString('base64') });
+  }
+  const selected = await dialog.showSaveDialog(win, {
+    title: 'สำรองไฟล์หลักฐาน / Back up evidence files',
+    defaultPath: path.join(app.getPath('documents'), 'BillNgai-evidence-bundle.json'),
+    filters: [{ name: 'Evidence bundle JSON', extensions: ['json'] }]
+  });
+  if (selected.canceled || !selected.filePath) return null;
+  await protectedEvidenceExport(selected.filePath);
+  const text = JSON.stringify({ schemaVersion: 1, purpose: 'billngai-evidence-bundle', createdAt: new Date().toISOString(), files });
+  await atomicWrite(selected.filePath, text);
+  if (await fsp.readFile(selected.filePath, 'utf8') !== text) throw new Error('EVIDENCE_EXPORT_VERIFY_FAILED');
+  return { exported: true, count: files.length };
+});
+handleIPC('evidence:importBundle', async () => {
+  const selected = await dialog.showOpenDialog(win, {
+    title: 'กู้คืนไฟล์หลักฐาน / Restore evidence files', properties: ['openFile'],
+    filters: [{ name: 'Evidence bundle JSON', extensions: ['json'] }]
+  });
+  if (selected.canceled || !selected.filePaths.length) return null;
+  const bundle = JSON.parse((await readEvidenceBytes(selected.filePaths[0], EVIDENCE_BUNDLE_LIMIT)).toString('utf8'));
+  if (!bundle || bundle.schemaVersion !== 1 || bundle.purpose !== 'billngai-evidence-bundle' || !Array.isArray(bundle.files) || bundle.files.length > 1000) throw new Error('EVIDENCE_INVALID_MANIFEST');
+  const files = [], seen = new Set(); let total = 0;
+  // Verify every entry and every existing destination BEFORE creating any copy.
+  for (const file of bundle.files) {
+    if (!file || typeof file.base64 !== 'string') throw new Error('EVIDENCE_INVALID_MANIFEST');
+    evidencePath(file.sha256);
+    if (seen.has(file.sha256)) throw new Error('EVIDENCE_INVALID_MANIFEST');
+    seen.add(file.sha256);
+    if (file.base64.length > Math.ceil(EVIDENCE_LIMIT / 3) * 4) throw new Error('EVIDENCE_INVALID_SIZE');
+    const bytes = Buffer.from(file.base64, 'base64'); total += bytes.length;
+    if (!bytes.length || bytes.length > EVIDENCE_LIMIT || total > 40 * 1024 * 1024) throw new Error('EVIDENCE_INVALID_SIZE');
+    if (bytes.toString('base64') !== file.base64 || file.size !== bytes.length || evidenceMime(bytes) !== file.mime || crypto.createHash('sha256').update(bytes).digest('hex') !== file.sha256) throw new Error('EVIDENCE_HASH_MISMATCH');
+    try { await verifiedEvidence(file.sha256); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    files.push({ sha256: file.sha256, mime: file.mime, size: file.size, bytes });
+  }
+  for (const file of files) await storeEvidence(file.sha256, file.bytes);
+  return { imported: true, files: files.map(({ sha256, mime, size }) => ({ sha256, mime, size })) };
+});
 
 /* ---------------- BillNgai Pro — license (Phase E) ----------------
    รหัส Pro = base64(payload).base64(signature) เซ็น Ed25519 ด้วยคีย์เดียวกับ AI add-on
@@ -652,15 +906,15 @@ function licenseStatusOf(cfg) {
   const expired = !!(payload.validUntil && payload.validUntil < todayStr);
   return { valid: !expired, expired, email: payload.email || '', plan: payload.plan || 'pro', validUntil: payload.validUntil || null };
 }
-ipcMain.handle('license:status', async () => licenseStatusOf(await readConfig()));
-ipcMain.handle('license:activate', (_e, key) => withDataLock(async () => {
+handleIPC('license:status', async () => licenseStatusOf(await readConfig()));
+handleIPC('license:activate', (_e, key) => withDataLock(async () => {
   if (!parseLicenseKey(key)) throw new Error('invalid license key');
   const cfg = await readConfig();
   cfg.licenseKey = String(key).trim();
   await writeConfig(cfg);
   return licenseStatusOf(cfg);
 }));
-ipcMain.handle('license:deactivate', () => withDataLock(async () => {
+handleIPC('license:deactivate', () => withDataLock(async () => {
   const cfg = await readConfig();
   delete cfg.licenseKey;
   await writeConfig(cfg);
@@ -868,11 +1122,11 @@ async function syncStatusInfo() {
   };
 }
 
-ipcMain.handle('sync:status', async () => syncStatusInfo());
+handleIPC('sync:status', async () => syncStatusInfo());
 // Safety-release boundary: renderer controls are not sufficient IPC protection.
 // Do not resume until persisted conflict history and offline numbering are verified.
 function requireCloudSyncEnabled() { throw new Error('CLOUD_SYNC_PAUSED_2_0_3'); }
-ipcMain.handle('sync:connect', async (_e, deviceName) => {
+handleIPC('sync:connect', async (_e, deviceName) => {
   requireCloudSyncEnabled();
   await oauthConnect();
   const st = await ensureWorkspace();
@@ -880,14 +1134,14 @@ ipcMain.handle('sync:connect', async (_e, deviceName) => {
   await writeSyncState(st);
   return syncStatusInfo();
 });
-ipcMain.handle('sync:disconnect', async () => {
+handleIPC('sync:disconnect', async () => {
   await clearTokens();
   await fsp.unlink(SYNC_STATE_PATH).catch(() => {});   // cursor/โฟลเดอร์เก่าอาจเป็นของอีกบัญชี — เริ่มใหม่
   return syncStatusInfo();
 });
 
 // push: อัปโหลด journal รายเดือนของเครื่องนี้ (เฉพาะเดือนล่าสุด 2 ไฟล์ — ไฟล์เก่ากว่านั้นนิ่งแล้ว)
-ipcMain.handle('sync:push', async () => {
+handleIPC('sync:push', async () => {
   requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   st.uploads = st.uploads || {}; st.remoteFiles = st.remoteFiles || {};
@@ -910,7 +1164,7 @@ ipcMain.handle('sync:push', async () => {
 });
 
 // pull: อ่าน event ใหม่จากเครื่องอื่น (cursor = จำนวนไบต์ที่อ่านแล้วต่อไฟล์ — ไฟล์เป็น append-only)
-ipcMain.handle('sync:pull', async () => {
+handleIPC('sync:pull', async () => {
   requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   const cfg = await readConfig();
@@ -936,7 +1190,7 @@ ipcMain.handle('sync:pull', async () => {
   return { events, lastPullAt: st.lastPullAt || '', cursors: newCursors, wantSnapshot };
 });
 // commit หลัง renderer merge+บันทึกสำเร็จเท่านั้น — pull ล้มเหลวแล้ว event ไม่หาย
-ipcMain.handle('sync:commitPull', async (_e, cursors) => {
+handleIPC('sync:commitPull', async (_e, cursors) => {
   requireCloudSyncEnabled();
   const st = await readSyncState();
   st.cursors = { ...(st.cursors || {}), ...(cursors || {}) };
@@ -946,7 +1200,7 @@ ipcMain.handle('sync:commitPull', async (_e, cursors) => {
   return true;
 });
 
-ipcMain.handle('sync:snapshot', async (_e, text) => {
+handleIPC('sync:snapshot', async (_e, text) => {
   requireCloudSyncEnabled();
   // กันชั้นที่สอง (นอกจาก renderer): สแนปช็อตว่างห้ามขึ้น Drive ไม่ว่ามาจาก build ไหน
   try {
@@ -966,7 +1220,7 @@ ipcMain.handle('sync:snapshot', async (_e, text) => {
 });
 
 // เครื่องใหม่: สแนปช็อตล่าสุด + event ทั้งหมด (renderer เอาไป migrate + replay)
-ipcMain.handle('sync:restore', async () => {
+handleIPC('sync:restore', async () => {
   requireCloudSyncEnabled();
   const st = await ensureWorkspace();
   const snaps = (await driveList(`'${st.folders.snapshots}' in parents and trashed=false`)).sort((a, b) => b.name.localeCompare(a.name));
@@ -997,28 +1251,28 @@ ipcMain.handle('sync:restore', async () => {
   return { snapshot, events };
 });
 
-ipcMain.handle('ai:status', async () => aiStatus());
+handleIPC('ai:status', async () => aiStatus());
 
-ipcMain.handle('ai:infer', async (_e, input) => runAiInference(input));
+handleIPC('ai:infer', async (_e, input) => runAiInference(input));
 
-ipcMain.handle('ai:importTor', async (_e, filePath) => extractTorText(filePath));
+handleIPC('ai:importTor', async (_e, filePath) => extractTorText(filePath));
 
-ipcMain.handle('ai:reveal', async () => {
+handleIPC('ai:reveal', async () => {
   const status = await aiStatus();
   const dir = status.valid ? status.path : USER_AI_DIR;
   await fsp.mkdir(dir, { recursive: true });
   shell.openPath(dir);
 });
 
-ipcMain.handle('data:where', async () => {
+handleIPC('data:where', async () => {
   const cfg = await readConfig();
   return { mode: cfg.externalPath ? 'external' : 'app', path: cfg.externalPath || DEFAULT_DATA };
 });
 
-ipcMain.handle('data:reveal', async () => { shell.showItemInFolder(await activePath()); });
+handleIPC('data:reveal', async () => { shell.showItemInFolder(await activePath()); });
 
 // Pick an existing billing.json -> make it the active store, return its contents.
-ipcMain.handle('data:linkExisting', async () => {
+handleIPC('data:linkExisting', async () => {
   const r = await dialog.showOpenDialog(win, {
     title: 'เปิดไฟล์ billing.json', properties: ['openFile'],
     filters: [{ name: 'Billing Data (.json)', extensions: ['json'] }]
@@ -1028,6 +1282,7 @@ ipcMain.handle('data:linkExisting', async () => {
   return withDataLock(async () => {
     const text = await fsp.readFile(file, 'utf8');
     validateData(text); // Never switch the store to an empty/unrelated JSON file.
+    await preserveBefore204(file, text);
     const cfg = await readConfig(); cfg.externalPath = file; await writeConfig(cfg);
     await markDataInitialized();
     dataSession = { file, text };
@@ -1036,7 +1291,7 @@ ipcMain.handle('data:linkExisting', async () => {
 });
 
 // Create a new external file at a chosen location, seed it with current data, make active.
-ipcMain.handle('data:createExternal', async (_e, text) => {
+handleIPC('data:createExternal', async (_e, text) => {
   const r = await dialog.showSaveDialog(win, {
     title: 'เก็บเป็นไฟล์ (เช่นใน Drive/Dropbox)',
     defaultPath: path.join(app.getPath('documents'), 'billing.json'),
@@ -1059,10 +1314,10 @@ async function moveDataStore(file, text) {
   dataSession = { file, text };
   return { path: file };
 }
-ipcMain.handle('data:useDefault', (_e, text) => withDataLock(() => moveDataStore(DEFAULT_DATA, text)));
+handleIPC('data:useDefault', (_e, text) => withDataLock(() => moveDataStore(DEFAULT_DATA, text)));
 
 // Export a backup copy (does NOT change the active store).
-ipcMain.handle('data:export', async (_e, text) => {
+handleIPC('data:export', async (_e, text) => {
   const r = await dialog.showSaveDialog(win, {
     title: 'สำรองข้อมูล',
     defaultPath: path.join(app.getPath('documents'), 'billing-backup-' + new Date().toISOString().slice(0, 10) + '.json'),
@@ -1074,7 +1329,7 @@ ipcMain.handle('data:export', async (_e, text) => {
 });
 
 // Save the currently shown document as a PDF (uses the same @media print CSS).
-ipcMain.handle('doc:pdf', async (_e, suggestedName) => {
+handleIPC('doc:pdf', async (_e, suggestedName) => {
   const r = await dialog.showSaveDialog(win, {
     title: 'บันทึกเป็น PDF',
     defaultPath: path.join(app.getPath('documents'), suggestedName || 'document.pdf'),
@@ -1088,7 +1343,7 @@ ipcMain.handle('doc:pdf', async (_e, suggestedName) => {
 });
 
 // Import: pick a file, return its text (renderer merges + saves to the active store).
-ipcMain.handle('data:import', async () => {
+handleIPC('data:import', async () => {
   const r = await dialog.showOpenDialog(win, {
     title: 'นำเข้าข้อมูล', properties: ['openFile'],
     filters: [{ name: 'JSON', extensions: ['json'] }]
@@ -1116,6 +1371,9 @@ function createWindow() {
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
+  win.webContents.on('will-navigate', event => event.preventDefault());
+  win.webContents.on('will-attach-webview', event => event.preventDefault());
+  win.on('close', event => requestSafeClose(event, 'window'));
 }
 
 function buildMenu() {
@@ -1155,18 +1413,63 @@ app.on('second-instance', () => {
   else { if (win.isMinimized()) win.restore(); win.focus(); }
 });
 
-/* flush ก่อนปิดแอป (Pro sync): ดัน journal ที่ค้างขึ้น Drive ให้จบก่อนปิด —
-   กันเคส "แก้เอกสารแล้วปิดแอปทันที" ที่ debounce 30 วิ ยังไม่ทันยิง
-   มีเพดาน 5 วินาที: เน็ตล่ม/Drive ช้า ต้องไม่ทำให้ปิดแอปไม่ได้ (ข้อมูลอยู่ในเครื่องครบอยู่แล้ว) */
+// Quit must drain renderer transactions AND the native disk queue. A timeout
+// cancels quitting instead of silently discarding an unfinished local write.
 let quitFlushDone = false;
-app.on('before-quit', (e) => {
-  if (quitFlushDone) return;
-  if (!win || win.isDestroyed()) { quitFlushDone = true; return; }
+let quitInProgress = false;
+let closingMode = null;
+const allowedWindowCloses = new WeakSet();
+async function requestSafeClose(e, mode) {
+  if (quitFlushDone || (mode === 'window' && allowedWindowCloses.has(win))) return;
   e.preventDefault();
-  const finish = () => { if (!quitFlushDone) { quitFlushDone = true; app.quit(); } };
-  setTimeout(finish, 5000);
-  ipcMain.once('app:quitFlushDone', finish);
-  win.webContents.send('app:quitFlush');
-});
+  if (mode === 'quit') closingMode = 'quit';
+  if (quitInProgress) return;
+  closingMode = mode;
+  quitInProgress = true;
+  const closingWindow = win;
+  const requestId = crypto.randomBytes(12).toString('hex');
+  let timer, listener;
+  try {
+    if (win && !win.isDestroyed()) {
+      const rendererReady = new Promise((resolve, reject) => {
+        listener = (event, result) => {
+          if (!trustedRenderer(event)) return;
+          if (!result || result.requestId !== requestId) return;
+          if (result.ok !== true) reject(new Error('LOCAL_CHANGES_UNSAVED'));
+          else resolve();
+        };
+        ipcMain.on('app:quitFlushDone', listener);
+      });
+      const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('LOCAL_SAVE_PENDING')), 15000); });
+      win.webContents.send('app:quitFlush', { requestId, reason: mode });
+      await Promise.race([rendererReady, timeout]);
+    }
+    // Include requests queued during the renderer drain, not just a stale queue reference.
+    let pending;
+    do { pending = dataQueue; await pending; } while (pending !== dataQueue);
+    if (lastSaveError) throw lastSaveError;
+    if (closingMode === 'quit') {
+      quitFlushDone = true;
+      app.quit();
+    } else if (closingWindow && !closingWindow.isDestroyed()) {
+      allowedWindowCloses.add(closingWindow);
+      closingWindow.close();
+    }
+  } catch (error) {
+    if (closingWindow && !closingWindow.isDestroyed()) closingWindow.webContents.send('app:quitCancelled', { requestId });
+    if (dialog.showMessageBox) await dialog.showMessageBox(win && !win.isDestroyed() ? win : undefined, {
+      type: 'warning', title: 'BillNgai',
+      message: 'ยังปิดแอปไม่ได้ — ข้อมูลยังบันทึกไม่สำเร็จ / Changes are not safely saved yet.',
+      detail: 'โปรดตรวจสถานะการบันทึกแล้วลองอีกครั้ง / Check the save status and retry. No unfinished write was discarded.',
+      buttons: ['กลับไปตรวจสอบ / Keep open']
+    });
+  } finally {
+    clearTimeout(timer);
+    if (listener) ipcMain.removeListener('app:quitFlushDone', listener);
+    quitInProgress = false;
+    closingMode = null;
+  }
+}
+app.on('before-quit', event => requestSafeClose(event, 'quit'));
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

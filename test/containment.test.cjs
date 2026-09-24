@@ -56,7 +56,9 @@ test('dashboard charts use the same unique payment set and never count draft rec
   assert.match(run('chartsBlock()'),/10,000\.00/);
   assert.doesNotMatch(run('chartsBlock()'),/90,000\.00/);
   run("DB.documents.push(fixture({id:'receipt1',type:'receipt',parentId:'invoice'}),fixture({id:'receipt2',type:'receipt',parentId:'invoice'}))");
-  assert.equal(run('receivedDocs().length'),1);
+  assert.equal(run('receivedDocs().length'),0);
+  assert.equal(run('paymentReview().ambiguousCount'),1);
+  assert.equal(run('paymentReview().unallocatedDocs.length'),3);
   assert.doesNotMatch(run('chartsBlock()'),/20,000\.00/);
 });
 test('CSV treats formulas as text, quotes carriage returns and does not invent payment dates',()=>{
