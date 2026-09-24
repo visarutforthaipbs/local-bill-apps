@@ -20,7 +20,7 @@ const project=path.resolve(__dirname,'..');
     const packagedExecutable=process.argv[2];
     app=await electron.launch({executablePath:packagedExecutable?path.resolve(packagedExecutable):require('electron'),args:[...(packagedExecutable?[]:[project]),'--user-data-dir='+profile],timeout:30000});
     assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));
-    assert.equal(await app.evaluate(({app})=>app.getVersion()),'2.0.4');
+    assert.equal(await app.evaluate(({app})=>app.getVersion()),require('../package.json').version);
     const page=await app.firstWindow(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.waitForFunction(()=>DB&&!loadFailed&&DB.documents.length===3);

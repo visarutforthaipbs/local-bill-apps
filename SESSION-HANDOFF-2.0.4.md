@@ -2,6 +2,12 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
+**Post-release diagnosis:** owner-selected legacy backup is valid JSON but contains
+12 type-less deletion tombstones that both 2.0.4 validators reject. Read
+[BACKUP-IMPORT-DIAGNOSIS.md](review/2026-09-24/BACKUP-IMPORT-DIAGNOSIS.md).
+Compatibility fix is not implemented; no live data changed. The release tests
+missed this historical representation. Latest user request authorized diagnosis.
+
 Current release continuation is recorded in [RELEASE-2.0.4.md](RELEASE-2.0.4.md).
 Source `8c1dfcfbb1891979706d63558c90075d50be9722` / tag `v2.0.4` is published;
 installer and website publication status is recorded in that release file.

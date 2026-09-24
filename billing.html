@@ -1391,6 +1391,18 @@ function importJSON(){
   inp.click();
 }
 
+// Older sync deletes could retain only identity/timestamps (and migrated currency).
+// Accept that exact deleted shape, never a type-less live/financial document.
+function isLegacyDeletionMarker(record) {
+  const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
+  return !!record && typeof record === 'object' && !Array.isArray(record)
+    && typeof record.id === 'string' && !!record.id && !Object.hasOwn(record,'type')
+    && timestamp(record.deletedAt) && timestamp(record.updatedAt)
+    && Object.keys(record).every(key => ['id','deletedAt','updatedAt','currency','archivedAt'].includes(key))
+    && (record.currency === undefined || typeof record.currency === 'string')
+    && (record.archivedAt == null || timestamp(record.archivedAt));
+}
 function validateRendererData(data){
   const object=v=>v && typeof v==='object' && !Array.isArray(v);
   if(!object(data)||!object(data.business)) throw Error('DATA_SCHEMA_INVALID');
@@ -1402,7 +1414,7 @@ function validateRendererData(data){
       if(!object(r)||typeof r.id!=='string'||!r.id||ids.has(r.id))throw Error('DATA_SCHEMA_INVALID');
       ids.add(r.id);
       if(r.items!==undefined && (!Array.isArray(r.items)||r.items.some(i=>!object(i))))throw Error('DATA_SCHEMA_INVALID');
-      if(key==='documents' && !['quotation','invoice','receipt','tax_invoice'].includes(r.type))throw Error('DATA_SCHEMA_INVALID');
+      if(key==='documents' && !['quotation','invoice','receipt','tax_invoice'].includes(r.type) && !isLegacyDeletionMarker(r))throw Error('DATA_SCHEMA_INVALID');
     }
   }
   if(data.counters!==undefined&&!object(data.counters))throw Error('DATA_SCHEMA_INVALID');
@@ -1431,6 +1443,7 @@ function migrate(data){
   merged.documents.forEach(d=>{ if(!isIssuedDocument(d) && d.number && /[{}]/.test(d.number)) d.number = d.number.replace(/[{}]/g,''); });
   // older documents predate per-document currency — inherit the business currency.
   merged.documents.forEach(d=>{
+    if(isLegacyDeletionMarker(d)) return; // Preserve deleted-marker bytes; do not invent particulars.
     if(isIssuedDocument(d)){
       if(!hasIssuedSnapshot(d)) d.legacy_review_required = true;
     }else if(!d.currency) d.currency = merged.business.currency || 'THB';

@@ -504,6 +504,18 @@ function withDataLock(action) {
   dataQueue = result.catch(() => {});
   return result;
 }
+// Older sync deletes could retain only identity/timestamps (and migrated currency).
+// Accept that exact deleted shape, never a type-less live/financial document.
+function isLegacyDeletionMarker(record) {
+  const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
+  return !!record && typeof record === 'object' && !Array.isArray(record)
+    && typeof record.id === 'string' && !!record.id && !Object.hasOwn(record,'type')
+    && timestamp(record.deletedAt) && timestamp(record.updatedAt)
+    && Object.keys(record).every(key => ['id','deletedAt','updatedAt','currency','archivedAt'].includes(key))
+    && (record.currency === undefined || typeof record.currency === 'string')
+    && (record.archivedAt == null || timestamp(record.archivedAt));
+}
 function validateData(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > 64 * 1024 * 1024) throw new Error('DATA_INVALID_SIZE');
   let data;
@@ -550,7 +562,7 @@ function validateData(text) {
     for (const record of data[key]) {
       if (!object(record) || typeof record.id !== 'string' || !record.id || ids.has(record.id)) invalid();
       ids.add(record.id);
-      if (key === 'documents' && !['quotation','invoice','receipt','tax_invoice'].includes(record.type)) invalid();
+      if (key === 'documents' && !['quotation','invoice','receipt','tax_invoice'].includes(record.type) && !isLegacyDeletionMarker(record)) invalid();
     }
   }
   data.clients.forEach(party);

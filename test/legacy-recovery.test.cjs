@@ -44,6 +44,16 @@ function setup() {
   return {run:s=>vm.runInContext(s,ctx),elements};
 }
 
+test('type-less legacy tombstones stay deleted, readable, non-printable and unchanged across migration',()=>{
+  const {run}=setup();
+  assert.equal(run(`(()=>{const marker={id:'old-delete',deletedAt:'2020-01-01T00:00:00.000Z',updatedAt:'2020-01-01T00:00:00.000Z'};
+    const before=JSON.stringify(marker);DB=migrate({...blankDB(),documents:[marker]});DB=migrate(DB);
+    const d=DB.documents[0];renderHistoricalReview(d);return JSON.stringify(d)===before && activeDocs().length===0 && archivedDocuments().length===1 && documentOutputBlocked(d) && shareText(d)==='' && !d.issuedSnapshot && !d.type;})()`),true);
+  for(const extra of [{deletedAt:null},{deletedAt:'invalid'},{type:'unknown'},{items:[]},{status:'paid'}]) {
+    assert.throws(()=>run(`migrate({...blankDB(),documents:[{id:'bad',deletedAt:'2020-01-01T00:00:00.000Z',updatedAt:'2020-01-01T00:00:00.000Z',...${JSON.stringify(extra)}}]})`),/DATA_SCHEMA_INVALID/);
+  }
+});
+
 test('every legacy document type exposes retained fields without inventing current issuer or buyer',()=>{
   const {run}=setup();
   for(const type of ['quotation','invoice','receipt','tax_invoice']) {
