@@ -1,6 +1,6 @@
-# BillNgai 2.0.3 candidate verification
+# BillNgai 2.0.3 release verification
 
-Date: 2026-09-23. Scope: direct-download source candidate; MAS and Windows port/build verification remains pending under the coordinated release policy.
+Updated: 2026-09-24. Scope: released Direct macOS source and exact installer; MAS and Windows port/build verification remains pending under the coordinated release policy.
 
 ## Latest release-preparation audit — 2026-09-23
 
@@ -22,9 +22,13 @@ in the clean `BillNgai-release-2.0.3` release checkout. Native Electron 43.7.3 s
 smoke also passed, using isolated fixture
 `/var/folders/4_/yy75nyfs02544ssmwvlgvz980000gn/T/billngai-electron-smoke-ydrjeF`.
 These results include the certificate-preservation change. The reviewed release
-commit, signed universal installer, notarization/stapling, Gatekeeper, exact
-packaged smoke, public-download hash and live website verification are **pending**
-in this record. Source checks do not certify an untested packaged binary.
+commit is `49595e0567d397a7d334178615205ba41deb8748`. Signed universal installer,
+Apple notarization (Accepted; no issues), stapling, Gatekeeper for DMG/app, exact
+mounted packaged smoke, packaged-source equality and generated PDF visual review
+have now passed. Final artifact SHA-256 and detailed evidence are recorded in
+`RELEASE-2.0.3.md`. R2 and GitHub public-download byte/SHA checks and live website
+verification passed on 2026-09-24; deployment `8d125ac5-1c5f-43ba-be70-f5f47e4409f9`.
+Source checks alone do not certify a binary.
 No Windows or MAS build/submission is completed or authorized by this Direct scope.
 
 For session history, release-practice findings and next steps, read [SESSION-HANDOFF-2.0.3.md](SESSION-HANDOFF-2.0.3.md). Checks below were completed during implementation; the subsequent documentation-only handoff update did not rerun them or verify a packaged 2.0.3 installer.

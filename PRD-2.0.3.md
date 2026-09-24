@@ -1,7 +1,7 @@
 # BillNgai 2.0.3 — ordinary-receipt safety release
 
 Owner: Visarut. Engineering manager: Codex. Date: 2026-09-23.
-Status: release preparation authorized; source candidate only until artifact gates pass. Direct macOS scope; Windows and MAS pending.
+Status: Direct macOS released 2026-09-24; artifact/publication evidence in `RELEASE-2.0.3.md`. Windows and MAS pending.
 
 ## Owner-directed review decision — 2026-09-23
 
@@ -111,6 +111,10 @@ Dependencies: issuance calls shared history helpers `isIssuedDocument`, `freezeI
 - Prior-year annual guidance (not a claim of final 2569 rules): https://www.rd.go.th/fileadmin/tax_pdf/pit/2568/Ins90_241268.pdf.
 - VAT threshold: https://www.rd.go.th/7061.html. e-Tax routes: https://www.rd.go.th/region/06/nakhonpathom2/274/3448.html.
 
-## Deployment status
+## Historical implementation checkpoint
 
 At plan creation, field SSH timed out. The user woke the Mac; remote instructions were re-read and affected source hashes matched the audited baseline. The candidate was integrated into the existing working tree without changing Git history or unrelated edits. Backup: `/Users/visarutsankham/Documents/Personal-Project/BillNgai-pre-2.0.3.iucTpL`. See `VERIFICATION-2.0.3.md` for checks and remaining gates. This is a source update, not a published installer.
+
+Subsequent release: Direct macOS 2.0.3 and aligned website published 2026-09-24.
+See `RELEASE-2.0.3.md` for the exact signed artifact and public verification;
+the earlier paragraph records implementation history, not current release status.

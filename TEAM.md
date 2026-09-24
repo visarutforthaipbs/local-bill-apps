@@ -5,8 +5,8 @@
 The owner explicitly authorized audit and Direct macOS release preparation,
 reviewed commits/signing/notarization/tag/push/publication and the matching website
 update. This is the per-action exception to the general owner-controls-release
-rule below, not standing permission for future releases. Current status is release
-PREPARATION; do not claim an installer is released before evidence is recorded.
+rule below, not standing permission for future releases. Direct macOS was released
+2026-09-24; exact artifact and public verification are in `RELEASE-2.0.3.md`.
 MAS and Windows are pending. No MAS submission, broadcasts/customer messages,
 pricing/refund changes, license-key generation or customer-data access is included.
 

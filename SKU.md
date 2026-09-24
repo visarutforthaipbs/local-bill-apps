@@ -1,9 +1,9 @@
 # BillNgai — SKU & Channel Design (ร่างเพื่อตัดสินใจ)
 
-## Current override — 2026-09-23, Direct macOS 2.0.3 preparation
+## Current override — 2026-09-24, Direct macOS 2.0.3 released
 
 This dated containment scope takes precedence over older feature promises below
-and the 2.0 PRD. This is a source candidate, not evidence of a published installer.
+and the 2.0 PRD. Published installer evidence is in `RELEASE-2.0.3.md`.
 Local remains free; Pro remains ฿599 Early Bird → ฿1,900. No new pricing, refunds,
 license-key actions or customer messages are authorized by the release request.
 

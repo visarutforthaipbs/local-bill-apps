@@ -16,7 +16,7 @@ history; verify current state before executing old upload or deployment instruct
 
 | Priority | Work | Status / boundary |
 |---|---|---|
-| P0 | Final Direct macOS 2.0.3 exact-artifact gates and truthful website restrictions | Release preparation; record final commit, signed/notarized artifact, packaged smoke, public hash and live deploy before marking done |
+| P0 | Final Direct macOS 2.0.3 exact-artifact gates and truthful website restrictions | Done 2026-09-24; source, signed/notarized artifact, packaged smoke, public hashes and live deployment in `RELEASE-2.0.3.md` |
 | P1 | Deliberate MAS containment port | Pending; preserve StoreKit/sandbox, inspect current upload number and entitlement needs, same app SemVer + fresh build number; no submission authorized here |
 | P1 | Windows containment port/build and real-machine verification | Pending; do not label the existing Windows download 2.0.3 |
 | P1 | Historical document exposure/correction assessment | Pending separate owner-approved data scope and appropriate professional review; preserve original records/PDFs, no invented snapshots or mass edits |
@@ -25,7 +25,7 @@ history; verify current state before executing old upload or deployment instruct
 | P1 | Reconcile older support/marketing drafts before reuse | Current FAQ/SKU/DELIVERY/TEAM corrected; historical drafts not publication-ready; no unsafe Gatekeeper bypass or full-tax/sync promises |
 | P2 | External Thai practitioner review of the supported receipt/payment/WHT scope | Recommended, not completed; owner directs AI-assisted audit instead as this release prerequisite, not legal certification |
 
-Certificate-preservation P2 audit finding: fixed in source candidate with a new
+Certificate-preservation P2 audit finding: fixed in the released source with a new
 invoice-to-receipt regression; see `VERIFICATION-2.0.3.md` for exact test evidence.
 
 | วันที่ | ที่มา | รายการ | กระทบ | P | สถานะ |

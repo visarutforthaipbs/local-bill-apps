@@ -82,6 +82,7 @@ const assert = require('node:assert/strict');
     await page.evaluate(()=>{DB.business.uiLang='en';setView('filing');});
     await page.getByText('Tax payable or refund calculation is unavailable',{exact:true}).waitFor();
     await page.reload();
+    await page.waitForFunction(()=>DB && !loadFailed && DB.documents.length===2 && hasIssuedSnapshot(DB.documents[1]));
     assert.equal(await page.evaluate(()=>DB.documents.length),2);
     assert.equal(await page.evaluate(()=>hasIssuedSnapshot(DB.documents[1])),true);
     assert.deepEqual(errors,[]);

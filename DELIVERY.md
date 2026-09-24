@@ -1,8 +1,8 @@
 # BillNgai 2.0 — Delivery & Fulfillment
 
-## Current override — 2026-09-23, Direct macOS 2.0.3 preparation
+## Current override — 2026-09-24, Direct macOS 2.0.3 released
 
-The current release is a containment candidate, not yet a verified public artifact.
+The containment release is public; see `RELEASE-2.0.3.md` for verified artifact evidence.
 Use `DEPLOYMENT.md` for build/sign/notarize/staple, exact packaged smoke, immutable
 versioned R2 upload, public checksum, GitHub fallback and live Pages verification.
 Old version URLs, hashes and launch checkboxes below are historical evidence only.
@@ -38,7 +38,7 @@ Never ship separate Local/Pro builds; Local→Pro is "paste a key", not a reinst
 | Price | **ฟรี** (ตัดสินใจแล้ว 2026-07-12 — เดิม ฿59 Early Bird honor system, ดู SKU.md §6.A) | ฿599 Early Bird → ฿1,900 one-time (ตัดสินใจแล้ว 2026-07-12, ดู SKU.md §6.B) |
 | Buyer receives | DMG download link | DMG link + **Pro key** + **AI add-on PKG link** |
 | License key | none (soft enforcement — the download *is* the product) | Ed25519 signed key, verified offline in-app |
-| Unlocks (Direct 2.0.3 candidate) | supported ordinary billing, local backup/export, income classification and limited summaries | + existing TOR → Quotation AI entitlement; sync remains paused |
+| Unlocks (Direct 2.0.3) | supported ordinary billing, local backup/export, income classification and limited summaries | + existing TOR → Quotation AI entitlement; sync remains paused |
 | Upgrade path | — | buy Pro → paste key in ตั้งค่า → Workspace. No reinstall |
 
 Rationale: Local is free with no key at all (decided 2026-07-12 — was a ฿59

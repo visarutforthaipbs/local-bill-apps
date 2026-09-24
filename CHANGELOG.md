@@ -3,7 +3,7 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [2.0.3] — 2026-09-23 (candidate; not published)
+## [2.0.3] — 2026-09-24 (Mac Direct)
 
 ### Safety scope
 - Default to non-VAT, require explicit status/payment/withholding confirmation for ordinary THB full-payment receipts, and block new tax invoices pending validation of the complete registered-seller workflow.
@@ -11,7 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Make receipt creation idempotent, duplicates drafts, and reports payment-aware; replace unsupported PIT payable/refund estimates with limited bookkeeping summaries.
 - Make income classification available without Pro and stop inferring withholding from currency or income category.
 - Pause cloud sync/restore and custom e-Tax XML export in both UI and relevant IPC boundaries. Local backup/export remains available. This is temporary containment, not a completed sync/e-Tax implementation.
-- Add synthetic regression tests. This is a Direct macOS candidate; Windows and MAS remain pending. Owner-directed AI-assisted review replaces the proposed external-practitioner prerequisite for this release (see `PRD-2.0.3.md`); it is not professional approval or legal certification. Integrated desktop and final signed-package checks remain required.
+- Add synthetic regression tests. Released for Direct macOS only; Windows and MAS remain pending. Owner-directed AI-assisted review replaces the proposed external-practitioner prerequisite for this release (see `PRD-2.0.3.md`); it is not professional approval or legal certification. Source 81/81, exact signed/notarized package and public-download checks passed; see `RELEASE-2.0.3.md`.
 
 ### Fixed
 - Preserve recorded 50-tawi certificate receipt status, number and date when creating a receipt from a paid invoice, so payment-deduplicated tracking and CSV do not lose that evidence. Add an invoice-to-receipt regression test.

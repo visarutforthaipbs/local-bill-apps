@@ -1,10 +1,72 @@
 # BillNgai 2.0.3 — session handoff
 
-Last updated: 2026-09-23 (Asia/Bangkok). Owner: Visarut. Engineering manager: Codex.
+Last updated: 2026-09-24. Owner: Visarut. Engineering manager: Codex.
 
 ## Read this first
 
-**Current state: release PREPARATION; no verified/published 2.0.3 artifact recorded here.**
+**Current state: Direct macOS 2.0.3 released; public binaries and website verified.**
+
+### Final publication checkpoint — 2026-09-24
+
+- Source/tag `49595e0567d397a7d334178615205ba41deb8748` / `v2.0.3` is published at
+  https://github.com/visarutforthaipbs/local-bill-apps/releases/tag/v2.0.3.
+- Website https://billiong-landing.pages.dev/ now serves 2.0.3 from website repo
+  `visarutforthaipbs/billiong-releases`, content commit `2af067cb2543880d19447795aa07acf20d2fb6e1`.
+  Production deployment `8d125ac5-1c5f-43ba-be70-f5f47e4409f9`.
+- R2 and GitHub public downloads both passed full byte/SHA checks on field.
+  Live landing/support/retired-demo pages match the tested build; Chrome checked
+  the production download dialog, restrictions and support guidance.
+- Read `RELEASE-2.0.3.md` for exact artifact identity, Apple verification, public
+  URLs, tests and rollback limitations. Later docs/test-harness commits do not
+  alter the signed app or move its release tag.
+- Local publishing repositories: `/Users/lighthouse-control/BillNgai-publish-2.0.3`
+  and `/Users/lighthouse-control/BillNgai-site-publish-2.0.3`.
+  Original dirty field `Billiong-App` remains preserved; final billing/certificate
+  fix was hash-guarded, backed up and passed 81/81 there. Do not mass-stage/reset it.
+- MAS/Windows, external practitioner review, customer policy, historical corrections
+  and full security/PDPA review remain separate pending work. No certification claimed.
+- All preparation/no-publication checkpoints below are historical, not current gates.
+
+### Latest verified artifact
+
+Read `RELEASE-2.0.3.md` for build source, hashes, notarization and isolated smoke
+evidence. The keychain issue below was resolved and a fresh signed build succeeded.
+Apple accepted notarization without issues; stapling, Gatekeeper for DMG/app,
+mounted packaged smoke, source comparison and receipt PDF inspection all passed.
+Final DMG is 223,450,345 bytes, SHA-256
+`c0ba00307457f9e4db8540bbc3bbfde2d67850a46e4219acf6cb5080a4a7dc36`.
+The installer transfer, R2/GitHub byte checks and live Pages checks have passed.
+
+Final review also broadened the upgrade warning: all historical issued document
+types without snapshots are retained for review but cannot be reprinted/shared or
+have status changed, including old unpaid invoice/payment/linked-receipt actions.
+This is now explicit in release notes, FAQ and the website. No historical evidence
+was fabricated and no customer records were examined.
+
+### Historical operational checkpoint — 2026-09-23 20:40 Asia/Bangkok
+
+- Final reviewed app source is committed as `49595e0567d397a7d334178615205ba41deb8748`
+  on `codex/release-2.0.3` in the isolated field worktree
+  `/Users/visarutsankham/Documents/Personal-Project/BillNgai-release-2.0.3`.
+  The original dirty `Billiong-App` checkout is preserved, not the authoritative
+  final build source; do not reset or mass-stage it.
+- Universal packaging reached signing but failed with `errSecInternalComponent`.
+  Developer ID identity is present and valid. `security show-keychain-info`
+  returned `User interaction is not allowed` over SSH. Owner was asked to unlock
+  the login keychain locally on field. Do not bypass signing or export credentials.
+- Notarization, stapling, packaged-app smoke and public artifact verification have
+  NOT passed. No 2.0.3 binary, tag, source push or website deployment was published.
+- Local GitHub authentication works. Cloudflare browser login is now verified in
+  account `7b6e1c302155d21e6cc1d807cc01f010`; `billiong-releases` R2 bucket is
+  accessible. R2 CLI still lacks its required API token; use authenticated dashboard.
+- Website candidate was copied into the real local Git checkout
+  `/Users/lighthouse-control/BillNgai-site-publish-2.0.3`; clean build and generated
+  release assertions pass. Manager inspected mobile download and desktop support
+  screenshots. Do not push/deploy its signed/notarized claims until artifact gates pass.
+- Resume signing in the isolated worktree, then notarize/staple, test the exact
+  mounted DMG, publish and verify R2/GitHub hashes, then publish website. Record
+  final identifiers and replace this checkpoint with verified outcomes, retaining
+  the failed attempt as history.
 
 ### Latest owner authorization — 2026-09-23
 
@@ -28,10 +90,9 @@ proof of the final updated candidate. A later certificate-preservation audit fix
 has a passing 15-test issuance regression suite. The release manager then verified
 **81/81 full tests** and native Electron 43.7.3 source smoke on field's clean
 `BillNgai-release-2.0.3` checkout; fixture location is in `VERIFICATION-2.0.3.md`.
-Packaged-smoke, signing/notarization, public checksum and live website gates remain
-pending here; source tests do not establish those results.
-Documentation is being reconciled with the containment scope. Record exact final
-source/artifact identifiers and results after the release manager verifies them.
+The final checkpoint and `RELEASE-2.0.3.md` now record the separately verified
+packaged-smoke, signing/notarization, public checksum and live website gates.
+Source tests alone do not establish those results.
 
 The earlier handoff and its no-publication state are preserved below as history.
 
@@ -178,7 +239,7 @@ historical/security review and existing-Pro-customer handling still pending.
    ever re-enabled, test fresh-account granular consent and multi-device conflicts;
    prior authorizations mask failures. Do not enable it merely to satisfy old notes.
 
-## Safe next steps and remaining gates
+## Historical pre-publication checklist (superseded; see final checkpoint)
 
 ### Owner follow-up: website and release repository
 
