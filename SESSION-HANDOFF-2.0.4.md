@@ -5,8 +5,18 @@ Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads ver
 **Post-release diagnosis:** owner-selected legacy backup is valid JSON but contains
 12 type-less deletion tombstones that both 2.0.4 validators reject. Read
 [BACKUP-IMPORT-DIAGNOSIS.md](review/2026-09-24/BACKUP-IMPORT-DIAGNOSIS.md).
-Compatibility fix is not implemented; no live data changed. The release tests
-missed this historical representation. Latest user request authorized diagnosis.
+The owner subsequently authorized restoring the exact September 23 backup.
+A private 2.0.5 compatibility repair is implemented on local branch
+`codex/local-recovery-2.0.5`, source commit `9022e4969aa8171358beb37cd135760c1b2f3eb6`.
+See [RECOVERY-2026-09-24.md](RECOVERY-2026-09-24.md) for current verification and
+restoration status. Public 2.0.4 remains unchanged. The release tests missed this
+historical representation; do not confuse diagnosis-stage notes with current work.
+
+**Owner recovery completed:** private signed/notarized 2.0.5 installed locally;
+September 23 import verified and persisted across quit/relaunch, with 47 visible
+documents and 38 active customers (78 document entries / 44 customer records stored).
+Old profile/app preserved in `/Users/lighthouse-control/BillNgai-recovery-2026-09-24`.
+No public 2.0.5 release. Read the recovery log before any further customer-data action.
 
 Current release continuation is recorded in [RELEASE-2.0.4.md](RELEASE-2.0.4.md).
 Source `8c1dfcfbb1891979706d63558c90075d50be9722` / tag `v2.0.4` is published;
