@@ -4,12 +4,14 @@ Last updated: 2026-09-24. Owner: Visarut. Engineering manager: Codex.
 
 ## Read this first
 
-**Superseding implementation session:** owner subsequently said “implement it all”.
+**Superseding release session:** owner subsequently said “implement it all” and
+authorized completing/publicizing 2.0.4 via field. Read `RELEASE-2.0.4.md` for
+current source/tag, accepted notarization and publication evidence.
 The local 2.0.4 candidate now implements the audited fixes and supported legacy
 review/recovery workflow. Read `SESSION-HANDOFF-2.0.4.md` and
 `VERIFICATION-2.0.4.md` for current work/test evidence. The incident below describes
-the unchanged installed/public 2.0.3 binary, not the modified candidate source.
-No customer records or installed app were changed, and 2.0.4 is not released.
+the 2.0.3 binary, not the fixed 2.0.4 release. No customer records or installed
+app were changed by release verification; publication does not install an update.
 
 ### Post-release incident — 2026-09-24 (unresolved)
 

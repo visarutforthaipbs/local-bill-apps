@@ -3,7 +3,7 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [2.0.4] — Unreleased candidate
+## [2.0.4] — 2026-09-24 (Mac Direct)
 
 ### Fixed
 - Replace unsupported native void/payment prompts with validated in-app dialogs; retain evidence and roll back failed saves.
@@ -21,7 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ### Restrictions
 - No automated tax-invoice correction, invented historical snapshot, VAT/FX/partial-payment recovery, cloud sync, e-Tax export or tax-payable calculation. This is not professional tax/legal certification.
-- Not packaged, signed, notarized, installed or published as 2.0.4. Release gates remain separate.
+- Signed/notarized Mac Direct installer released; 165 automated tests and both exact packaged native suites pass. See `RELEASE-2.0.4.md` for artifact/publication evidence. Installed customer apps are not automatically replaced; Windows/MAS and broader manual/practitioner review remain separate.
 
 ## [2.0.3] — 2026-09-24 (Mac Direct)
 

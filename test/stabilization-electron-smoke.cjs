@@ -102,7 +102,7 @@ const project=path.resolve(__dirname,'..');
       if(!page.isClosed())throw error;
     });
     assert.equal(JSON.parse(await fs.readFile(store,'utf8')).meta.nativeCloseCanary,'saved-before-window-close');
-    console.log('PASS: candidate source Electron 43.7.3, native void/payment dialogs, reload, draft PDF, tax-draft block, evidence IPC/bundle, legacy payment/new receipt counted once, TH/EN views and close drain.');
+    console.log('PASS: '+(packagedExecutable?'packaged executable':'source runtime')+', native void/payment dialogs, reload, draft PDF, tax-draft block, evidence IPC/bundle, legacy payment/new receipt counted once, TH/EN views and close drain.');
     console.log('SYNTHETIC_ARTIFACTS='+root);
   }finally{if(app)await app.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

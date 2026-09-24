@@ -2,7 +2,9 @@
 
 **Current candidate (2026-09-24):** start with `SESSION-HANDOFF-2.0.4.md` and
 `VERIFICATION-2.0.4.md`. The owner authorized implementing the post-release audit.
-The local uncommitted 2.0.4 candidate is not the installed or published 2.0.3 app.
+The owner subsequently authorized release; see `RELEASE-2.0.4.md` for exact
+source/tag, signing, notarization and publication state. Do not infer installed
+app/customer-profile changes from publication.
 
 **Current-session handoff (2026-09-23):** read `SESSION-HANDOFF-2.0.3.md` before
 continuing, then check `RELEASE-2.0.3.md` for exact commit, artifact and publication

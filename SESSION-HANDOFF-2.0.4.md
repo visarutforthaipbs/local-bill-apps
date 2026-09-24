@@ -1,8 +1,10 @@
 # BillNgai 2.0.4 — implementation handoff
 
-Updated: 2026-09-24. **Release authorized and in progress; uninstalled, unpublished.**
+Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
 Current release continuation is recorded in [RELEASE-2.0.4.md](RELEASE-2.0.4.md).
+Source `8c1dfcfbb1891979706d63558c90075d50be9722` / tag `v2.0.4` is published;
+installer and website publication status is recorded in that release file.
 The owner explicitly authorized finishing and publishing via field. Approved OAuth
 and Apple notarization configuration have been recovered; the earlier missing-config
 blocker below is historical. Installed app and customer data remain untouched.

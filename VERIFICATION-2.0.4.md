@@ -4,6 +4,14 @@ Date: 2026-09-24. **Source verification checkpoint; release continuation below.*
 See [RELEASE-2.0.4.md](RELEASE-2.0.4.md) for subsequent authorized packaging and
 publication evidence. Earlier missing-config/no-remote-work statements below
 describe the source checkpoint and are not the current release status.
+
+Subsequent release acceptance: 165 tests passed again; approved OAuth check passed
+on field; fresh universal build completed; Apple Accepted; final DMG stapled and
+Gatekeeper accepted both DMG and mounted app. Both native suites passed against
+the final read-only mounted installer with synthetic profiles, and all 17 packaged
+tracked files match source commit `8c1dfcfbb1891979706d63558c90075d50be9722`.
+See the release record for submission ID, final hash, fixture paths and public-byte
+checks. Remaining expanded manual/other-platform checks below are not claimed done.
 Candidate is an uncommitted working tree in `BillNgai-publish-2.0.3`, based on
 `6647d5bbeb7992fb3384b30b60b1678506511368`. Coordinator source hashes and checks are
 recorded below. No new commit exists. Do not turn a pending release item into a
