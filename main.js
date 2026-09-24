@@ -506,6 +506,28 @@ function withDataLock(action) {
 }
 // Older sync deletes could retain only identity/timestamps (and migrated currency).
 // Accept that exact deleted shape, never a type-less live/financial document.
+function validCorrectionReviewEvent(event) {
+  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  if (!object(event) || typeof event.id !== 'string' || !event.id || event.type !== 'correction_review'
+    || typeof event.documentId !== 'string' || !event.documentId || typeof event.batchId !== 'string' || !event.batchId
+    || !['unknown','not_sent','sent'].includes(event.deliveryStatus) || event.historicalVatConfirmed !== true
+    || event.vatStatus !== 'non_registered' || !['review','prepare_proposal'].includes(event.action)
+    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
+    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
+    || new Date(event.recordedAt).toISOString() !== event.recordedAt) return false;
+  const source = event.sourceRecordAtReview;
+  if (!object(source) || source.id !== event.documentId || source.type !== 'tax_invoice') return false;
+  if (event.action === 'review') return event.proposal === undefined;
+  const numeric = value => (typeof value === 'number' || (typeof value === 'string' && !!value.trim())) && Number.isFinite(Number(value));
+  if (!Array.isArray(source.items) || !source.items.length || source.items.some(item => !object(item)
+    || typeof item.description !== 'string' || !item.description.trim() || !numeric(item.qty) || Number(item.qty) <= 0
+    || !numeric(item.price) || Number(item.price) < 0) || !numeric(source.whtRate) || Number(source.whtRate) < 0 || Number(source.whtRate) > 100) return false;
+  const proposal = event.proposal;
+  return object(proposal) && Object.keys(proposal).length === 3 && proposal.type === 'receipt'
+    && proposal.status === 'review_only' && proposal.sourceDocumentId === event.documentId
+    && !source.deletedAt && !source.voidedAt && source.status !== 'void' && !source.milestone
+    && [0,'0'].includes(source.vatRate) && source.currency === 'THB';
+}
 function isLegacyDeletionMarker(record) {
   const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
     && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
@@ -584,6 +606,16 @@ function validateData(text) {
     }
   }
   for (const event of data.reviewEvents || []) {
+    if (event.type === 'payment_match') {
+      if (event.samePaymentConfirmed !== true || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000 ||
+        typeof event.representativeId !== 'string' || !Array.isArray(event.sourceRecords) || event.sourceRecords.length !== 2 ||
+        event.sourceRecords.some(record => !object(record) || typeof record.id !== 'string' || !record.id) ||
+        new Set(event.sourceRecords.map(record => record.id)).size !== 2 ||
+        !event.sourceRecords.some(record => record.type === 'invoice' && record.id === event.documentId) ||
+        !event.sourceRecords.some(record => ['receipt','tax_invoice'].includes(record.type) && record.id === event.representativeId)) invalid();
+      event.sourceRecords.forEach(document);
+    }
+    if (event.type === 'correction_review' && !validCorrectionReviewEvent(event)) invalid();
     strings(event, ['documentId','type','recordedAt','note','paymentId','paidDate','currency','vatStatus']);
     if (!event.documentId || !event.type || !event.recordedAt) invalid();
     if (event.evidence !== undefined) {

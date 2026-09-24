@@ -3,6 +3,28 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.6] — Unreleased local candidate
+
+### Added
+- Dashboard historical-payment totals, separated from included income; incomplete
+  totals no longer masquerade as zero received. Explicit matching for eligible
+  active non-VAT THB invoice/receipt pairs counts each payment once, with source
+  snapshots, backup and rollback. Conflicts, deletions and installments stay excluded.
+- Bulk historical tax-document review with explicit historical non-VAT confirmation,
+  unknown/sent/not-sent delivery tracking, preview and append-only correction proposals.
+- Local pre-batch backup, atomic review saves, stale-record guards, duplicate-proposal
+  prevention, local review-packet export and Thai/English UI.
+- Proposals remain non-issued review records, not replacement receipts; originals,
+  payment totals and output restrictions are unchanged. Sent/unknown documents need
+  delivery/practitioner review. No public release or installed-app update yet.
+
+## [2.0.5] — 2026-09-24 (Private owner recovery)
+
+### Fixed
+- Accept and preserve strictly shaped legacy deletion markers in both validators.
+- Signed/notarized private recovery installed locally; owner-selected September 23
+  backup restored and verified. Public download remains 2.0.4; see recovery log.
+
 ## [2.0.4] — 2026-09-24 (Mac Direct)
 
 ### Fixed

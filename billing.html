@@ -1393,6 +1393,28 @@ function importJSON(){
 
 // Older sync deletes could retain only identity/timestamps (and migrated currency).
 // Accept that exact deleted shape, never a type-less live/financial document.
+function validCorrectionReviewEvent(event) {
+  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  if (!object(event) || typeof event.id !== 'string' || !event.id || event.type !== 'correction_review'
+    || typeof event.documentId !== 'string' || !event.documentId || typeof event.batchId !== 'string' || !event.batchId
+    || !['unknown','not_sent','sent'].includes(event.deliveryStatus) || event.historicalVatConfirmed !== true
+    || event.vatStatus !== 'non_registered' || !['review','prepare_proposal'].includes(event.action)
+    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
+    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
+    || new Date(event.recordedAt).toISOString() !== event.recordedAt) return false;
+  const source = event.sourceRecordAtReview;
+  if (!object(source) || source.id !== event.documentId || source.type !== 'tax_invoice') return false;
+  if (event.action === 'review') return event.proposal === undefined;
+  const numeric = value => (typeof value === 'number' || (typeof value === 'string' && !!value.trim())) && Number.isFinite(Number(value));
+  if (!Array.isArray(source.items) || !source.items.length || source.items.some(item => !object(item)
+    || typeof item.description !== 'string' || !item.description.trim() || !numeric(item.qty) || Number(item.qty) <= 0
+    || !numeric(item.price) || Number(item.price) < 0) || !numeric(source.whtRate) || Number(source.whtRate) < 0 || Number(source.whtRate) > 100) return false;
+  const proposal = event.proposal;
+  return object(proposal) && Object.keys(proposal).length === 3 && proposal.type === 'receipt'
+    && proposal.status === 'review_only' && proposal.sourceDocumentId === event.documentId
+    && !source.deletedAt && !source.voidedAt && source.status !== 'void' && !source.milestone
+    && [0,'0'].includes(source.vatRate) && source.currency === 'THB';
+}
 function isLegacyDeletionMarker(record) {
   const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
     && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
@@ -1413,6 +1435,7 @@ function validateRendererData(data){
     for(const r of data[key]){
       if(!object(r)||typeof r.id!=='string'||!r.id||ids.has(r.id))throw Error('DATA_SCHEMA_INVALID');
       ids.add(r.id);
+      if(key==='reviewEvents'&&r.type==='correction_review'&&!validCorrectionReviewEvent(r))throw Error('DATA_SCHEMA_INVALID');
       if(r.items!==undefined && (!Array.isArray(r.items)||r.items.some(i=>!object(i))))throw Error('DATA_SCHEMA_INVALID');
       if(key==='documents' && !['quotation','invoice','receipt','tax_invoice'].includes(r.type) && !isLegacyDeletionMarker(r))throw Error('DATA_SCHEMA_INVALID');
     }
@@ -2643,7 +2666,7 @@ document.querySelectorAll('#nav,#addonNav').forEach(nav=>nav.addEventListener('c
   const b = e.target.closest('button[data-view]'); if(b) setView(b.dataset.view);
 }));
 
-const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',ai:'TOR → Invoice',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปรายรับ',filing:'ทบทวนรายรับ',settings:'ตั้งค่า'};
+const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',corrections:'ตรวจและเตรียมแก้เอกสารเดิม',ai:'TOR → Invoice',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปรายรับ',filing:'ทบทวนรายรับ',settings:'ตั้งค่า'};
 
 Object.assign(I18N_EN, {
   'ปิด':'Close',
@@ -2695,6 +2718,7 @@ function render(){
 
   if(currentView==='dashboard'){ renderDashboard(c,ta); }
   else if(currentView==='documents'){ renderDocuments(c,ta); }
+  else if(currentView==='corrections'){ renderCorrections(c,ta); }
   else if(currentView==='ai'){ renderAi(c,ta); }
   else if(currentView==='recurring'){ renderRecurring(c,ta); }
   else if(currentView==='wht'){ renderWht(c,ta); }
@@ -3022,7 +3046,7 @@ function renderDashboard(c,ta){
     }
     if(d.type==='quotation' && (d.status==='draft'||d.status==='sent')){ openQuotes++; if(isTHB) openQuotesVal += t.grandTotal; }
   });
-  const paymentSummary=paymentReview();
+  const paymentSummary=paymentReview(),pendingPayments=pendingPaymentSummary(paymentSummary);
   paymentSummary.docs.forEach(d=>{
     const amounts=compute(d); if(!reportAmountsValid(amounts)||!amounts.currency) return;
     if(amounts.currency==='THB') received+=amounts.netPayable;
@@ -3052,7 +3076,7 @@ function renderDashboard(c,ta){
       </div>
       <div class="pillar received"><div class="accent-bar"></div>
         <div class="label">${ic('check')} ${tr('รับแล้ว (สุทธิ)')}</div>
-        <div class="val" data-cu="${received}" data-cu-pre="฿">${fmtMoneyC(received,'THB')}</div>
+        ${paymentSummary.ambiguousCount?`<div class="val">${tr('ยอดยังไม่ครบ')}</div><div class="sub">${tr('ยอดที่รวมได้ตอนนี้')}: ${fmtMoneyC(received,'THB')}</div>`:`<div class="val" data-cu="${received}" data-cu-pre="฿">${fmtMoneyC(received,'THB')}</div>`}
         <div class="sub">${tr('ยอดสุทธิตามรายการรับเงิน ไม่ใช่เครดิตภาษีที่ตรวจแล้ว')}</div>
       </div>
       <div class="pillar wht"><div class="accent-bar"></div>
@@ -3062,6 +3086,7 @@ function renderDashboard(c,ta){
       </div>
     </div>
 
+    ${pendingPayments.groups.length?renderPendingPayments(pendingPayments):''}
     <div class="mini-stats">
       <div class="mini-stat"><div class="v">${openQuotes}</div><div class="l">${tr('ใบเสนอราคาที่เปิดอยู่')}</div></div>
       <div class="mini-stat"><div class="v" data-cu="${openQuotesVal}" data-cu-pre="฿">${fmtMoneyC(openQuotesVal,'THB')}</div><div class="l">${tr('มูลค่าใน pipeline')}</div></div>
@@ -3303,7 +3328,7 @@ function docStatusMatch(d, f){
   return true;
 }
 function renderDocuments(c,ta){
-  ta.innerHTML = `<button class="btn" onclick="openDocumentArchive()">${tr('คลังเอกสาร')}</button><button class="btn btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>`;
+  ta.innerHTML = `<button class="btn" onclick="setView('corrections')">${tr('ตรวจและเตรียมแก้เอกสารเดิม')}</button><button class="btn" onclick="openDocumentArchive()">${tr('คลังเอกสาร')}</button><button class="btn btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>`;
   const tabs = [['all','ทั้งหมด'],['quotation','ใบเสนอราคา'],['invoice','ใบแจ้งหนี้'],['receipt','ใบเสร็จ / ใบกำกับภาษี']];
   // status chip counts follow the active type tab
   let typed = activeDocs().filter(d=>!d.archivedAt);
@@ -3763,13 +3788,17 @@ function paymentReview(){
   let duplicateCount=0,legacyCount=0,ambiguousCount=0;
   const missingDate=candidates.filter(d=>!docTaxDate(d)).length;
   const unknownCurrency=candidates.filter(d=>!docCurrency(d)).length;
-  const docs=[],unallocatedDocs=[];
+  const docs=[],unallocatedDocs=[],unallocatedGroups=[];
   [...groups.values()].forEach(group=>{
     const receipts=group.filter(d=>d.type!=='invoice');
     const signature=d=>JSON.stringify([docCurrency(d),docTaxDate(d),compute(d).subtotal,compute(d).vatAmount,compute(d).whtAmount,compute(d).netPayable]);
     const ambiguous=group.some(d=>ambiguousLegacyParents.has(parent(d))) || (identity(group[0])?new Set(group.map(signature)).size>1:
       group.length>1||explicitParents.has(parent(group[0])));
-    if(ambiguous){ambiguousCount++;unallocatedDocs.push(...group);return;}
+    if(ambiguous){
+      const match=(DB.reviewEvents||[]).find(e=>validPaymentMatch(e,group));
+      if(match){docs.push(group.find(d=>d.id===match.representativeId));duplicateCount+=group.length-1;legacyCount++;return;}
+      ambiguousCount++;unallocatedDocs.push(...group);unallocatedGroups.push(group);return;
+    }
     duplicateCount+=Math.max(0,receipts.length-1)+Math.max(0,group.length-receipts.length-1);
     // Only equivalent evidence with an explicit payment ID may be deduplicated.
     const ordered=(receipts.length?receipts:group).slice().sort((a,b)=>String(a.createdAt||a.id).localeCompare(String(b.createdAt||b.id)));
@@ -3778,7 +3807,77 @@ function paymentReview(){
       (x.type==='invoice'&&x.status!=='paid'&&x.paidDate))) legacyCount++;
     docs.push(d);
   });
-  return {docs,unallocatedDocs,duplicateCount,legacyCount,missingDate,ambiguousCount,unknownCurrency};
+  return {docs,unallocatedDocs,unallocatedGroups,duplicateCount,legacyCount,missingDate,ambiguousCount,unknownCurrency};
+}
+Object.assign(I18N_EN,{
+  'ยอดยังไม่ครบ':'Total incomplete',
+  'ยอดที่รวมได้ตอนนี้':'Currently included total',
+  'รายรับเดิมรอยืนยัน':'Historical income awaiting confirmation',
+  'ยอดเบื้องต้นจากคู่เอกสารที่ตรงกัน ยังไม่รวมในยอดรับแล้ว':'Provisional total from matching pairs; not yet included as received',
+  'คู่ที่ยอดตรงกัน {n} คู่':'{n} matching pairs',
+  'กลุ่มที่ต้องตรวจแยก {n} กลุ่ม':'{n} groups needing individual review',
+  'ดูและยืนยันคู่รับเงิน':'Review and confirm payment pairs',
+  'ไม่มีคู่ที่รวมยอดเบื้องต้นได้':'No pairs eligible for a provisional total',
+  'เอกสารที่ลบ ยกเลิก หรือยอดต่างกัน ยังไม่รวมในยอดเบื้องต้น':'Deleted, voided or conflicting records are excluded from the provisional total',
+  'การจับคู่ไม่แก้ใบเดิม ไม่ออกใบเสร็จ และไม่รับรองภาษี':'Matching does not change originals, issue receipts or certify tax treatment',
+  'เลือกคู่ที่ตรวจแล้วว่าเป็นเงินรับครั้งเดียวกัน':'Select pairs verified as the same payment',
+  'ยืนยันว่าแต่ละคู่เป็นเงินรับครั้งเดียว ไม่ใช่คนละงวด':'I confirm each selected pair represents one payment, not separate installments',
+  'บันทึกการจับคู่':'Record payment matches',
+  'จับคู่แล้ว นับเงินแต่ละคู่ครั้งเดียว':'Matches saved; each payment is counted once',
+  'ต้องเลือกคู่ ยืนยันการรับเงิน และระบุบันทึก':'Select pairs, confirm they represent the same payment and add a note',
+  'คู่เอกสารเปลี่ยนแล้ว กรุณาตรวจใหม่':'Payment pairs changed; review again',
+  'ต้องตรวจแยก':'Individual review needed',
+  'ยอดตรงกัน รอยืนยัน':'Amounts match; awaiting confirmation'
+});
+function paymentPairEligible(group){
+  if(!Array.isArray(group)||group.length!==2)return false;
+  const invoices=group.filter(d=>d.type==='invoice'),receipts=group.filter(d=>['receipt','tax_invoice'].includes(d.type));
+  if(invoices.length!==1||receipts.length!==1||receipts[0].parentId!==invoices[0].id||invoices[0].status!=='paid'||receipts[0].status!=='issued'||
+    !invoices[0].clientId||receipts[0].clientId!==invoices[0].clientId)return false;
+  if(group.some(d=>d.deletedAt||d.voidedAt||d.milestone||d.paymentId||documentHasNumberConflict(d)||!docTaxDate(d)||docCurrency(d)!=='THB'||
+    ![0,'0'].includes(d.vatRate)||!reportAmountsValid(compute(d))||compute(d).vatAmount!==0||compute(d).netPayable<=0))return false;
+  const signature=d=>JSON.stringify([docTaxDate(d),compute(d).subtotal,compute(d).vatAmount,compute(d).whtAmount,compute(d).netPayable]);
+  return signature(group[0])===signature(group[1]);
+}
+function validPaymentMatch(event,group){
+  return !!event&&event.type==='payment_match'&&event.samePaymentConfirmed===true&&typeof event.note==='string'&&!!event.note.trim()&&event.note.length<=4000&&
+    typeof event.recordedAt==='string'&&Number.isFinite(Date.parse(event.recordedAt))&&Array.isArray(event.sourceRecords)&&event.sourceRecords.length===2&&
+    paymentPairEligible(group)&&event.documentId===group.find(d=>d.type==='invoice').id&&event.representativeId===group.find(d=>d.type!=='invoice').id&&
+    new Set(event.sourceRecords.map(d=>d?.id)).size===2&&event.sourceRecords.every(d=>group.some(g=>g.id===d?.id&&JSON.stringify(g)===JSON.stringify(d)));
+}
+function pendingPaymentSummary(summary=paymentReview()){
+  const groups=summary.unallocatedGroups||[],eligible=groups.filter(paymentPairEligible);
+  return {groups,eligible,net:round2(eligible.reduce((sum,g)=>sum+compute(g.find(d=>d.type!=='invoice')).netPayable,0)),excluded:groups.length-eligible.length};
+}
+function renderPendingPayments(summary){
+  return `<section class="card-block" id="pendingPayments"><h3>${tr('รายรับเดิมรอยืนยัน')}</h3><h2>${summary.eligible.length?fmtMoneyC(summary.net,'THB'):tr('ไม่มีคู่ที่รวมยอดเบื้องต้นได้')}</h2><p>${tr('ยอดเบื้องต้นจากคู่เอกสารที่ตรงกัน ยังไม่รวมในยอดรับแล้ว')}</p><p>${tr('คู่ที่ยอดตรงกัน {n} คู่').replace('{n}',summary.eligible.length)} · ${tr('กลุ่มที่ต้องตรวจแยก {n} กลุ่ม').replace('{n}',summary.excluded)}</p><p>${tr('เอกสารที่ลบ ยกเลิก หรือยอดต่างกัน ยังไม่รวมในยอดเบื้องต้น')}</p><button class="btn btn-primary" onclick="openPaymentMatches()">${tr('ดูและยืนยันคู่รับเงิน')}</button></section>`;
+}
+let paymentMatchPreview=null;
+function openPaymentMatches(){
+  paymentMatchPreview=pendingPaymentSummary().groups.map(g=>JSON.parse(JSON.stringify(g)));
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ดูและยืนยันคู่รับเงิน')}</h3></div><div class="modal-body"><div class="banner">${tr('การจับคู่ไม่แก้ใบเดิม ไม่ออกใบเสร็จ และไม่รับรองภาษี')}</div><p>${tr('เลือกคู่ที่ตรวจแล้วว่าเป็นเงินรับครั้งเดียวกัน')}</p>${paymentMatchPreview.map((g,index)=>`<div class="card-block"><label><input type="checkbox" data-payment-match="${index}" ${paymentPairEligible(g)?'':'disabled'}> ${g.map(d=>escapeHtml(d.number||d.id)).join(' / ')}</label><p>${tr(paymentPairEligible(g)?'ยอดตรงกัน รอยืนยัน':'ต้องตรวจแยก')}</p>${g.map(d=>`<p>${escapeHtml(d.number||d.id)} · ${escapeHtml(docTaxDate(d)||'—')} · ${escapeHtml(fmtMoneyC(compute(d).netPayable,docCurrency(d)||'—'))}${d.deletedAt?' · '+tr('เก็บจากการลบเดิม'):''}${d.voidedAt?' · '+tr('ยกเลิกแล้ว'):''}</p>`).join('')}</div>`).join('')}<p><label><input type="checkbox" id="samePaymentConfirmed"> ${tr('ยืนยันว่าแต่ละคู่เป็นเงินรับครั้งเดียว ไม่ใช่คนละงวด')}</label></p><div class="field"><label for="paymentMatchNote">${tr('บันทึกประกอบ ไม่ใช่การรับรองความถูกต้อง')}</label><textarea id="paymentMatchNote" maxlength="4000"></textarea></div></div><div class="modal-foot"><button class="btn" onclick="paymentMatchPreview=null;closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentMatches()">${tr('บันทึกการจับคู่')}</button></div>`;openModal();
+}
+async function submitPaymentMatches(){
+  const groups=[...document.querySelectorAll('[data-payment-match]:checked')].map(el=>paymentMatchPreview?.[Number(el.dataset.paymentMatch)]);
+  return savePaymentMatches(groups,document.getElementById('samePaymentConfirmed').checked,document.getElementById('paymentMatchNote').value);
+}
+async function savePaymentMatches(groups,confirmed,note){
+  if(issuanceBusy||loadFailed||appClosing)return false;
+  if(confirmed!==true||typeof note!=='string'||!note.trim()||note.length>4000||!Array.isArray(groups)||!groups.length||groups.length>500){toast(tr('ต้องเลือกคู่ ยืนยันการรับเงิน และระบุบันทึก'),'err');return false;}
+  issuanceBusy=true;const previous=DB.reviewEvents||[];let saved=false;
+  try{
+    const snapshots=JSON.parse(JSON.stringify(groups));
+    const check=()=>{
+      const pending=paymentReview().unallocatedGroups;
+      if(new Set(snapshots.flatMap(g=>g.map(d=>d.id))).size!==snapshots.length*2||snapshots.some(g=>!paymentPairEligible(g)||!pending.some(p=>JSON.stringify(p)===JSON.stringify(g))))throw Error(tr('คู่เอกสารเปลี่ยนแล้ว กรุณาตรวจใหม่'));
+    };
+    check();if(!window.billingAPI?.snapshotBackup||!await window.billingAPI.snapshotBackup('before-payment-match'))throw Error(tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'));check();
+    const recordedAt=new Date().toISOString();
+    DB.reviewEvents=[...previous,...snapshots.map(g=>({id:uid(),type:'payment_match',documentId:g.find(d=>d.type==='invoice').id,representativeId:g.find(d=>d.type!=='invoice').id,sourceRecords:g,samePaymentConfirmed:true,note:note.trim(),recordedAt,evidence:[]}))];
+    if(!await persist(true))throw Error(tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'));
+    saved=true;paymentMatchPreview=null;closeModal();render();toast(tr('จับคู่แล้ว นับเงินแต่ละคู่ครั้งเดียว'),'ok');return true;
+  }catch(e){if(!saved)DB.reviewEvents=previous;toast(e.message,'err');return saved;}
+  finally{issuanceBusy=false;}
 }
 function realizedDocs(){ return paymentReview().docs; }
 function reportDocument(d){ const review=reviewedPaymentProjectionData.get(d);return review?review.document:hasIssuedSnapshot(d)?d.issuedSnapshot.document:d; }
@@ -5000,6 +5099,123 @@ function renderHistoricalReview(d){
       <h4>${tr('หลักฐานประกอบ')}</h4>${(e.evidence||[]).length?e.evidence.map(f=>`<button class="btn btn-sm" onclick="exportReviewEvidence(${jsArg(f.sha256)})">${show(f.fileName)}</button>`).join(' '):`<p class="muted">${tr('ยังไม่ได้แนบไฟล์หลักฐาน')}</p>`}
       ${raw(e)}${e.type==='legacy_payment'?`<button class="btn" onclick="confirmLegacyReceipt(${jsArg(d.id)},${jsArg(e.id)})">${tr('ออกใบเสร็จรับเงิน')}</button>`:''}</div>`).join(''):`<p class="muted">${tr('ยังไม่มีบันทึกการตรวจสอบ')}</p>`}</section>`;
 }
+/* Bulk correction proposals are review records, never issued documents or payments. */
+Object.assign(I18N_EN,{
+  'ตรวจและเตรียมแก้เอกสารเดิม':'Review and prepare historical corrections',
+  'ยังไม่เปลี่ยนใบเดิม ไม่ออกใบใหม่ และไม่เปลี่ยนยอดรายรับ':'Originals, issuance and income totals remain unchanged',
+  'ข้อเสนอใบเสร็จธรรมดา ไม่ใช่ใบเสร็จที่ออกแล้ว':'Ordinary receipt proposal — not an issued receipt',
+  'ยังไม่ทราบว่าส่งให้ลูกค้าหรือไม่':'Delivery to customer unknown',
+  'ยืนยันว่าไม่เคยส่งให้ลูกค้า':'Confirmed never delivered to customer',
+  'ส่งให้ลูกค้าแล้ว':'Delivered to customer',
+  'สถานะการส่งให้ลูกค้า':'Customer delivery status',
+  'ยืนยันว่าไม่ได้จด VAT ตอนออกเอกสารที่เลือก':'I confirm I was not VAT-registered when the selected documents were issued',
+  'ใช้คำตอบนี้เฉพาะรายการที่เลือก':'Apply this answer only to selected records',
+  'เลือกทั้งหมดที่เตรียมข้อเสนอได้':'Select all eligible for proposals',
+  'ล้างที่เลือก':'Clear selection',
+  'เลือก {n} รายการ':'{n} records selected',
+  'เตรียมข้อเสนอใบเสร็จธรรมดา':'Prepare ordinary receipt proposals',
+  'บันทึกผลตรวจเป็นชุด':'Save batch review',
+  'ส่งออกชุดทบทวน JSON':'Export review packet JSON',
+  'ข้อมูลส่วนตัว ส่งออกในเครื่องเท่านั้น':'Private information — local export only',
+  'ผลตรวจล่าสุด':'Latest review',
+  'ยังไม่ตรวจ':'Not reviewed',
+  'ดูข้อเสนอ':'View proposal',
+  'พร้อมเตรียมข้อเสนอ ไม่ใช่อนุมัติออกเอกสาร':'Eligible for proposal, not approved for issuance',
+  'เก็บจากการลบหรือยกเลิก ตรวจแยกต่างหาก':'Deleted or voided — individual review required',
+  'มี VAT หรือข้อมูลไม่ครบ ตรวจแยกต่างหาก':'VAT present or incomplete facts — individual review required',
+  'มีข้อเสนอแล้ว เปิดตรวจได้':'Proposal already retained — open to review',
+  'เลือกเอกสาร ยืนยันสถานะ VAT และระบุบันทึกก่อน':'Select records, confirm historical VAT status and add a note',
+  'ข้อมูลเปลี่ยนแล้ว กรุณาเปิดตัวอย่างใหม่':'Records changed — preview the batch again',
+  'สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ':'Backup or save failed — review was not recorded',
+  'ต้องใช้แอปเดสก์ท็อปเพื่อสำรองก่อนแก้เป็นชุด':'Use the desktop app to back up before batch changes',
+  'เก็บผลตรวจแล้ว ใบเดิมยังเหมือนเดิม':'Review saved; originals remain unchanged',
+  'ตรวจตัวอย่างก่อนบันทึก':'Review preview before saving',
+  'บันทึกชุดนี้':'Save this batch',
+  'ข้อเสนอนี้ไม่มีเลขหรือวันที่ออกใหม่':'This proposal has no new document number or issue date',
+  'ตรวจการส่งและแนวทางแก้กับผู้ทำบัญชีก่อนออกหรือส่งใหม่':'Review delivery and the correction procedure with your practitioner before issuance or re-sending',
+  'ไม่ใช้ข้อมูลลูกค้าหรือผู้ขายปัจจุบันแทนข้อมูลเดิม':'Current buyer or seller details do not replace historical particulars',
+  'เอกสารต้นทาง':'Source document',
+  'ไม่มีใบกำกับภาษีเดิมให้ตรวจ':'No historical tax invoices to review',
+  'ดูข้อมูลเดิม':'Inspect retained original',
+  'ข้อเสนอแก้เอกสาร':'Document correction proposal',
+  'ยอดจากข้อมูลเดิมเพื่อทบทวน':'Amounts from retained records for review',
+  'การตรวจครั้งนี้ไม่ยืนยันการรับเงินหรือแก้ภาษีย้อนหลัง':'This review does not confirm payment or resolve past tax obligations'
+});
+const CORRECTION_DELIVERY={unknown:'ยังไม่ทราบว่าส่งให้ลูกค้าหรือไม่',not_sent:'ยืนยันว่าไม่เคยส่งให้ลูกค้า',sent:'ส่งให้ลูกค้าแล้ว'};
+let correctionSelection=new Set(),correctionPreview=null;
+function correctionRecords(){return DB.documents.filter(d=>d.type==='tax_invoice');}
+function correctionEvents(id){return (DB.reviewEvents||[]).filter(e=>e.type==='correction_review'&&e.documentId===id&&validCorrectionReviewEvent(e));}
+function correctionProposal(id){return correctionEvents(id).find(e=>e.action==='prepare_proposal');}
+function correctionEligibility(d){
+  if(!d||d.type!=='tax_invoice'||d.deletedAt||d.voidedAt||d.status==='void')return 'เก็บจากการลบหรือยกเลิก ตรวจแยกต่างหาก';
+  // Do not coerce null/empty VAT to zero or infer historical currency.
+  if(![0,'0'].includes(d.vatRate)||d.currency!=='THB'||d.milestone||documentHasNumberConflict(d)||
+    !Array.isArray(d.items)||!d.items.length||d.items.some(i=>!i||!String(i.description||'').trim()||!Number.isFinite(Number(i.qty))||Number(i.qty)<=0||!Number.isFinite(Number(i.price))||Number(i.price)<0)||
+    !Number.isFinite(Number(d.whtRate))||d.whtRate==null||d.whtRate===''||Number(d.whtRate)<0||Number(d.whtRate)>100||!reportAmountsValid(compute(d))||
+    compute(d).currency!=='THB'||compute(d).vatAmount!==0||compute(d).vatRate!==0)return 'มี VAT หรือข้อมูลไม่ครบ ตรวจแยกต่างหาก';
+  if(correctionProposal(d.id))return 'มีข้อเสนอแล้ว เปิดตรวจได้';
+  return '';
+}
+function buildCorrectionBatch(ids,facts,action){
+  if(!Array.isArray(ids)||!ids.length||ids.length>500||new Set(ids).size!==ids.length||
+    !['review','prepare_proposal'].includes(action)||!facts||!Object.hasOwn(CORRECTION_DELIVERY,facts.deliveryStatus)||facts.historicalVatConfirmed!==true||
+    typeof facts.note!=='string'||!facts.note.trim()||facts.note.length>4000)throw Error(tr('เลือกเอกสาร ยืนยันสถานะ VAT และระบุบันทึกก่อน'));
+  const rows=ids.map(id=>{
+    const d=DB.documents.find(x=>x.id===id);if(!d||d.type!=='tax_invoice')throw Error(tr('ข้อมูลเปลี่ยนแล้ว กรุณาเปิดตัวอย่างใหม่'));
+    const reason=correctionEligibility(d);if(action==='prepare_proposal'&&reason)throw Error(tr(reason));
+    return {id,sourceJSON:JSON.stringify(d)};
+  });
+  return {rows,facts:{deliveryStatus:facts.deliveryStatus,historicalVatConfirmed:true,note:facts.note.trim()},action};
+}
+async function applyCorrectionBatch(batch){
+  if(issuanceBusy||loadFailed||appClosing||!batch)return false;
+  issuanceBusy=true;const previous=DB.reviewEvents||[];let saved=false;
+  try{
+    batch=JSON.parse(JSON.stringify(batch));
+    const check=()=>{
+      const fresh=buildCorrectionBatch(batch.rows.map(r=>r.id),batch.facts,batch.action);
+      if(fresh.rows.some((r,i)=>r.sourceJSON!==batch.rows[i].sourceJSON))throw Error(tr('ข้อมูลเปลี่ยนแล้ว กรุณาเปิดตัวอย่างใหม่'));
+      return fresh;
+    };
+    check();
+    if(!window.billingAPI?.snapshotBackup)throw Error(tr('ต้องใช้แอปเดสก์ท็อปเพื่อสำรองก่อนแก้เป็นชุด'));
+    if(!await window.billingAPI.snapshotBackup('before-bulk-correction'))throw Error(tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'));
+    const fresh=check(),batchId=uid(),recordedAt=new Date().toISOString();
+    const events=fresh.rows.map(r=>({id:uid(),type:'correction_review',documentId:r.id,batchId,recordedAt,
+      ...fresh.facts,action:fresh.action,vatStatus:'non_registered',sourceRecordAtReview:JSON.parse(r.sourceJSON),
+      ...(fresh.action==='prepare_proposal'?{proposal:{type:'receipt',status:'review_only',sourceDocumentId:r.id}}:{}),evidence:[]}));
+    if(events.some(e=>!validCorrectionReviewEvent(e)))throw Error('DATA_SCHEMA_INVALID');
+    DB.reviewEvents=[...previous,...events];
+    if(!await persist(true))throw Error(tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'));
+    saved=true;
+    correctionPreview=null;correctionSelection.clear();closeModal();render();toast(tr('เก็บผลตรวจแล้ว ใบเดิมยังเหมือนเดิม'),'ok');return true;
+  }catch(e){if(!saved)DB.reviewEvents=previous;toast(e.message||tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'),'err');return saved;}
+  finally{issuanceBusy=false;}
+}
+function toggleCorrection(id,checked){if(checked)correctionSelection.add(id);else correctionSelection.delete(id);document.getElementById('correctionCount').textContent=tr('เลือก {n} รายการ').replace('{n}',correctionSelection.size);}
+function selectCorrections(eligible){
+  correctionSelection=new Set(eligible?correctionRecords().filter(d=>!correctionEligibility(d)).map(d=>d.id):[]);
+  document.querySelectorAll('[data-correction-id]').forEach(el=>{el.checked=correctionSelection.has(el.dataset.correctionId);});
+  document.getElementById('correctionCount').textContent=tr('เลือก {n} รายการ').replace('{n}',correctionSelection.size);
+}
+function previewCorrectionBatch(action){
+  try{
+    correctionPreview=buildCorrectionBatch([...correctionSelection],{deliveryStatus:document.getElementById('correctionDelivery').value,historicalVatConfirmed:document.getElementById('correctionVat').checked,note:document.getElementById('correctionNote').value},action);
+    document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ตรวจตัวอย่างก่อนบันทึก')}</h3></div><div class="modal-body"><div class="banner">${tr('ยังไม่เปลี่ยนใบเดิม ไม่ออกใบใหม่ และไม่เปลี่ยนยอดรายรับ')}</div><p>${tr(CORRECTION_DELIVERY[correctionPreview.facts.deliveryStatus])}</p><p>${tr(action==='prepare_proposal'?'ข้อเสนอใบเสร็จธรรมดา ไม่ใช่ใบเสร็จที่ออกแล้ว':'บันทึกผลตรวจเป็นชุด')}</p><p>${escapeHtml(correctionPreview.facts.note)}</p><ul>${correctionPreview.rows.map(r=>`<li>${escapeHtml(JSON.parse(r.sourceJSON).number||r.id)}</li>`).join('')}</ul><p>${tr('ตรวจการส่งและแนวทางแก้กับผู้ทำบัญชีก่อนออกหรือส่งใหม่')}</p></div><div class="modal-foot"><button class="btn" onclick="correctionPreview=null;closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="applyCorrectionBatch(correctionPreview)">${tr('บันทึกชุดนี้')}</button></div>`;openModal();
+  }catch(e){correctionPreview=null;toast(e.message,'err');}
+}
+function showCorrectionProposal(id){
+  const e=correctionProposal(id);if(!e)return;const latest=correctionEvents(id).at(-1),d=e.sourceRecordAtReview;
+  const amounts=compute(d),M=n=>Number.isFinite(n)?fmtMoneyC(n,'THB'):'—';
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ข้อเสนอแก้เอกสาร')}</h3></div><div class="modal-body"><div class="banner">${tr('ข้อเสนอใบเสร็จธรรมดา ไม่ใช่ใบเสร็จที่ออกแล้ว')}</div><h4>${tr('เอกสารต้นทาง')}: ${escapeHtml(d.number||d.id)}</h4><p>${tr(CORRECTION_DELIVERY[latest.deliveryStatus])}</p><p>${tr('ข้อเสนอนี้ไม่มีเลขหรือวันที่ออกใหม่')}</p><p>${tr('ไม่ใช้ข้อมูลลูกค้าหรือผู้ขายปัจจุบันแทนข้อมูลเดิม')}</p><div class="card-block"><h4>${tr('ยอดจากข้อมูลเดิมเพื่อทบทวน')}</h4><p>${tr('ประเภทเอกสารที่เก็บไว้')}: ${typeName(d.type)} → ${typeName('receipt')}</p><p>${tr('รหัสลูกค้าที่อ้างอิง')}: ${escapeHtml(d.clientId||'—')}</p><p>${tr('วันรับเงินที่เก็บไว้')}: ${escapeHtml(d.paidDate||'—')}</p><ul>${(Array.isArray(d.items)?d.items:[]).map(i=>`<li>${escapeHtml(i.description||'')} · ${escapeHtml(i.qty)} × ${escapeHtml(i.price)}</li>`).join('')}</ul><p>${tr('ยอดก่อนหักภาษี')}: ${M(amounts.grandTotal)} · ${tr('หัก ณ ที่จ่าย')}: ${M(amounts.whtAmount)} · ${tr('สุทธิ')}: ${M(amounts.netPayable)}</p></div><p>${tr('ตรวจการส่งและแนวทางแก้กับผู้ทำบัญชีก่อนออกหรือส่งใหม่')}</p><p>${escapeHtml(e.note)}</p><details><summary>${tr('ข้อมูลดิบสำหรับตรวจสอบ')}</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(JSON.stringify(e,null,2))}</pre></details></div><div class="modal-foot"><button class="btn" onclick="closeModal();viewDoc(${jsArg(id)})">${tr('ดูข้อมูลเดิม')}</button><button class="btn" onclick="closeModal()">${tr('ปิด')}</button></div>`;openModal();
+}
+function correctionReviewPacket(){return {schemaVersion:1,purpose:'correction-review-only-not-issued-receipts',exportedAt:new Date().toISOString(),events:JSON.parse(JSON.stringify((DB.reviewEvents||[]).filter(e=>e.type==='correction_review'&&validCorrectionReviewEvent(e))))};}
+function exportCorrectionReviews(){downloadFile(JSON.stringify(correctionReviewPacket(),null,2),'BillNgai-correction-review-'+todayISO()+'.json','application/json');}
+function renderCorrections(c,ta){
+  const rows=correctionRecords();correctionSelection=new Set([...correctionSelection].filter(id=>rows.some(d=>d.id===id)));
+  ta.innerHTML=`<button class="btn" onclick="setView('documents')">${tr('กลับ')}</button><button class="btn" onclick="exportCorrectionReviews()">${tr('ส่งออกชุดทบทวน JSON')}</button>`;
+  c.innerHTML=`<div class="banner">${tr('ยังไม่เปลี่ยนใบเดิม ไม่ออกใบใหม่ และไม่เปลี่ยนยอดรายรับ')}<br>${tr('การตรวจครั้งนี้ไม่ยืนยันการรับเงินหรือแก้ภาษีย้อนหลัง')}</div><div class="card-block"><p>${tr('ใช้คำตอบนี้เฉพาะรายการที่เลือก')}</p><div class="field"><label for="correctionDelivery">${tr('สถานะการส่งให้ลูกค้า')}</label><select id="correctionDelivery">${Object.entries(CORRECTION_DELIVERY).map(([v,label])=>`<option value="${v}">${tr(label)}</option>`).join('')}</select></div><p><label><input id="correctionVat" type="checkbox"> ${tr('ยืนยันว่าไม่ได้จด VAT ตอนออกเอกสารที่เลือก')}</label></p><div class="field"><label for="correctionNote">${tr('บันทึกประกอบ ไม่ใช่การรับรองความถูกต้อง')}</label><textarea id="correctionNote" maxlength="4000"></textarea></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="selectCorrections(true)">${tr('เลือกทั้งหมดที่เตรียมข้อเสนอได้')}</button><button class="btn" onclick="selectCorrections(false)">${tr('ล้างที่เลือก')}</button><button class="btn" onclick="previewCorrectionBatch('review')">${tr('บันทึกผลตรวจเป็นชุด')}</button><button class="btn btn-primary" onclick="previewCorrectionBatch('prepare_proposal')">${tr('เตรียมข้อเสนอใบเสร็จธรรมดา')}</button></div><p id="correctionCount" role="status">${tr('เลือก {n} รายการ').replace('{n}',correctionSelection.size)}</p></div><div class="card-block" style="overflow-x:auto"><table><thead><tr><th>${tr('เอกสารต้นทาง')}</th><th>${tr('วันที่ออกที่เก็บไว้')}</th><th>${tr('สถานะ')}</th><th>${tr('ผลตรวจล่าสุด')}</th><th>${tr('ข้อมูลที่เก็บไว้ ไม่ใช่เอกสารต้นฉบับ')}</th></tr></thead><tbody>${rows.map(d=>{const latest=correctionEvents(d.id).at(-1),reason=correctionEligibility(d);return `<tr><td><label><input type="checkbox" data-correction-id="${attr(d.id)}" ${correctionSelection.has(d.id)?'checked':''} onchange="toggleCorrection(${jsArg(d.id)},this.checked)"> ${escapeHtml(d.number||d.id)}</label></td><td>${escapeHtml(d.issueDate||'—')}</td><td>${tr(reason||'พร้อมเตรียมข้อเสนอ ไม่ใช่อนุมัติออกเอกสาร')}</td><td>${latest?`${tr(CORRECTION_DELIVERY[latest.deliveryStatus])}<br>${escapeHtml(latest.recordedAt)}<br>${escapeHtml(latest.note)}`:tr('ยังไม่ตรวจ')}</td><td><button class="btn btn-sm" onclick="viewDoc(${jsArg(d.id)})">${tr('ดูข้อมูลเดิม')}</button>${correctionProposal(d.id)?` <button class="btn btn-sm" onclick="showCorrectionProposal(${jsArg(d.id)})">${tr('ดูข้อเสนอ')}</button>`:''}</td></tr>`;}).join('')}</tbody></table>${rows.length?'':`<p>${tr('ไม่มีใบกำกับภาษีเดิมให้ตรวจ')}</p>`}</div><p class="muted">${tr('ข้อมูลส่วนตัว ส่งออกในเครื่องเท่านั้น')}</p>`;
+}
 let reviewDraft=null;
 function reviewFields(){return `<div class="field"><label for="reviewNote">${tr('บันทึกประกอบ ไม่ใช่การรับรองความถูกต้อง')}</label><textarea id="reviewNote" maxlength="4000"></textarea></div><button class="btn" onclick="attachReviewEvidence()">${tr('แนบหลักฐานต้นฉบับ')}</button><div id="reviewEvidence"></div><p>${tr('สำรอง JSON ไม่รวมไฟล์หลักฐาน ต้องสำรองชุดหลักฐานแยก')}</p>`;}
 function openReviewDialog(id){
@@ -5138,7 +5354,7 @@ function renderDocView(c,ta){
 
   // contextual actions
   let actions = `<button class="btn btn-ghost" onclick="setView('documents')">${ic('arrowLeft')} ${tr('กลับ')}</button>`;
-  ta.innerHTML = actions;
+  ta.innerHTML = actions+(d.type==='tax_invoice'?`<button class="btn" onclick="setView('corrections')">${tr('ตรวจและเตรียมแก้เอกสารเดิม')}</button>`:'');
 
   let lifecycle='';
   if(d.type==='quotation' && !blocked){

@@ -2,6 +2,13 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
+**Latest source work:** [PRD-BULK-CORRECTION.md](PRD-BULK-CORRECTION.md) records
+the implemented, tested, uncommitted 2.0.6 bulk review/proposal screen. Owner confirms
+historical non-VAT registration but is unsure of delivery. Originals stay unchanged;
+no issued replacements or automatic payment reconciliation. 178 tests and isolated
+native workflows pass. Installed private app remains 2.0.5; public release remains
+2.0.4. Do not mistake the source version bump for installation/publication.
+
 **Post-release diagnosis:** owner-selected legacy backup is valid JSON but contains
 12 type-less deletion tombstones that both 2.0.4 validators reject. Read
 [BACKUP-IMPORT-DIAGNOSIS.md](review/2026-09-24/BACKUP-IMPORT-DIAGNOSIS.md).

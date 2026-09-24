@@ -23,6 +23,37 @@ test('paid invoice counts once without a receipt',()=>{
   const r=run(`DB.documents=[fixture()];({a:taxYearAgg(2026).agg.subtotal,f:filingIncome(2026,0,11),w:whtTrackedDocs().length})`);
   assert.equal(r.a,10000);assert.equal(r.f.grossThb,10000);assert.equal(r.w,1);
 });
+test('historical dashboard shows a separate non-double-counted provisional sum, excluding conflicts and deletion',()=>{
+  const r=run(`DB.documents=[fixture(),fixture({id:'r',type:'receipt',status:'issued',parentId:'i'}),fixture({id:'i2'}),fixture({id:'r2',type:'receipt',status:'issued',parentId:'i2',items:[{qty:1,price:20000}]}),fixture({id:'i3',deletedAt:'2026-01-11'}),fixture({id:'r3',type:'receipt',status:'issued',parentId:'i3'})];
+    DB.documents.forEach(d=>d.number=d.id);const summary=pendingPaymentSummary();({included:paymentReview().docs.length,net:summary.net,eligible:summary.eligible.length,excluded:summary.excluded,html:renderPendingPayments(summary)})`);
+  assert.equal(r.included,0);assert.equal(r.net,9700);assert.equal(r.eligible,1);assert.equal(r.excluded,2);
+  assert.match(r.html,/Historical income awaiting confirmation/);assert.match(r.html,/not yet included as received/);
+});
+test('explicit matching counts one payment, preserves originals and invalidates when source changes',async()=>{
+  const r=await run(`(async()=>{DB.documents=[fixture(),fixture({id:'r',type:'receipt',status:'issued',parentId:'i'})];
+    DB.documents.forEach(d=>d.number=d.id);const original=JSON.stringify(DB.documents),groups=paymentReview().unallocatedGroups;
+    window.billingAPI={snapshotBackup:async()=> 'snapshot'};persist=async()=>true;render=()=>{};toast=()=>{};closeModal=()=>{};
+    const saved=await savePaymentMatches(groups,true,'Confirmed against records');const summary=paymentReview(),total=taxYearAgg(2026).agg.net;
+    const repeated=await savePaymentMatches(groups,true,'Repeated');const unchanged=JSON.stringify(DB.documents)===original;
+    DB.documents[0].items[0].price=20000;return {saved,repeated,unchanged,total,included:summary.docs.length,afterChange:paymentReview().docs.length};})()`);
+  assert.equal(r.saved,true);assert.equal(r.repeated,false);assert.equal(r.unchanged,true);assert.equal(r.total,9700);assert.equal(r.included,1);assert.equal(r.afterChange,0);
+});
+test('payment match requires confirmation, backup and durable save',async()=>{
+  const r=await run(`(async()=>{DB.documents=[fixture(),fixture({id:'r',type:'receipt',status:'issued',parentId:'i'})];
+    DB.documents.forEach(d=>d.number=d.id);const groups=paymentReview().unallocatedGroups;toast=()=>{};render=()=>{};closeModal=()=>{};
+    window.billingAPI={snapshotBackup:async()=>false};persist=async()=>true;
+    const noConfirmation=await savePaymentMatches(groups,false,'Note'),failedBackup=await savePaymentMatches(groups,true,'Note');
+    window.billingAPI.snapshotBackup=async()=> 'snapshot';persist=async()=>false;const failedSave=await savePaymentMatches(groups,true,'Note');
+    return {noConfirmation,failedBackup,failedSave,events:DB.reviewEvents.length,included:paymentReview().docs.length};})()`);
+  assert.deepEqual(r,{noConfirmation:false,failedBackup:false,failedSave:false,events:0,included:0});
+});
+test('forged, duplicate, changed or conflicting matching snapshots cannot affect reports',()=>{
+  const r=run(`DB.documents=[fixture(),fixture({id:'r',type:'receipt',status:'issued',parentId:'i'})];
+    DB.documents.forEach(d=>d.number=d.id);const group=paymentReview().unallocatedGroups[0],base={id:'event',type:'payment_match',documentId:'i',representativeId:'r',samePaymentConfirmed:true,note:'Review',recordedAt:'2026-09-24T00:00:00.000Z',sourceRecords:JSON.parse(JSON.stringify(group))};
+    const cases=[{...base,samePaymentConfirmed:false},{...base,representativeId:'missing'},{...base,sourceRecords:[group[0],group[0]]},{...base,sourceRecords:[]},{...base,sourceRecords:[{...group[0],paidDate:'2026-02-10'},group[1]]}];
+    cases.map(e=>{DB.reviewEvents=[e];return paymentReview().docs.length;})`);
+  assert.deepEqual(r,[0,0,0,0,0]);
+});
 test('explicit receipt/source identity deduplicates but unidentified extra receipt remains ambiguous',()=>{
   const r=run(`DB.documents=[fixture({paymentId:'p'}),fixture({id:'r',type:'receipt',status:'issued',parentId:'i',paymentId:'p'}),fixture({id:'r2',type:'receipt',status:'issued',parentId:'i'})];taxYearAgg(2026)`);
   assert.equal(r.agg.subtotal,10000);assert.equal(r.docs.length,1);assert.equal(r.duplicateCount,0);
