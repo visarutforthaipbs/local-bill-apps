@@ -2,7 +2,13 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
-**Latest work:** owner authorized replacing private 2.0.5 with private 2.0.6.
+**Latest work (2026-09-26):** private signed/notarized **2.0.7** (Option A cleanup plus
+UI/UX audit fixes, source `ba1f5a1`) is installed and verified on lighthouse-control;
+2.0.6 app and full profile retained in `BillNgai-update-2.0.7`. Read
+[INSTALL-2.0.7.md](INSTALL-2.0.7.md) and [UX-AUDIT-VERIFICATION.md](UX-AUDIT-VERIFICATION.md).
+Public remains 2.0.4. The 2.0.6 notes below are the previous checkpoint.
+
+**Previous work:** owner authorized replacing private 2.0.5 with private 2.0.6.
 Read [INSTALL-2.0.6.md](INSTALL-2.0.6.md) for current build/install/rollback status;
 source commit `8da524f7a33d17d3bff516adb27cc245ac91154b` includes the bulk review
 screen and provisional dashboard plus explicit payment-pair confirmation.

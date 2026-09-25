@@ -100,6 +100,8 @@ b5fcad9dc1a4432e1654dbd043afac70e1d50436e208c070eeba575919ec0b49  BRAND.md
 
 ## Delivery state
 
-Uncommitted in the development checkout; no version bump, CHANGELOG entry,
-packaging, installation or publication. Pre-change copy of `billing.html` kept
-outside the repository by the session. Installed app and customer profile untouched.
+Superseded: released privately as **2.0.7** (commit `ba1f5a1`), signed, notarized,
+installed and verified on lighthouse-control — see [INSTALL-2.0.7.md](INSTALL-2.0.7.md).
+The source hashes above are from before the version bump; `package.json`,
+`package-lock.json` and CHANGELOG changed for 2.0.7, `billing.html` did not.
+No public release, push, tag or website change.
