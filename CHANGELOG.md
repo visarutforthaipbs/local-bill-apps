@@ -3,6 +3,31 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.7] — 2026-09-25 (Private owner update)
+
+### Changed
+- Settings reduced to three tabs; paused sync controls and e-Tax XML buttons removed;
+  AI sidebar shown only when usable; blanket version banner replaced by contextual
+  limits (Option A; see `OPTION-A-VERIFICATION.md`).
+- Dashboard leads with money: one to-do list replaces stacked banners; received
+  total always shows the known amount plus what older records it excludes.
+- Document editor: separate "บันทึกร่าง" and "ออกเอกสาร", with a summary to confirm
+  before issuing. Required withholding confirmation is always visible.
+- In-app Thai confirmation dialogs replace system prompts; closing an unsaved new
+  document offers to reopen it; Undo for deleting drafts, clients, recurring items
+  and archiving.
+- Sample data opens as printable sample documents and counts once in summaries.
+- Client default income category available on every plan.
+
+### Accessibility and layout
+- AA text contrast; readable brand fills for white text (`--accent-fill`); dialog
+  focus handling; labelled fields; keyboard-operable rows, cards and switches.
+- Icon sidebar and scaled figures on narrow windows; Buddhist-year reading under
+  date pickers; command palette (Cmd+K) with visible search button.
+
+No accounting, issuance, payment-grouping, storage or printed-document rules changed.
+See `UX-AUDIT-VERIFICATION.md` and `INSTALL-2.0.7.md`. No public release.
+
 ## [2.0.6] — 2026-09-25 (Private owner update)
 
 ### Added

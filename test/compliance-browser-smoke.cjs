@@ -32,20 +32,23 @@ const project=path.resolve(__dirname,'..');
     await page.locator('#itemsBody input').nth(0).fill('ค่าบริการออกแบบ');
     await page.locator('#itemsBody input').nth(3).fill('10000');
     await page.locator('#d_paid').fill('2026-09-20');
+    await page.locator('.tax-details summary').click();   // optional tax details are collapsed by default
     await page.locator('#d_incat').selectOption('40(2)');
     await page.locator('label').filter({has:page.locator('#d_whtReviewed')}).click();
     await page.locator('label').filter({has:page.locator('input[onchange="editField(\'fullPaymentConfirmed\',this.checked)"]')}).click();
-    await page.locator('label').filter({has:page.locator('input[onchange="editField(\'issueConfirmed\',this.checked)"]')}).click();
-    await page.locator('button[onclick="saveDoc()"]').click();
+    // Issuing is a separate, confirmed action; unknown VAT status is rejected before the summary.
+    await page.locator('button[onclick="issueDoc()"]').click();
     assert.equal(await page.evaluate(()=>DB.documents.length),0,'unknown VAT status must reject');
-    await page.evaluate(()=>{closeModal();setView('settings');setSettingsTab('docs');});
+    // Keep the typed receipt aside while changing Settings (closing an unsaved editor now offers recovery instead of blocking).
+    await page.evaluate(()=>{window.__receipt=JSON.parse(JSON.stringify(editDoc));editDocDirty=false;closeModal();setView('settings');setSettingsTab('docs');});
     // VAT confirmation lives in the business/documents settings; choose the tab
     // through the app rather than altering customer data or browser storage.
     if(await page.locator('#s_vatStatus').count()===0) await page.evaluate(()=>setSettingsTab('business'));
     await page.locator('#s_vatStatus').selectOption('non_registered');
     await page.evaluate(()=>saveSettings(true));
-    await page.evaluate(()=>{drawDocEditor();openModal();});
-    await page.locator('button[onclick="saveDoc()"]').click();
+    await page.evaluate(()=>{editDoc=window.__receipt;drawDocEditor();openModal();});
+    await page.locator('button[onclick="issueDoc()"]').click();
+    await page.locator('#confirmOk').click();
     await page.waitForFunction(()=>DB.documents.length===1&&!!DB.documents[0].issuedSnapshot);
     assert.match(await page.locator('.paper').innerText(),/ไม่ใช่ใบกำกับภาษี/);
     const original=await page.locator('.paper').innerHTML();

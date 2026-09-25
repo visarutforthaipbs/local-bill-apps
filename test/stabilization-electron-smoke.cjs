@@ -28,11 +28,14 @@ const project=path.resolve(__dirname,'..');
     await page.getByText('บริการเดิมที่เก็บไว้',{exact:true}).first().waitFor();
     assert.equal(await page.locator('.paper').count(),0);
     const old=await page.evaluate(()=>JSON.stringify(DB.documents[0]));
-    await page.getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
+    // Voiding lives in the document's "more options" menu.
+    await page.locator('details.doc-more summary').click();
+    await page.locator('.doc-more-menu').getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
     await page.locator('#voidReason').waitFor();
     await page.locator('#modal').getByRole('button',{name:'ยกเลิก',exact:true}).click();
     assert.equal(await page.evaluate(()=>JSON.stringify(DB.documents[0])),old);
-    await page.getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
+    await page.locator('details.doc-more summary').click();
+    await page.locator('.doc-more-menu').getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
     await page.locator('#voidReason').fill('Synthetic duplicate cancellation');
     await page.locator('#modal').getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
     await page.waitForFunction(()=>!!DB.documents[0].voidedAt&&!issuanceBusy);
@@ -83,8 +86,8 @@ const project=path.resolve(__dirname,'..');
     assert.equal(await page.evaluate(()=>taxYearAgg(2025).agg.subtotal),1000);
     const hash=await page.evaluate(()=>DB.reviewEvents[0].evidence[0].sha256);
     assert.deepEqual(await fs.readFile(path.join(profile,'evidence',hash+'.bin')),await fs.readFile(path.join(root,'draft.pdf')));
-    page.once('dialog',dialog=>dialog.accept());
-    await page.getByRole('button',{name:'ออกใบเสร็จรับเงิน',exact:true}).click();
+    await page.locator('#content').getByRole('button',{name:'ออกใบเสร็จรับเงิน',exact:true}).click();
+    await page.locator('#confirmOk').click();   // in-app confirmation names the action
     await page.waitForFunction(()=>DB.documents.some(d=>d.reviewEventId)&&!issuanceBusy);
     assert.equal(await page.evaluate(()=>taxYearAgg(2025).agg.subtotal),1000);
     assert.equal(await page.evaluate(()=>JSON.stringify(DB.documents.find(d=>d.id==='legacy-payment'))),paymentOriginal);
