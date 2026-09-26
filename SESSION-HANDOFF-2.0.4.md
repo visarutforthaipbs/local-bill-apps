@@ -2,7 +2,13 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
-**Latest work (2026-09-26):** private signed/notarized **2.0.7** (Option A cleanup plus
+**Latest work (2026-09-27):** private signed/notarized **2.0.8** adds the guided
+old-record review ("ตรวจข้อมูลเดิม", source `48940b0`); installed and verified on
+lighthouse-control, 2.0.7 app and profile retained in `BillNgai-update-2.0.8`. Read
+[INSTALL-2.0.8.md](INSTALL-2.0.8.md) and [LEGACY-REVIEW-2.0.8.md](LEGACY-REVIEW-2.0.8.md).
+The owner's 12 remaining groups are unanswered; answering them is the owner's decision.
+
+**Previous work (2026-09-26):** private signed/notarized **2.0.7** (Option A cleanup plus
 UI/UX audit fixes, source `ba1f5a1`) is installed and verified on lighthouse-control;
 2.0.6 app and full profile retained in `BillNgai-update-2.0.7`. Read
 [INSTALL-2.0.7.md](INSTALL-2.0.7.md) and [UX-AUDIT-VERIFICATION.md](UX-AUDIT-VERIFICATION.md).
