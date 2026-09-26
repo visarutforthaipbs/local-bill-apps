@@ -3,6 +3,26 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.8] — 2026-09-27 (Private owner update)
+
+### Added
+- "ตรวจข้อมูลเดิม": one screen to answer each unresolved historical payment group —
+  one payment (choose which record's amount counts), not income, or ask my accountant.
+  Answers are append-only review records with the group's source snapshot, saved
+  after a backup; originals, issuance snapshots and output limits never change.
+  The latest answer applies only while the group's records are unchanged, and
+  answers can be changed later from Settings → ข้อมูลและสำรอง.
+
+### Changed
+- Dashboard shows the pair card only when pairs can be confirmed, and one
+  "ข้อมูลเดิมรอตรวจ" to-do line while groups are unanswered. Old-record entry on
+  Documents appears only while something needs an answer; the tax-invoice
+  correction screen is reached from the old-records screen.
+- "Separate payments" is deliberately not offered; groups can only be counted once,
+  excluded, or deferred to an accountant.
+
+See `LEGACY-REVIEW-2.0.8.md` and `INSTALL-2.0.8.md`. No public release.
+
 ## [2.0.7] — 2026-09-25 (Private owner update)
 
 ### Changed

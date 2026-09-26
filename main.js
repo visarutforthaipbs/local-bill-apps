@@ -528,6 +528,24 @@ function validCorrectionReviewEvent(event) {
     && !source.deletedAt && !source.voidedAt && source.status !== 'void' && !source.milestone
     && [0,'0'].includes(source.vatRate) && source.currency === 'THB';
 }
+// Owner's answer for one unresolved historical payment group. Append-only; the latest
+// valid answer whose source records still match the group exactly is the one used.
+function validLegacyGroupReview(event) {
+  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  if (!object(event) || event.type !== 'legacy_group_review' || typeof event.id !== 'string' || !event.id
+    || !['same_payment','not_income','needs_accountant'].includes(event.decision) || event.ownerConfirmed !== true
+    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
+    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
+    || new Date(event.recordedAt).toISOString() !== event.recordedAt
+    || typeof event.groupKey !== 'string' || !event.groupKey || event.groupKey.length > 200
+    || !Array.isArray(event.sourceRecords) || !event.sourceRecords.length || event.sourceRecords.length > 50
+    || event.sourceRecords.some(record => !object(record) || typeof record.id !== 'string' || !record.id)) return false;
+  const ids = event.sourceRecords.map(record => record.id);
+  if (new Set(ids).size !== ids.length || !ids.includes(event.documentId)) return false;
+  return event.decision === 'same_payment'
+    ? typeof event.representativeId === 'string' && ids.includes(event.representativeId)
+    : event.representativeId === undefined;
+}
 function isLegacyDeletionMarker(record) {
   const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
     && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
@@ -616,6 +634,10 @@ function validateData(text) {
       event.sourceRecords.forEach(document);
     }
     if (event.type === 'correction_review' && !validCorrectionReviewEvent(event)) invalid();
+    if (event.type === 'legacy_group_review') {
+      if (!validLegacyGroupReview(event)) invalid();
+      event.sourceRecords.forEach(record => { if (!isLegacyDeletionMarker(record)) document(record); });
+    }
     strings(event, ['documentId','type','recordedAt','note','paymentId','paidDate','currency','vatStatus']);
     if (!event.documentId || !event.type || !event.recordedAt) invalid();
     if (event.evidence !== undefined) {

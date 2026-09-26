@@ -15,7 +15,9 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     await page.waitForFunction(()=>DB&&!loadFailed&&DB.documents.length===4);
     const originals=await page.evaluate(()=>JSON.stringify(DB.documents));
     await page.locator('#nav button[data-view="documents"]').click();
-    await page.getByRole('button',{name:'ตรวจและเตรียมแก้เอกสารเดิม',exact:true}).click();
+    // 2.0.8: old-record tools live in one hub, reached from Documents while something needs an answer.
+    await page.locator('#topActions').getByRole('button',{name:/^ตรวจข้อมูลเดิม/}).click();
+    await page.getByRole('button',{name:'ใบกำกับภาษีเดิม — เตรียมข้อเสนอแก้เอกสาร',exact:true}).click();
     assert.equal(await page.locator('#correctionDelivery').inputValue(),'unknown');assert.equal(await page.locator('#correctionVat').isChecked(),false);
     await page.getByRole('button',{name:'เลือกทั้งหมดที่เตรียมข้อเสนอได้',exact:true}).click();
     assert.equal(await page.locator('[data-correction-id]:checked').count(),1);
