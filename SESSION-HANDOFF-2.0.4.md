@@ -2,6 +2,8 @@
 
 Updated: 2026-09-24. **Mac Direct 2.0.4 released; website and both downloads verified.**
 
+**Latest private release (2026-09-29):** signed/notarized universal **2.0.9** is installed locally, including the approved UI, historical review fixes and corrected ordinary receipts. Read [INSTALL-2.0.9.md](INSTALL-2.0.9.md). Public stays 2.0.4; older checkpoints below remain historical.
+
 **Latest work (2026-09-27):** private signed/notarized **2.0.8** adds the guided
 old-record review ("ตรวจข้อมูลเดิม", source `48940b0`); installed and verified on
 lighthouse-control, 2.0.7 app and profile retained in `BillNgai-update-2.0.8`. Read

@@ -1,6 +1,6 @@
 # บิลง่าย / BillNgai — agent hand-off
 
-**Current source (2026-09-29):** private 2.0.9 release candidate.
+**Current source (2026-09-29):** private signed/notarized 2.0.9 installed locally.
 Read `INSTALL-2.0.9.md` for actual build, notarization and installation status.
 Start with `FINTECH-UI-VERIFICATION.md`, `AUDIT-FIXES-VERIFICATION.md`, `BRAND.md`, and `INSTALL-2.0.8.md`.
 The owner approved the card-based fintech UI with the original orange accent and warm cream light background; the seller’s document brand is independent.

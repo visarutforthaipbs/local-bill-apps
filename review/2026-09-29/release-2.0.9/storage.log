@@ -1,0 +1,8 @@
+Error occurred in handler for 'data:load': Error: DATA_MISSING
+    at loadData (/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-development/main.js:736:59)
+Error occurred in handler for 'data:save': Error: DATA_CHANGED_ON_DISK
+    at currentSession (/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-development/main.js:750:11)
+    at async saveData (/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-development/main.js:756:19)
+    at async /Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-development/main.js:794:24
+PASS: Electron 43.7.3 boot lock, 3-document preservation, IPC recovery, document save/reload, TH/EN backup history, ordinary receipt issuance/frozen paper/PDF, and failed editor save.
+Isolated fixture/screenshots: /var/folders/tb/619_zw050jd0m07bpqrll38r0000gn/T/billngai-electron-smoke-S6lzb0
