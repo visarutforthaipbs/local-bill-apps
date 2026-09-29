@@ -97,3 +97,39 @@ test('dashboard shows one to-do line instead of an empty pair card, and the rece
   assert.match(html,/2 old record group\(s\) to review|<b>2<\/b> old record group/);
   assert.match(html,/Excludes 2 older record group/);
 });
+
+test('certificate metadata retains confirmed legacy income and immutable evidence; payment changes invalidate it',async()=>{
+  const run=setup();await run(`saveLegacyAnswers([answer('i2','same_payment','t2')],true,'Checked payment')`);
+  const evidence=run('JSON.stringify(DB.reviewEvents)');
+  run(`Object.assign(DB.documents.find(d=>d.id==='t2'),{whtCertReceived:true,whtCertNo:'CERT',whtCertNumber:'CERT',whtCertDate:'2026-02-01',updatedAt:'2026-02-01T00:00:00Z'})`);
+  assert.equal(run('taxYearAgg(2026).agg.net'),10400);assert.equal(run('JSON.stringify(DB.reviewEvents)'),evidence);
+  run(`DB.documents.find(d=>d.id==='t2').items[0].price=11000`);assert.equal(run('taxYearAgg(2026).agg.net'),0);
+});
+test('ordinary payment matches also survive certificate tracking while dates and membership stay protected',()=>{
+  const run=setup();run(`DB.documents=DB.documents.filter(d=>['i2','t2'].includes(d.id));DB.documents.forEach(d=>d.vatRate=0);
+    DB.reviewEvents=[{id:'match',type:'payment_match',documentId:'i2',representativeId:'t2',samePaymentConfirmed:true,note:'Checked',recordedAt:'2026-01-11T00:00:00Z',sourceRecords:JSON.parse(JSON.stringify(DB.documents))}];`);
+  assert.equal(run('taxYearAgg(2026).agg.net'),9700);
+  run(`Object.assign(DB.documents[1],{whtCertReceived:true,whtCertNo:'CERT',updatedAt:'2026-02-01T00:00:00Z'})`);
+  assert.equal(run('taxYearAgg(2026).agg.net'),9700);
+  run(`DB.documents[1].paidDate='2026-01-12'`);assert.equal(run('taxYearAgg(2026).agg.net'),0);
+  run(`DB.documents[1].paidDate='2026-01-10';DB.documents.push({...DB.documents[1],id:'extra',number:'EXTRA'})`);
+  assert.equal(run('taxYearAgg(2026).agg.net'),0);
+});
+test('source reversion cannot revive a superseded owner answer',async()=>{
+  const run=setup();await run(`saveLegacyAnswers([answer('i2','same_payment','t2')],true,'First answer')`);
+  run(`DB.documents.find(d=>d.id==='t2').notes='Later facts'`);await run(`saveLegacyAnswers([answer('i2','not_income')],true,'Latest answer')`);
+  run(`delete DB.documents.find(d=>d.id==='t2').notes`);
+  assert.equal(run('taxYearAgg(2026).agg.net'),0);assert.equal(run('paymentReview().unansweredGroups.length'),2);
+});
+test('excluded non-income records do not leave income metadata warnings',async()=>{
+  const run=setup();run(`DB.documents=DB.documents.filter(d=>['i1','t1'].includes(d.id));DB.documents.forEach(d=>{delete d.paidDate;delete d.issueDate;delete d.currency;});`);
+  await run(`saveLegacyAnswers([answer('i1','not_income')],true,'Test records, no income')`);
+  assert.deepEqual(run(`(()=>{const p=paymentReview();return {missingDate:p.missingDate,unknownCurrency:p.unknownCurrency,unanswered:p.unansweredGroups.length,incomplete:taxYearAgg(2026).incomplete};})()`),{missingDate:0,unknownCurrency:0,unanswered:0,incomplete:false});
+});
+test('imported same-payment answers cannot consume an ineligible representative or revive an older answer',async()=>{
+  const run=setup();await run(`saveLegacyAnswers([answer('i2','same_payment','t2')],true,'Valid answer')`);
+  run(`DB.documents.find(d=>d.id==='t2').paidDate='';const source=paymentReview().legacyGroups.find(g=>g.key===DB.reviewEvents[0].groupKey).group;
+    DB.reviewEvents.push({...DB.reviewEvents[0],id:'imported',sourceRecords:JSON.parse(JSON.stringify(source))});`);
+  assert.equal(run('validLegacyGroupReview(DB.reviewEvents[1])'),true);assert.equal(run('taxYearAgg(2026).agg.net'),0);
+  assert.equal(run('paymentReview().unansweredGroups.length'),2);
+});

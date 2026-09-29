@@ -4,7 +4,7 @@ This document is the single source of truth for every UI change, icon, animation
 document template, and marketing asset in this project.
 
 **If a generated component conflicts with this document, THIS DOCUMENT WINS.**
-Never invent another style.
+Explicit owner requests can revise this contract. The owner approved the fintech UI direction below on 2026-09-29.
 
 Positioning line (for store copy / marketing, not in-app):
 > The billing and tax app built for Thai freelancers — not a global SaaS
@@ -20,72 +20,100 @@ BillNgai feels like:
 
 NOT:
 
-✗ Corporate · ✗ Banking · ✗ Enterprise ERP · ✗ Overly playful · ✗ Gamified
+✗ Dense enterprise ERP · ✗ Overly playful · ✗ Gamified
 
 Every screen should communicate: **less work, less friction, more speed, more confidence.**
 
 ---
 
-## Design tokens
+## Product design: 37signals principles
 
-Tokens live in the `:root` block of `billing.html` — that IS the design-token file
-(this app is vanilla JS; there is no Tailwind/JS token module).
-Never hardcode a color, radius, or shadow in new code — use `var(--…)`.
-If a token is genuinely missing, add it to `:root` AND document it here.
+The daily job is to create a document, send it, record payment, and find it later.
+Non-VAT freelancers come first. Keep useful capabilities and historical records;
+place occasional work beneath its parent task rather than adding sidebar entries.
 
-### Color
+- Give each screen one clear job, with normal, empty and error states.
+- Offer choices that work today; explain prerequisites before users fill a form.
+- Keep pending work recoverable. Only explicit confirmation changes financial facts.
+- Lead with useful totals and their periods; keep relevant limitations visible.
+- Name actions by their result, especially backups, exports and historical review.
+- Disclose optional detail without hiding relevant VAT or incomplete records.
+- Prefer the existing vanilla-JS components; avoid new modes, settings and dependencies.
 
-| Token | Value | Use for | Never for |
-|---|---|---|---|
-| `--accent` | `#FF6B00` | FILLS: buttons, primary CTA, active states, table heads, bars | Text on light backgrounds |
-| `--accent-ink` | derived (accent + 30% black) | TEXT in the brand color on light/white backgrounds (doc titles, totals, links, amounts) — #FF6B00 text on white is only 2.9:1 contrast and fades on B/W printing | Fills |
-| `--accent-fill` | derived (accent darkened just enough for white text ≥ 4.5:1 — computed by `applyTheme()`; default orange → `#C45200`) | FILLS that carry white text: primary buttons, selected pills, nav badges, active steps | Decorative fills without text (bars, dots, rules keep `--accent`) |
-| `--text` | `#2D3436` | Body text (charcoal) | |
-| `--bg` | `#FFF9F3` | App background (warm cream) | |
-| `--surface` / `-2` / `-3` | white → warm ramp | Cards, panels, inputs | |
-| `--green` / `--green-bg` | green | **Paid / completed / approved ONLY** | Branding, decoration |
-| `--red` / `--red-bg` | red | **Errors / overdue ONLY** | Emphasis |
-| `--amber` / `--amber-bg` | amber | Reminders / warnings | |
-| `--blue` / `--blue-bg` | muted blue | Informational notes only | Buttons — **never blue buttons** |
-| `--text-dim` / `--text-faint` | warm greys | Secondary and hint text — both keep ≥ 4.5:1 on `--bg`, `--surface`, `--surface-2` | Changing them below AA contrast |
-| `--red-bd` / `--blue-bd` / `--amber-bd` | borders | Borders of `.banner.danger` / `.banner.info` / default `.banner` and matching badges | Fills |
+Navigation: Dashboard, Documents (including recurring and historical review),
+Clients, Income summary (including accounting periods), WHT certificates, Settings.
+See `review/2026-09-29/design/AUDIT-37SIGNALS.md` for the source-based rationale.
 
-All accent tints (`--accent-bright`, `--accent-tint`, `--accent-soft`, …) are
-derived from `--accent` via `color-mix` — never set them directly.
-Users may override the accent per-business (`DB.business.brandColor`); the
-default is the brand orange.
+---
 
-Hard rules:
-- Brand-orange **text** on light backgrounds always uses `--accent-ink`, never raw `--accent`.
-- White text on a brand fill uses `--accent-fill` (AA contrast for any user brand color); raw `--accent` stays for
-  text-free fills — bars, dots, header rules, switches.
-- **Never** blue buttons. **Never** gradients. **Never** glassmorphism.
-- **Never** neon. **Never** colors outside the tokens above.
-- Status banners use classes, not inline colors: `.banner` (reminder, amber), `.banner.info` (blue), `.banner.danger` (red).
-- Thai text is never set in uppercase or with extra letter-spacing (Thai has no case; tracking splits vowel/tone marks). App UI text stays ≥ 12px.
-- The logo (`logo.svg`) keeps its own orange `#FC4C02` — do not "correct" it to `--accent`.
+## Design tokens — Modern Fintech / Neobanking
+
+The owner approved a minimalist fintech layout, then explicitly retained the
+original BillNgai orange and warm cream light canvas. Use white cards, orange accents, generous
+rounded cards, large money figures and pill actions. Lime is not the app accent.
+This supersedes the older small-radius and app-wide corporate-color rules. Keep the 37signals workflow principles above.
+No framework or dependency is needed for this style change.
+
+Tokens live in `:root` in `billing.html`. New components use these tokens.
+
+| Token | Value | Role |
+|---|---|---|
+| `--bg` | `#FFF9F3` | App canvas |
+| `--surface` | `#FFFFFF` | Cards and dialogs |
+| `--surface-2` | `#F2F4F5` | Form controls |
+| `--surface-3` | `#E8ECEF` | Secondary surfaces |
+| `--text` | `#141A22` | Primary text and amounts |
+| `--text-dim` | `#485360` | Secondary labels |
+| `--text-faint` | `#596572` | Supporting text, still readable |
+| `--accent` / `--accent-fill` | `#FF6B00` | Primary actions and received-income highlight |
+| `--on-accent` | `#231307` | Dark text on orange fills |
+| `--accent-ink` | `#A84400` | Readable accent text/focus on neutral surfaces |
+| `--border` / `--border-soft` | `#DDE2E6` / `#ECF0F2` | Flat card and internal borders |
+
+The app keeps this light palette under both light and dark OS preferences.
+
+Semantic green, red, amber and blue tokens retain their meaning. `--on-danger` provides contrast on solid destructive buttons. Color
+never replaces status text. Use restrained derived accent tints; no gradients,
+glass effects, textured canvas, or heavy shadows.
+
+The fixed app palette is independent of `DB.business.brandColor`. That field
+continues to control the seller's document color and its preview through
+`--document-accent` / `--document-accent-ink`. Issued snapshots keep their frozen
+brand. `.paper` defines its own light palette and original radius values, so OS
+dark mode and the app restyle do not change invoice/PDF appearance.
+
+The existing orange BillNgai logo remains the product mark; this change does
+not replace installed icons or marketing artwork.
 
 ### Typography
 
 - English: **Inter** · Thai: **LINE Seed Sans TH** (both bundled in `fonts/`, offline).
-- Weights: Regular (400), Semibold (600, Inter only), Bold (700). **Never thin/light fonts.**
+- Weights: Regular (400), Semibold (600, Inter only), Bold (700). Main money figures use 700 at 28–44px; card amounts use 24px and compact document-row amounts use 18px. Labels stay at least 12px. **Never thin/light fonts.**
 - `--font` is the only family stack; `--font-display` is the same stack at display weight.
 
 ### Radius
 
 | Token | Value | Use |
 |---|---|---|
-| `--radius-sm` | 6px | Buttons, inputs |
-| `--radius` | 8px | Cards, panels |
-| `--radius-lg` | 12px | Dialogs / modals |
+| `--radius-sm` | 12px | Inputs and compact controls |
+| `--radius` | 20px | Cards and panels |
+| `--radius-lg` | 24px | Dialogs / modals |
+| `--radius-pill` | 999px | Buttons, tabs, navigation |
 
-No new ad-hoc radii.
+Cards stay within 16–24px. Use token radii, not ad-hoc values. Printed paper retains its existing geometry.
 
 ### Spacing
 
 Base 8px. New UI uses the scale **8 / 16 / 24 / 32 / 48 / 64**.
 (Legacy layouts predate this scale — migrate opportunistically when touching them,
 don't churn otherwise.)
+
+Cards use 24px padding and 16px gaps. The main Documents page uses aligned rows
+with 16px padding inside a rounded panel; narrow windows stack each row. Dashboard
+and WHT lists retain cards. Each document has a keyboard-accessible open button
+and separate actions. Keep dense accounting tables inside their relevant cards
+when tabular comparison matters. Primary page actions stay in the page header,
+which wraps at narrow widths; modal and Settings save actions stay in their footers.
 
 ### Icons
 
@@ -95,7 +123,7 @@ Outline only, stroke 2.5px, rounded caps/joins (the `ic()` / `ICONS` system in
 ### Animation
 
 Fast: ~200ms, ease-out. No bounce, no spinning loaders — prefer skeleton loading.
-Existing `--spring` easing is acceptable for micro-interactions.
+Use ease-out; avoid bouncing or counting financial amounts through intermediate values.
 
 ---
 
@@ -118,8 +146,7 @@ Avoid: ดำเนินการออกเอกสารทางการ�
 ## Documents (the printed paper)
 
 - Paper stays white with neutral grays (intentional print neutrals in `.paper` CSS).
-- The accent (header rule, table head, totals) follows `--accent` → brand orange
-  by default, user-overridable.
+- Paper-scoped accents follow the seller’s saved color (orange by default), including frozen issued snapshots. The app palette never replaces that color.
 - ใบกำกับภาษี rules in CLAUDE.md still apply (never English-only, etc.).
 
 ---
@@ -140,8 +167,8 @@ Never: corporate stock photos, skyscrapers, people in suits, blue backgrounds.
 Whenever generating UI or assets:
 
 1. Check the request against this guide **before** writing code.
-2. If a request violates the guide, politely explain why, then produce the
-   closest compliant solution.
+2. Follow an explicit owner design revision, then update this guide to record it.
+   Otherwise keep generated UI within this contract.
 3. Never invent another design language.
 4. Always reuse existing components/classes (`.btn`, `.banner`, `.card-block`,
    `.pill-select`, `.mini-stats`, the modal pattern, `.chart-card`) before

@@ -65,7 +65,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
       await page.screenshot({path:path.join(root,`settings-${lang}.png`),fullPage:true,animations:'disabled'});
     }
     // Availability refresh, activation, deactivation, and dated/lifetime labels.
-    await page.locator('details summary').click();
+    await page.locator('details').filter({has:page.locator('button[onclick="openAiSettings()"]')}).locator('summary').click();
     await page.locator('button[onclick="openAiSettings()"]').click();await page.waitForFunction(()=>currentView==='ai');
     await page.locator('button[onclick="openUpgradeModal()"]').click();
     await page.locator('#lic_key').fill('synthetic-test-key');
@@ -107,7 +107,6 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     });assert.deepEqual(missing,[]);
     await page.evaluate(()=>setView('dashboard'));assert.doesNotMatch(await page.locator('#content').innerText(),/2\.0\.4/);
     await page.evaluate(()=>window.scrollTo(0,0));
-    await page.waitForTimeout(1000); // Let the dashboard's existing number animation finish.
     await page.screenshot({path:path.join(root,'dashboard.png'),fullPage:true,animations:'disabled'});
     await page.reload();await page.waitForFunction(()=>DB&&!loadFailed);
     assert.equal(await page.evaluate(()=>JSON.stringify(DB.documents)),original);

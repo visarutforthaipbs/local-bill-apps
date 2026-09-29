@@ -1,19 +1,21 @@
 # บิลง่าย / BillNgai — agent hand-off
 
-**Current candidate (2026-09-24):** start with `SESSION-HANDOFF-2.0.4.md` and
-`VERIFICATION-2.0.4.md`. The owner authorized implementing the post-release audit.
-The owner subsequently authorized release; see `RELEASE-2.0.4.md` for exact
-source/tag, signing, notarization and publication state. Do not infer installed
-app/customer-profile changes from publication.
-
-**Current-session handoff (2026-09-23):** read `SESSION-HANDOFF-2.0.3.md` before
-continuing, then check `RELEASE-2.0.3.md` for exact commit, artifact and publication
-evidence. Do not infer current publication status from older preparation records.
-Its containment restrictions supersede the general feature description below
-for 2.0.3; do not infer that tax estimates, e-Tax or sync remain enabled.
+**Current source (2026-09-29):** private 2.0.9 release candidate.
+Read `INSTALL-2.0.9.md` for actual build, notarization and installation status.
+Start with `FINTECH-UI-VERIFICATION.md`, `AUDIT-FIXES-VERIFICATION.md`, `BRAND.md`, and `INSTALL-2.0.8.md`.
+The owner approved the card-based fintech UI with the original orange accent and warm cream light background; the seller’s document brand is independent.
+Source edits do not update the installed app or authorize release/signing.
+Older release and handoff files remain historical evidence.
 
 Local-first quotation / invoice / receipt desktop app with Thai tax handling
-(VAT, หัก ณ ที่จ่าย / 50 ทวิ tracking, ภ.ง.ด. 90/94 estimates, e-Tax XML draft, PromptPay QR).
+(ordinary documents, หัก ณ ที่จ่าย / 50 ทวิ tracking, accounting summaries, PromptPay QR).
+New tax invoices, payable/refund tax estimates, e-Tax XML and cloud sync remain paused.
+Historical records and compatibility code remain; accounting summaries are not tax returns.
+Authorized zero-VAT historical corrections can now issue ordinary receipts using the
+reviewed correction workflow; see `RECEIPT-REISSUE-VERIFICATION.md`. Corrections
+are immutable `receipt_reissue` review events, not additional ledger documents.
+Keep them in the shared receipt-number namespace and preserve original payment facts.
+Optional local AI is reachable only when its license and installed add-on are usable.
 Built for Thai freelancers/small businesses; has real users giving feedback.
 Renamed from **Billiong** in 1.2.0 — `main.js` still contains a one-time
 `migrateFromBilliong()` that copies data from the old `Billiong` app-support folder;
@@ -22,7 +24,7 @@ keep it until the old-name install base is gone.
 ## Architecture
 
 - **Electron app, essentially one file.** All UI, logic, and document rendering live in
-  `billing.html` (~3,000 lines of inline JS — no framework, no bundler, no build step for code).
+  `billing.html` (about 7,000 total lines — no framework, no bundler, no build step for code).
   `main.js` = Electron main process (storage bridge, backups, PDF export), `preload.js` = IPC bridge.
 - The same `billing.html` also runs in a plain browser (File System Access API instead of the
   native bridge). Useful for testing — see below.
@@ -86,8 +88,9 @@ Two independent systems:
    `billing.html` via localhost in a browser (Chrome tools work; `file://` is blocked),
    drive it with JS (`wizDone(true)`, push test clients/docs, `renderPaper(...)` assertions),
    and screenshot. **Clear `localStorage` afterwards** — the browser origin keeps test data.
-4. For the desktop app: `npm start` (data lives in `~/Library/Application Support/BillNgai` —
-   that's the user's REAL data; don't inject test records there).
+4. Run `npm test` and `npm run release:check`. Desktop smoke tests in `test/*-electron-smoke.cjs`
+   launch a fresh synthetic `--user-data-dir` and verify that path. Use those harnesses;
+   ordinary `npm start` opens the user's real profile. Never inject test records there.
 
 ## Conventions & cautions
 

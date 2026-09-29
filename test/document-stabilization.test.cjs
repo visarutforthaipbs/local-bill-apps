@@ -154,8 +154,8 @@ test('actual imported document row handlers keep a crafted ID inert',()=>{
   const {run}=setup();
   const id="legacy');globalThis.idAttack=true;//";
   const table=run(`(()=>{const d=fixture({id:${JSON.stringify(id)}});DB.documents=[d];return docTable([d]);})()`);
-  const match=table.match(/<tr\s+onclick="([^"]*)"/);
-  assert.ok(match,'Synthetic document should have a navigable row');
+  const match=table.match(/<button class="document-main" onclick="([^"]*)"/);
+  assert.ok(match,'Synthetic document should have a navigable card');
   const handler=match[1].replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
   run(`globalThis.idAttack=false;globalThis.selectedId=null;viewDoc=id=>{globalThis.selectedId=id;};`);
   run(handler);

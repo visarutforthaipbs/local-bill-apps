@@ -70,7 +70,7 @@ test('document-row inline handlers treat imported IDs as literal strings, never 
   const id=`x');attack();//" autofocus onfocus="attack()`;
   run(`DB.documents=[fixture({id:${JSON.stringify(id)}})];`);
   const html=run('docTable(DB.documents)');
-  const encoded=html.match(/<tr onclick="([^"]*)"/)[1];
+  const encoded=html.match(/<button class="document-main" onclick="([^"]*)"/)[1];
   const handler=encoded.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
   let seen,attacked=false;
   vm.runInNewContext(handler,{viewDoc(value){seen=value},attack(){attacked=true}});
@@ -136,7 +136,7 @@ test('virtual payment WHT and document-row actions navigate retained source, not
   assert.doesNotMatch(markup,/viewDoc\(&quot;review:/);
   assert.match(run('docTable(realizedDocs())'),/viewDoc\(&quot;legacy-invoice&quot;\)/);
   assert.match(run('buildWhtCSV(2026)'),/Reviewed buyer,1111111111111,2026-08-20/);
-  assert.match(run('chartsBlock()'),/Reviewed buyer/);
+  assert.match(run('(()=>{const c={};renderReport(c,{});return c.innerHTML;})()'),/Reviewed buyer/);
 });
 test('malformed imported review amounts are flagged and never crash CSV or contaminate totals',()=>{
   const run=setup();reviewedFixture(run);

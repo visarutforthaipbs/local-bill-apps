@@ -506,6 +506,43 @@ function withDataLock(action) {
 }
 // Older sync deletes could retain only identity/timestamps (and migrated currency).
 // Accept that exact deleted shape, never a type-less live/financial document.
+// A receipt reissue is immutable correspondence for an existing payment, not a new ledger entry.
+function validReceiptReissueEvent(e){
+  const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v),str=v=>typeof v==='string'&&!!v.trim();
+  const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
+  const num=v=>(typeof v==='number'||(typeof v==='string'&&!!v.trim()))&&Number.isFinite(Number(v));
+  const party=(p,seller)=>obj(p)&&str(seller?p.businessName:p.name)&&str(p.address)&&(!seller||/^\d{13}$/.test(p.taxId||''));
+  if(!obj(e)||e.type!=='receipt_reissue'||!str(e.id)||!str(e.documentId)||e.purpose!=='document_correction_only'||
+    e.historicalVatConfirmed!==true||e.partyDetailsConfirmed!==true||e.paymentFactsConfirmed!==true||!str(e.note)||e.note.length>4000||
+    typeof e.recordedAt!=='string'||!Number.isFinite(Date.parse(e.recordedAt))||new Date(e.recordedAt).toISOString()!==e.recordedAt)return false;
+  const src=e.sourceRecordAtReview,r=e.receipt,s=r&&r.issuedSnapshot;
+  if(!obj(src)||src.id!==e.documentId||src.type!=='tax_invoice'||src.status!=='issued'||src.deletedAt||src.voidedAt||src.syncConflict||
+    !str(src.number)||![0,'0'].includes(src.vatRate)||src.currency!=='THB'||!date(src.paidDate)||!date(src.issueDate)||
+    !num(src.whtRate)||Number(src.whtRate)<0||Number(src.whtRate)>100||!Array.isArray(src.items)||!src.items.length||
+    src.items.some(i=>!obj(i)||!str(i.description)||!num(i.qty)||Number(i.qty)<=0||!num(i.price)||Number(i.price)<0))return false;
+  if(!obj(r)||r.id!=='reissue:'+e.id||r.type!=='receipt'||r.status!=='issued'||!str(r.number)||r.number===src.number||
+    r.reissueOf!==src.id||r.reissueOfNumber!==src.number||r.reissueOfDate!==src.issueDate||r.clientId!==src.clientId||r.paidDate!==src.paidDate||r.currency!=='THB'||r.vatRate!==0||
+    Number(r.whtRate)!==Number(src.whtRate)||!date(r.issueDate)||r.issueDate<r.paidDate||r.deletedAt||r.voidedAt||r.legacy_review_required||
+    r.paymentId||r.fullPaymentConfirmed||JSON.stringify(r.items)!==JSON.stringify(src.items))return false;
+  if(!obj(s)||s.schemaVersion!==1||!party(s.business,true)||s.business.vatStatus!=='non_registered'||!party(s.buyer,false)||
+    !['th','bilingual'].includes(s.docLang)||!obj(s.document)||!obj(s.amounts)||typeof s.renderedHtml!=='string'||typeof s.shareText!=='string')return false;
+  const plain={...r};delete plain.issuedSnapshot;
+  if(JSON.stringify(plain)!==JSON.stringify(s.document))return false;
+  const round=n=>Math.round((n+Number.EPSILON)*100)/100;
+  const subtotal=round(src.items.reduce((sum,i)=>sum+round(Number(i.qty)*Number(i.price)),0)),wht=round(subtotal*Number(src.whtRate)/100);
+  const expected={subtotal,vatRate:0,whtRate:Number(src.whtRate),vatAmount:0,whtAmount:wht,grandTotal:subtotal,netPayable:round(subtotal-wht),currency:'THB'};
+  return subtotal>0&&subtotal<=Number.MAX_SAFE_INTEGER/100&&expected.netPayable>0&&Object.entries(expected).every(([k,v])=>s.amounts[k]===v);
+}
+function validReceiptReissueSet(data){
+  const sources=new Set(),numbers=new Set((data.documents||[]).map(d=>d.number).filter(Boolean));
+  for(const e of data.reviewEvents||[]){
+    if(e.type!=='receipt_reissue')continue;
+    if(!validReceiptReissueEvent(e)||sources.has(e.documentId)||numbers.has(e.receipt.number))return false;
+    sources.add(e.documentId);numbers.add(e.receipt.number);
+  }
+  return true;
+}
+
 function validCorrectionReviewEvent(event) {
   const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
   if (!object(event) || typeof event.id !== 'string' || !event.id || event.type !== 'correction_review'
@@ -656,6 +693,7 @@ function validateData(text) {
           !['gross','wht','net'].every(key => typeof event[key] === 'number' && Number.isFinite(event[key]))) invalid();
     }
   }
+  if(!validReceiptReissueSet(data)) invalid();
   return data;
 }
 async function preserveBefore204(file, text) {
@@ -719,6 +757,13 @@ async function saveData(text) {
   if (session.text !== null) {
     await preserveBefore204(session.file, session.text);
     const prev = validateData(session.text);
+    // Correction receipts already issued by this app remain append-only on normal saves.
+    // Explicit backup restoration uses the separate recovery path.
+    for (const issued of prev.reviewEvents || []) {
+      if (issued.type !== 'receipt_reissue') continue;
+      const retained = (next.reviewEvents || []).find(event => event.id === issued.id);
+      if (!retained || canonicalJson(retained) !== canonicalJson(issued)) throw new Error('RECEIPT_REISSUE_IMMUTABLE');
+    }
     if (['documents', 'clients', 'recurring'].some(key => (prev[key] || []).length > (next[key] || []).length)) {
       await snapshotText(session.text, 'pre-replace');
     }
@@ -1451,7 +1496,7 @@ function buildMenu() {
     {
       label: 'ไฟล์',
       submenu: [
-        { label: 'สำรองข้อมูล (Export)…', accelerator: 'CmdOrCtrl+E', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:export'); } },
+        { label: 'ส่งออกไฟล์สำรอง (Export)…', accelerator: 'CmdOrCtrl+E', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:export'); } },
         { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:import'); } },
         { label: 'เปิดที่เก็บไฟล์ข้อมูล', click: async () => shell.showItemInFolder(await activePath()) },
         { label: 'เปิดโฟลเดอร์สำรองอัตโนมัติ', click: async () => { await fsp.mkdir(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },

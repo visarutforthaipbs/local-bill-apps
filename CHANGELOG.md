@@ -3,6 +3,47 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.9] - 2026-09-29
+
+Private macOS release: audit fixes, approved fintech UI, and corrected historical receipts.
+
+### Corrected historical receipts
+- Issue ordinary corrected receipts for eligible zero-VAT historical tax-invoice records after reviewing party and payment details. A mandatory backup precedes issuance; frozen corrections retain original references and payment dates without adding income.
+- Corrections share the normal receipt number sequence, reject duplicates, and remain immutable during ordinary saves. Archived installment records remain eligible; deleted, voided, conflicting and VAT-bearing records do not.
+- Restrict responsive screen padding to screen media so printed receipts keep signatures on the same A4 page.
+- See `RECEIPT-REISSUE-VERIFICATION.md` for validation and live issuance evidence.
+
+### UI style
+- Owner-approved minimalist fintech palette: original BillNgai orange, warm cream light canvas and white cards,
+  consistent light appearance across OS themes, 20px cards, 24px dialogs, pill actions and larger money figures.
+- Documents use compact aligned rows, stacking on narrow windows; dashboard and
+  withholding lists retain cards with separate open/action targets. Primary page
+  actions sit in the header without covering records. Received income leads the dashboard.
+- Seller document branding stays independent of the application palette, including
+  frozen issued documents and PDF output. English-address field uses shared form styles.
+- See `FINTECH-UI-VERIFICATION.md` for scope, screenshots and validation.
+
+
+### Fixed
+- Certificate tracking no longer invalidates confirmed historical payments. Changed
+  payment facts still require review; older answers cannot supersede a newer answer.
+- Excluded non-income groups no longer generate missing-income warnings. Imported
+  answers cannot count an ineligible representative as confirmed income.
+- Recover unsaved existing-document edits and historical-review answers after leaving
+  or reloading. Preserve source checks, explicit confirmation, and original records.
+
+### Changed
+- Six primary navigation destinations: recurring work belongs to Documents;
+  accounting periods belong to Income summary. Historical tasks keep parent context.
+- Receipt prerequisites appear before the form; receipt currency offers only THB.
+  Document creation respects the selected type, with actionable first-use states.
+- Distinct local restore-point and export labels, attachment-backup scope, optional
+  storage/numbering details, and report cards that lead with received income.
+- Relevant historical VAT stays visible. Shared report styling no longer depends on
+  unused dashboard code. Routine copy describes current supported behavior.
+
+Validation and release boundary: `AUDIT-FIXES-VERIFICATION.md`. No release/version bump.
+
 ## [2.0.8] — 2026-09-27 (Private owner update)
 
 ### Added

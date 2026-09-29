@@ -49,17 +49,17 @@ function renderer(){
     function fixture(extra={}){return {id:'invoice',type:'invoice',number:'INV-1',status:'paid',clientId:'buyer',issueDate:'2026-01-10',paidDate:'2026-01-10',currency:'THB',items:[{description:'Service',qty:1,price:10000}],vatRate:0,whtRate:0,...extra};}`,context);
   return {run:code=>vm.runInContext(code,context),elements};
 }
-test('dashboard charts use the same unique payment set and never count draft receipts',()=>{
+test('income report uses the same unique payment set and never counts draft receipts',()=>{
   const {run}=renderer();
   run("DB.documents=[fixture(),fixture({id:'draft',type:'receipt',status:'draft',items:[{description:'Draft',qty:1,price:90000}]})]");
-  assert.equal(run('receivedDocs().length'),1);
-  assert.match(run('chartsBlock()'),/10,000\.00/);
-  assert.doesNotMatch(run('chartsBlock()'),/90,000\.00/);
+  assert.equal(run('realizedDocs().length'),1);
+  assert.match(run('(()=>{const c={};renderReport(c,{});return c.innerHTML;})()'),/10,000\.00/);
+  assert.doesNotMatch(run('(()=>{const c={};renderReport(c,{});return c.innerHTML;})()'),/90,000\.00/);
   run("DB.documents.push(fixture({id:'receipt1',type:'receipt',parentId:'invoice'}),fixture({id:'receipt2',type:'receipt',parentId:'invoice'}))");
-  assert.equal(run('receivedDocs().length'),0);
+  assert.equal(run('realizedDocs().length'),0);
   assert.equal(run('paymentReview().ambiguousCount'),1);
   assert.equal(run('paymentReview().unallocatedDocs.length'),3);
-  assert.doesNotMatch(run('chartsBlock()'),/20,000\.00/);
+  assert.doesNotMatch(run('(()=>{const c={};renderReport(c,{});return c.innerHTML;})()'),/20,000\.00/);
 });
 test('CSV treats formulas as text, quotes carriage returns and does not invent payment dates',()=>{
   const {run}=renderer();

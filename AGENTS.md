@@ -18,10 +18,12 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
   `#modal` + `openModal()`/`closeModal()` dialog pattern, `ic()` icons.
 - Every user-facing string: `tr('ไทย…')` with an `I18N_EN` entry. Never name a
   translation helper `t`. Documents render via `L(th,en)` pairs, not `tr()`.
-- Accessibility: keep text on `--accent` white/cream and ≥ 4.5:1 where feasible;
+- Accessibility: use `--on-accent` dark text on orange and maintain ≥ 4.5:1;
   never color as the only signal (badges pair color with a label).
 - Prefer composition over duplication; prefer the simplest solution.
-- Every screen should feel like Linear or Stripe, but warmer and more human.
+- Follow the 37signals product principles in BRAND.md: one clear job, achievable
+  next actions, recoverable work, and contextual optional detail. Keep the existing
+  approved fintech visual identity and reusable components.
 
 ## Cross-references
 
