@@ -1,0 +1,12 @@
+const {chromium}=require('playwright'),fs=require('fs');
+(async()=>{const at=async port=>{const b=await chromium.connectOverCDP('http://127.0.0.1:'+port);return b.contexts().flatMap(c=>c.pages()).find(x=>x.url().includes('billing.html'));};
+const A=await at(9334),B=await at(9333);
+const res=(p,key,choice)=>p.evaluate(async([key,choice])=>{try{await resolveSyncV3(key,choice);}catch(e){return {error:e.message};}await refreshSyncInfo();return {left:syncV3Info.conflicts.map(c=>c.key),err:syncErr};},[key,choice]);
+const out={};
+out.business=await res(A,'business:main','remote');
+out.draft=await res(A,'document:d-draft','local');
+const sync=p=>p.evaluate(async()=>{syncErr='';await runSyncV3(true);await refreshSyncInfo();return {err:syncErr,pending:syncV3Info.pending,conflicts:syncV3Info.conflicts.map(c=>c.key)};});
+out.syncA=await sync(A);out.syncB=await sync(B);out.syncA2=await sync(A);
+const st=p=>p.evaluate(()=>({note:DB.documents.find(d=>d.id==='d-draft').notes,yearMode:DB.business.yearMode,cursor:DB.syncV3.cursor,head:DB.syncV3.heads['document:d-draft'].revision,resolutions:(DB.reviewEvents||[]).filter(e=>/sync/i.test(e.type||'')).length,historyKeys:Object.keys(DB.syncV3).join(',')}));
+out.A=await st(A);out.B=await st(B);out.converged=out.A.note===out.B.note&&out.A.yearMode===out.B.yearMode;
+console.log(JSON.stringify(out,null,1));fs.appendFileSync('results.jsonl',JSON.stringify({at:new Date().toISOString(),step:'resolve',...out})+'\n');setTimeout(()=>process.exit(0),100);})();

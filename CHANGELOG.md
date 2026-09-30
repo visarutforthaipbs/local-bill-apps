@@ -3,6 +3,10 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+- Add a private, disabled-by-default Google Drive v3 sync pilot with durable conflicts, idempotent commits and coordinated numbering. Not enabled in installed releases. First live two-Mac test on 2026-09-30 against a private staging service; its findings are fixed (no false conflicts from unchanged records, dependent payment records reviewed together, visible waiting state, backups never carry the sync binding). See `SYNC-V3-PILOT.md` and `review/2026-09-30/sync-v3-live/`.
+
 ## [2.0.11] - 2026-09-30
 
 Private macOS release: clean PDF and print output. See `INSTALL-2.0.11.md`.

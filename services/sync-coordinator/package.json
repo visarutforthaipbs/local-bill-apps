@@ -1,0 +1,25 @@
+{
+  "name": "billngai-sync-coordinator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "types": "wrangler types --strict-vars=false",
+    "dry-run": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "jose": "6.2.12"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.143.0"
+  },
+  "overrides": {
+    "miniflare": "5.20260926.0-alpha",
+    "undici": "^7.29.1",
+    "sharp": "^0.35.4"
+  }
+}

@@ -976,6 +976,7 @@ function blankDB(){
     },
     clients: [],
     documents: [],
+    syncV3: null, // Native pilot metadata; atomically persisted with billing records.
     reviewEvents: [], // Append-only evidence and separately reviewed payment facts; never an original reconstruction.
     recurring: [],  // recurring invoice templates
     counters: {},   // { "quotation-68": 3, ... }
@@ -1080,11 +1081,12 @@ function journalMark(type,id,updatedAt){ if(journalIndex) journalIndex.set(id,{t
 let PRO = { valid:false };
 function isPro(){ return !!(PRO && PRO.valid); }
 let syncInfo = { configured:false, connected:false, email:'', lastSyncAt:null, devices:[] };
+let syncV3Info = {configured:false,connected:false,conflicts:[],pending:0};
 let syncBusy = false, syncErr = '', syncConflicts = [], syncTimer = null;
 // 2.0.4 containment: do not acknowledge cloud events before durable conflict
 // history and cross-device issuance/number allocation have been validated.
 const CLOUD_SYNC_PAUSED = true;
-function isSyncEnabled(){ return !CLOUD_SYNC_PAUSED && IS_ELECTRON && !loadFailed && isPro() && syncInfo.connected; }
+function isSyncEnabled(){ if(syncV3Info.connected) return IS_ELECTRON && !loadFailed; return !CLOUD_SYNC_PAUSED && IS_ELECTRON && !loadFailed && isPro() && syncInfo.connected; }
 
 // ฟิลด์การเงิน/ทางการ — ห้าม merge เงียบ ๆ เด็ดขาด (PRD §17)
 const SYNC_PROTECTED = ['number','status','paidDate','issueDate','dueDate','currency','fxRate','vatRate','whtRate','incomeCategory','whtCertReceived','whtCertNo','whtCertDate'];
@@ -1183,9 +1185,10 @@ function scheduleSync(){
 }
 async function refreshSyncInfo(){
   if(!IS_ELECTRON || !window.billingAPI.syncStatus) return;
-  try{ syncInfo = await window.billingAPI.syncStatus(); }catch(e){}
+  try{ syncInfo = await window.billingAPI.syncStatus(); if(window.billingAPI.syncV3Status)syncV3Info=await window.billingAPI.syncV3Status(); }catch(e){}
 }
 async function syncNow(silent){
+  if(syncV3Info.connected)return runSyncV3(silent);
   if(CLOUD_SYNC_PAUSED){ if(!silent) toast(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'),'err'); return; }
   if(!isSyncEnabled() || syncBusy) return;
   syncBusy = true; syncErr = ''; updateFileStatus();
@@ -1261,6 +1264,58 @@ async function restoreFromCloudFlow(){
     toast(tr('กู้คืนจากคลาวด์แล้ว — เอกสาร {n} ใบ · ลูกค้า {c} ราย')
       .replace('{n}',activeDocs().length).replace('{c}',activeClients().length),'ok');
   }catch(e){ toast(tr('กู้คืนไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+}
+
+/* ---------- private v3 pilot: durable native sync ---------- */
+
+async function assignSyncNumber(d,key){
+  if(!syncV3Info.connected || (!key&&!isIssuedDocument(d)))return uniqueDocumentNumber(d);
+  const original=!key&&DB.documents.find(x=>x.id===d.id);
+  if(original&&isIssuedDocument(original))return uniqueDocumentNumber(d);
+  const fmt=(DB.business.numberFormats[d.type]||d.type.toUpperCase()+'-{YY}-{###}').replace('{YY}',yearToken(d.issueDate));
+  const match=fmt.match(/\{?(#+)\}?/);
+  const parts={series:counterKey(d.type,d.issueDate),prefix:match?fmt.slice(0,match.index):fmt+'-',suffix:match?fmt.slice(match.index+match[0].length):'',width:match?match[1].length:3};
+  d.number=await window.billingAPI.syncV3Reserve(key||'document:'+d.id,parts);return true;
+}
+async function connectSyncV3(){
+  if(!isPro()){openUpgradeModal();return;}
+  if(!await askConfirm(tr('เชื่อมต่อพื้นที่ทดสอบ Google Drive?'),{detail:tr('รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น'),confirmLabel:tr('เชื่อมต่อ Google Drive')}))return;
+  // Upload the same normalized records this app will keep saving, not an older on-disk shape.
+  if(!await persist(true))return;
+  try{syncV3Info=await window.billingAPI.syncV3Connect();await runSyncV3(false);}catch(e){toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+e.message,'err');}
+}
+let syncV3Waiting=false,syncV3RetryTimer=null;
+async function runSyncV3(silent){
+  if(syncBusy||loadFailed||pendingPersist)return;
+  if(editDoc||settingsDirty||document.getElementById('overlay').classList.contains('open')||issuanceBusy){
+    // Don't pull over open work; say so and try again shortly instead of skipping silently.
+    syncV3Waiting=true;updateFileStatus();if(!silent)toast(tr('บันทึกงานที่เปิดอยู่ก่อนซิงก์'),'err');
+    clearTimeout(syncV3RetryTimer);syncV3RetryTimer=setTimeout(()=>runSyncV3(true),15000);return;
+  }
+  syncV3Waiting=false;clearTimeout(syncV3RetryTimer);
+  syncBusy=true;syncErr='';updateFileStatus();
+  try{const result=await window.billingAPI.syncV3Run();DB=migrate(JSON.parse(result.text));syncV3Info=result.status;buildJournalIndex();if(!editDoc&&!settingsDirty&&!document.getElementById('overlay').classList.contains('open'))render();if(!silent)toast(tr('ซิงก์แล้ว'),'ok');}
+  catch(e){syncErr=e.message;await refreshSyncInfo();if(!silent)toast(tr('ซิงก์ไม่สำเร็จ:')+' '+e.message,'err');}
+  finally{syncBusy=false;updateFileStatus();}
+}
+function openSyncV3Conflicts(){
+  const conflicts=syncV3Info.conflicts||[];if(!conflicts.length){toast(tr('ไม่มีข้อขัดแย้งค้างอยู่'),'ok');return;}
+  const label=r=>r?.number||r?.receipt?.number||r?.name||r?.businessName||tr('รายการที่ต้องตรวจสอบ');
+  const amount=r=>r&&['invoice','quotation','receipt','tax_invoice'].includes(r.type)?fmtMoneyC(compute(r).netPayable,docCurrency(r)):'';
+  const facts=r=>{
+    if(!r)return '—';
+    const rows=[[tr('สถานะ'),r.status?tr(STATUS_LABEL[r.status]||r.status):''],[tr('วันที่ชำระ'),r.paidDate?fmtDate(r.paidDate):''],[tr('ที่อยู่'),r.address||''],[tr('โทรศัพท์'),r.phone||''],[tr('อีเมล'),r.email||''],[tr('หมายเหตุ'),r.notes||r.note||'']];
+    return rows.filter(([,value])=>value).map(([label,value])=>`<p><span class="muted">${escapeHtml(label)}</span><br>${escapeHtml(String(value))}</p>`).join('')+(Array.isArray(r.items)?`<ul>${r.items.map(item=>`<li>${escapeHtml(item.description||'')} · ${escapeHtml(String(item.qty))} × ${escapeHtml(String(item.price))}</li>`).join('')}</ul>`:'');
+  };
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ตรวจข้อมูลที่แก้ไขชนกัน')}</h3></div><div class="modal-body"><p>${tr('เก็บทั้งสองฉบับไว้จนกว่าจะเลือก')}</p>${conflicts.map(c=>{
+   const group=conflicts.filter(x=>x.operation===c.operation),canLocal=group.length===1&&!isIssuedDocument(c.local)&&!c.key.startsWith('reviewEvent:');
+   const paidTwice=c.local?.paymentId&&c.remote?.record?.paymentId&&c.local.paymentId!==c.remote.record.paymentId;
+   return `<div class="card-block"><h4>${escapeHtml(label(c.local||c.remote.record))}</h4>${paidTwice?`<p class="banner">${tr('อีกเครื่องบันทึกการรับเงินนี้ไว้แล้ว เลือก “ใช้ชุดข้อมูลจากอีกเครื่อง” เพื่อไม่ให้นับรายรับซ้ำ')}</p>`:''}<div class="grid-2"><div>${tr('เครื่องนี้')}<p>${escapeHtml(label(c.local))} ${escapeHtml(amount(c.local))}</p>${facts(c.local)}</div><div>${tr('อีกเครื่อง')}<p>${escapeHtml(label(c.remote.record))} ${escapeHtml(amount(c.remote.record))}</p>${facts(c.remote.record)}</div></div>${group.length>1?`<p>${tr('ข้อมูลชุดนี้ต้องตรวจพร้อมกัน')}</p>`:''}<div style="display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" onclick="resolveSyncV3(${jsArg(c.key)},'remote')">${tr('ใช้ชุดข้อมูลจากอีกเครื่อง')}</button>${canLocal?`<button class="btn" onclick="resolveSyncV3(${jsArg(c.key)},'local')">${tr('ใช้ของเครื่องนี้')}</button>`:''}</div></div>`;
+  }).join('')}</div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ปิดไว้ก่อน')}</button></div>`;openModal();
+}
+async function resolveSyncV3(key,choice){
+  try{const result=await window.billingAPI.syncV3Resolve(key,choice);DB=migrate(JSON.parse(result.text));syncV3Info=result.status;closeModal();render();scheduleSync();}
+  catch(e){toast(tr('บันทึกไม่สำเร็จ:')+' '+e.message,'err');}
 }
 
 /* ---------- conflict UI ---------- */
@@ -1388,9 +1443,10 @@ async function persistNow(silent){
     return false;
   }
   if(IS_ELECTRON){
-    try{ await window.billingAPI.save(JSON.stringify(DB,null,2)); dirty=false; appendJournal(); scheduleSync(); }
+    try{ const saved=await window.billingAPI.save(JSON.stringify(DB,null,2)); if(saved?.text)DB=migrate(JSON.parse(saved.text)); dirty=false; appendJournal(); scheduleSync(); }
     catch(e){
       dirty=true;
+      if(syncV3Info.connected)await refreshSyncInfo();
       if(String(e.message).includes('DATA_')){ loadFailed=true; clearTimeout(syncTimer); render(); }
       toast(String(e.message).includes('DATA_') ? tr('ไฟล์ข้อมูลไม่พร้อมหรือเปลี่ยนไป หยุดบันทึกเพื่อป้องกันข้อมูลเดิม') : tr('บันทึกไม่สำเร็จ:')+' '+e.message,'err');
       updateFileStatus();
@@ -1430,19 +1486,20 @@ async function elUseDefault(){
   }catch(e){ toast(tr('เปลี่ยนไม่สำเร็จ'),'err'); }
 }
 async function elExport(){
-  try{ const p = await window.billingAPI.exportData(JSON.stringify(DB,null,2));
+  try{ const p = await window.billingAPI.exportData(JSON.stringify(exportableDB(),null,2));
     if(p){ markBackup(); await persist(true); render(); toast(tr('สำรองข้อมูลแล้ว'),'ok'); } }
   catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
 }
 async function elImport(){
   try{ const t = await window.billingAPI.importData(); if(!t) return;
-    const recovered = migrate(JSON.parse(t));
+    const parsed=JSON.parse(t); delete parsed.syncV3;   // a backup never re-binds sync
+    const recovered = migrate(parsed);
     // Main validates the original schema; an unrelated JSON file must not become blankDB().
     await window.billingAPI.recoverData(t);
     DB = recovered; loadFailed=false;
     if(!await persist(true)) return;
     render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
-  }catch(e){ toast(tr('ไฟล์ไม่ถูกต้อง'),'err'); }
+  }catch(e){ toast(String(e.message).includes('SYNC_DISCONNECT_REQUIRED')?tr('เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้'):tr('ไฟล์ไม่ถูกต้อง'),'err'); }
 }
 function elReveal(){ window.billingAPI.reveal(); }
 function elRevealBackups(){ if(window.billingAPI.revealBackups) window.billingAPI.revealBackups(); }
@@ -1491,9 +1548,11 @@ async function newFile(){
   }
 }
 
+// Backups carry billing data only, never this device's sync binding or Google account ID.
+function exportableDB(){ const copy={...DB}; delete copy.syncV3; return copy; }
 function exportJSON(){
   markBackup();
-  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const blob = new Blob([JSON.stringify(exportableDB(),null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'billing-'+new Date().toISOString().slice(0,10)+'.json';
@@ -1630,7 +1689,8 @@ function importJSON(){
   inp.onchange = async()=>{
     const f = inp.files[0]; if(!f) return;
     try{
-      DB = migrate(JSON.parse(await f.text()));
+      const parsed=JSON.parse(await f.text()); delete parsed.syncV3;
+      DB = migrate(parsed);
       saveLocal(); render();
       toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
       if(fileHandle){ dirty=true; persist(); }
@@ -1785,9 +1845,9 @@ function migrate(data){
   if(!merged.business.updatedAt) merged.business.updatedAt = bootNow;
   // ล้าง tombstone ที่เก่ากว่า 180 วัน — เหตุการณ์ลบถูกบันทึกใน journal ไปแล้ว
   const keepTomb = r=> !r.deletedAt || (Date.now() - new Date(r.deletedAt).getTime()) < 180*86400000;
-  merged.clients = merged.clients.filter(r=>keepTomb(r)||merged.documents.some(d=>d.clientId===r.id));
+  if(!merged.syncV3) merged.clients = merged.clients.filter(r=>keepTomb(r)||merged.documents.some(d=>d.clientId===r.id));
   // Financial records, including old deletion markers, never expire automatically.
-  merged.recurring = merged.recurring.filter(keepTomb);
+  if(!merged.syncV3) merged.recurring = merged.recurring.filter(keepTomb);
   merged.version = 2;
   return merged;
 }
@@ -1798,7 +1858,9 @@ function updateFileStatus(){
     el.className='file-status connected';
     const where = dataLoc.mode==='external' ? (tr('ไฟล์:')+' '+escapeHtml(baseName(dataLoc.path))) : tr('เก็บในแอป (อัตโนมัติ)');
     let syncLine = '';
-    if(isPro() && syncInfo.connected){
+    if(syncV3Info.connected){
+      syncLine=`<div>${ic('repeat',12)} ${syncBusy?tr('กำลังซิงก์…'):syncV3Waiting?tr('รอปิดหน้าต่างที่เปิดอยู่ แล้วจะซิงก์ต่อ'):syncV3Info.pending?tr('รอยืนยันการออกเอกสาร'):syncErr?tr('ซิงก์ไม่สำเร็จ — ลองอีกครั้ง'):tr('เชื่อมต่อ Google Drive แล้ว')} <button class="btn btn-sm btn-ghost" onclick="runSyncV3(false)">${tr('ซิงก์ตอนนี้')}</button>${syncV3Info.conflicts.length?`<button class="btn btn-sm" onclick="openSyncV3Conflicts()">${tr('ตรวจข้อมูลที่แก้ไขชนกัน')} (${syncV3Info.conflicts.length})</button>`:''}</div>`;
+    }else if(isPro() && syncInfo.connected){
       const t = syncInfo.lastSyncAt ? (d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))(new Date(syncInfo.lastSyncAt)) : null;
       const stx = CLOUD_SYNC_PAUSED ? tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง') : syncBusy ? tr('กำลังซิงก์…')
         : syncErr ? tr('ซิงก์ไม่สำเร็จ — จะลองใหม่ให้อัตโนมัติ')
@@ -1913,6 +1975,23 @@ function applyUiLang(){
 }
 
 const I18N_EN = {
+ 'ร่างงานออฟไลน์ได้ เชื่อมต่อก่อนออกเอกสาร':'Draft offline; connect before issuing documents',
+ 'รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น':'Private pilot: use a separate test account and test data only',
+ 'รอยืนยันการออกเอกสาร':'Document issuance awaiting confirmation',
+ 'ซิงก์ไม่สำเร็จ — ลองอีกครั้ง':'Sync failed — try again',
+ 'ซิงก์ตอนนี้':'Sync now',
+ 'ตรวจข้อมูลที่แก้ไขชนกัน':'Review conflicting changes',
+ 'เชื่อมต่อ Google Drive':'Connect Google Drive',
+ 'บันทึกงานที่เปิดอยู่ก่อนซิงก์':'Save your open work before syncing',
+ 'เก็บทั้งสองฉบับไว้จนกว่าจะเลือก':'Both versions are kept until you choose',
+ 'ข้อมูลชุดนี้ต้องตรวจพร้อมกัน':'These related records must be reviewed together',
+ 'ใช้ชุดข้อมูลจากอีกเครื่อง':'Use the records from the other device',
+ 'เชื่อมต่อพื้นที่ทดสอบ Google Drive?':'Connect a Google Drive test workspace?',
+ 'ไฟล์หลักฐานแนบต้องส่งออกแยก':'Export attached evidence separately',
+ 'รอปิดหน้าต่างที่เปิดอยู่ แล้วจะซิงก์ต่อ':'Waiting for the open window to close, then syncing',
+ 'อีกเครื่องบันทึกการรับเงินนี้ไว้แล้ว เลือก “ใช้ชุดข้อมูลจากอีกเครื่อง” เพื่อไม่ให้นับรายรับซ้ำ':'The other Mac already recorded this payment. Choose “Use the records from the other device” so the income is not counted twice.',
+ 'เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้':'This Mac is connected to Google Drive, so importing or restoring data is not available yet',
+
   // --- nav & page titles ---
   'ระบบออกเอกสาร':'Invoicing',
   'แดชบอร์ด':'Dashboard',
@@ -5004,6 +5083,7 @@ function renderSettings(c,ta){
     ${saveBar}`;
 
   const dataCards = ()=> IS_ELECTRON ? `
+    ${syncV3Info.configured?`<div class="card-block"><h4>Google Drive · Pro</h4><p>${tr('ร่างงานออฟไลน์ได้ เชื่อมต่อก่อนออกเอกสาร')}</p><p class="hint">${tr('รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น')} · ${tr('ไฟล์หลักฐานแนบต้องส่งออกแยก')}</p>${syncV3Info.connected?`<button class="btn" onclick="runSyncV3(false)">${tr('ซิงก์ตอนนี้')}</button><button class="btn btn-ghost" onclick="openSyncV3Conflicts()">${tr('ตรวจข้อมูลที่แก้ไขชนกัน')}</button>`:`<button class="btn btn-primary" onclick="connectSyncV3()">${tr('เชื่อมต่อ Google Drive')}</button>`}</div>`:''}
 
 
     <div class="card-block">
@@ -5275,6 +5355,10 @@ async function saveSettings(silent){
   set('s_fmt_q',el=>b.numberFormats.quotation=el.value); set('s_fmt_i',el=>b.numberFormats.invoice=el.value);
   set('s_fmt_r',el=>b.numberFormats.receipt=el.value); set('s_fmt_t',el=>b.numberFormats.tax_invoice=el.value);
   if(!touched) return true;
+  // Leaving Settings re-reads every field; an unchanged profile must not become a new
+  // version, or every synced Mac would see a change nobody made.
+  const plain=r=>{const c={...r};delete c.updatedAt;return JSON.stringify(c,Object.keys(c).sort());};
+  if(plain(b)===plain(original)&&JSON.stringify(b.numberFormats)===JSON.stringify(original.numberFormats)){ markSettingsDirty(false); return true; }
   touch(b);
   issuanceBusy=true; DB.business=b;
   try{ if(!await persist(true)){DB.business=original;applyTheme();return false;} }
@@ -5452,7 +5536,7 @@ async function persistDocumentMutation(candidate,replaceId,issuanceContext){
   try{
     const validation=issuanceError(candidate,isIssuedDocument(candidate),issuanceContext||candidate.issuedSnapshot);
     if(validation) throw new Error(validation);
-    if(!uniqueDocumentNumber(candidate)) throw new Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
+    if(!await assignSyncNumber(candidate)) throw new Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
     if(isIssuedDocument(candidate) && !candidate.issuedSnapshot) freezeIssuedDocument(candidate,issuanceContext);
     touch(candidate);
     const idx=replaceId?DB.documents.findIndex(x=>x.id===replaceId):-1;
@@ -5578,7 +5662,10 @@ function openReceiptSettings(){
 }
 // One place that records the owner's VAT answer (settings, first-run setup, receipt prompt).
 function applyVatStatus(b,value){
-  b.vatStatus=['non_registered','registered'].includes(value)?value:'unknown';
+  // Unchanged answers keep their confirmation time (and don't create a new synced version).
+  const next=['non_registered','registered'].includes(value)?value:'unknown';
+  if(next===(b.vatStatus||'unknown')) return;
+  b.vatStatus=next;
   b.isVatRegistered=b.vatStatus==='registered';
   b.vatStatusConfirmedAt=b.vatStatus==='unknown'?null:new Date().toISOString();
 }
@@ -6350,7 +6437,7 @@ async function applyReceiptReissues(batch,facts){
     check();const events=[];
     for(const row of batch.rows){
       const id=uid(),doc=receiptReissueDocument(row,batch.issueDate,id,null);delete doc.issuedSnapshot;
-      if(!uniqueDocumentNumber(doc))throw Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
+      if(!await assignSyncNumber(doc,'reviewEvent:'+id))throw Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
       // Counters advance per row; reject collisions with earlier members of this same batch too.
       if(events.some(e=>e.receipt.number===doc.number))throw Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
       const parties=JSON.parse(row.partiesJSON);freezeIssuedDocument(doc,{...parties,docLang:doc.docLang,yearMode:parties.business.yearMode});
