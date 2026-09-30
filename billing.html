@@ -575,9 +575,13 @@
   @media print{
     body.document-output-blocked > *{display:none!important}
     body.document-output-blocked::before{display:block!important;content:attr(data-print-blocked)}
-    body{background:#fff}
+    html,body{background:#fff!important}
     body::before,body::after{display:none!important}
     .sidebar,.topbar,.doc-actions,.overlay,.toast,.banner,.stamp-fx,.paper .paid-stamp{display:none!important}
+    /* The document screen prints only its paper: lineage chips, instalment progress and any
+       future screen-only card stay on screen. */
+    .doc-trail,.split-progress{display:none!important}
+    #content:has(> .paper) > :not(.paper){display:none!important}
     .main,.content{padding:0;max-width:none}
     .paper{box-shadow:none;border:none;border-radius:0;max-width:none;margin:0;padding:24px 26px;animation:none;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;
@@ -6591,7 +6595,10 @@ function clearPrintZoom(){ document.documentElement.style.removeProperty('--pape
 function printDocument(){
   const d=getViewingDocument();
   if(documentOutputBlocked(d)){ toast(documentBlockMessage(d),'err'); return false; }
-  applyPrintZoom(); window.print(); return true;
+  applyPrintZoom();
+  // Desktop prints through main so the page margins are white, not the app background.
+  if(IS_ELECTRON && window.billingAPI.printDocument){ window.billingAPI.printDocument().catch(()=>{}).finally(clearPrintZoom); return true; }
+  window.print(); return true;
 }
 // ครอบทุกช่องทางพิมพ์: ปุ่มพิมพ์/Cmd+P (beforeprint) และบันทึก PDF (printToPDF ไม่ยิง beforeprint)
 window.addEventListener('beforeprint', applyPrintZoom);

@@ -1439,6 +1439,19 @@ handleIPC('data:export', async (_e, text) => {
   return r.filePath;
 });
 
+// Chromium paints the @page margins with the window background, so printing on the cream
+// app color would give PDFs and paper a cream border. Print on white, then restore.
+const WINDOW_BACKGROUND = '#FFF9F3';
+async function onWhitePage(target, action) {
+  target.setBackgroundColor('#FFFFFF');
+  try { return await action(); }
+  finally { if (!target.isDestroyed()) target.setBackgroundColor(WINDOW_BACKGROUND); }
+}
+function printOnWhitePage(target) {
+  return onWhitePage(target, () => new Promise(resolve => target.webContents.print({}, success => resolve(!!success))));
+}
+handleIPC('doc:print', () => printOnWhitePage(win));
+
 // Save the currently shown document as a PDF (uses the same @media print CSS).
 handleIPC('doc:pdf', async (_e, suggestedName) => {
   const r = await dialog.showSaveDialog(win, {
@@ -1447,7 +1460,7 @@ handleIPC('doc:pdf', async (_e, suggestedName) => {
     filters: [{ name: 'PDF', extensions: ['pdf'] }]
   });
   if (r.canceled || !r.filePath) return null;
-  const data = await win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true });
+  const data = await onWhitePage(win, () => win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true }));
   await fsp.writeFile(r.filePath, data);
   shell.showItemInFolder(r.filePath);
   return r.filePath;
@@ -1467,7 +1480,7 @@ handleIPC('data:import', async () => {
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 940, minHeight: 600,
-    backgroundColor: '#FFF9F3',
+    backgroundColor: WINDOW_BACKGROUND,
     title: 'BillNgai',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -1501,7 +1514,7 @@ function buildMenu() {
         { label: 'เปิดที่เก็บไฟล์ข้อมูล', click: async () => shell.showItemInFolder(await activePath()) },
         { label: 'เปิดโฟลเดอร์สำรองอัตโนมัติ', click: async () => { await fsp.mkdir(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },
         { type: 'separator' },
-        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => { const w = liveWin(); if (w) w.webContents.print(); } },
+        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => { const w = liveWin(); if (w) printOnWhitePage(w); } },
         ...(isMac ? [] : [{ role: 'quit' }])
       ]
     },

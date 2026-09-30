@@ -3,6 +3,13 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.11] - 2026-09-30
+
+Private macOS release: clean PDF and print output. See `INSTALL-2.0.11.md`.
+
+### Fixed
+- PDFs and printouts contain only the document paper. The “created from / led to” links and the instalment progress card no longer appear above quotations and invoices, and the page margins are white instead of the app's cream background (print and PDF now run on a white window background; the app look is unchanged). Regression: `test/pdf-output-electron-smoke.cjs`.
+
 ## [2.0.10] - 2026-09-30
 
 Private macOS release (public-release candidate): 2.0.9 plus pre-publish audit fixes. The Google Drive sync v3 pilot is not included. See `PREPUBLISH-FIXES-VERIFICATION.md` and `INSTALL-2.0.10.md`.

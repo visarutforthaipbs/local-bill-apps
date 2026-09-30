@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('billingAPI', {
   useDefault:     (text)   => ipcRenderer.invoke('data:useDefault', text),
   exportData:     (text)   => ipcRenderer.invoke('data:export', text),
   exportPDF:      (name)   => ipcRenderer.invoke('doc:pdf', name),
+  printDocument:  ()       => ipcRenderer.invoke('doc:print'),
   importData:     ()       => ipcRenderer.invoke('data:import'),
   revealBackups:  ()       => ipcRenderer.invoke('data:revealBackups'),
   deviceId:       ()       => ipcRenderer.invoke('device:id'),
