@@ -37,3 +37,10 @@ Staging coordinator remains for tests.
 
 Quit normally, preserve the profile, restore `BillNgai-2.0.11-installed.app`. A profile that connected to sync in 2.0.12
 carries a `syncV3` binding that 2.0.11 does not understand: stop syncing in 2.0.12 first (Settings → Data & backup), then roll back.
+
+## Public release (2026-09-30)
+
+- GitHub: tag `v2.0.12` → `1dcbf0a`, branch `release/2.0.12`, release marked latest with DMG + SHA256SUMS; anonymous download byte-identical.
+- R2 `billiong-releases`: `BillNgai-2.0.12-universal.dmg` and `BillNgai-2.0.12-SHA256SUMS.txt` uploaded with Wrangler; public download byte-identical. 2.0.4 objects kept.
+- Website `billiong-landing`: production deployment `95b5bea2-5405-4799-9cc3-fd722002bbf1` (content `abc671a`), live pages match the tested build.
+- Production sync coordinator `billngai-sync-coordinator` live (licence-checked). No customer messages were sent.
