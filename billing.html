@@ -1290,7 +1290,9 @@ const SYNC_ERROR_TEXT={
   SYNC_ACCOUNT_MISMATCH:'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่',
 };
 function syncErrorText(e){
-  const msg=String(e?.message||e||'');const code=Object.keys(SYNC_ERROR_TEXT).find(k=>msg.includes(k));
+  const msg=String(e?.message||e||'');
+  if(/fetch failed|network|ENOTFOUND|ETIMEDOUT|ECONNRESET/i.test(msg)) return tr('เชื่อมต่อ Google Drive ไม่ได้ตอนนี้ ข้อมูลและร่างในเครื่องยังอยู่ ลองอีกครั้งเมื่อมีอินเทอร์เน็ต');
+  const code=Object.keys(SYNC_ERROR_TEXT).find(k=>msg.includes(k));
   return code?tr(SYNC_ERROR_TEXT[code]):tr('เชื่อมต่อไม่สำเร็จ:')+' '+msg.replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
 }
 async function connectSyncV3(){
@@ -1324,7 +1326,7 @@ async function runSyncV3(silent){
   syncV3Waiting=false;clearTimeout(syncV3RetryTimer);
   syncBusy=true;syncErr='';updateFileStatus();
   try{const result=await window.billingAPI.syncV3Run();DB=migrate(JSON.parse(result.text));syncV3Info=result.status;buildJournalIndex();if(!editDoc&&!settingsDirty&&!document.getElementById('overlay').classList.contains('open'))render();if(!silent)toast(tr('ซิงก์แล้ว'),'ok');}
-  catch(e){syncErr=e.message;await refreshSyncInfo();if(!silent)toast(tr('ซิงก์ไม่สำเร็จ:')+' '+e.message,'err');}
+  catch(e){syncErr=e.message;await refreshSyncInfo();if(!silent)toast(syncErrorText(e),'err');}
   finally{syncBusy=false;updateFileStatus();}
 }
 function openSyncV3Conflicts(){
@@ -5578,7 +5580,8 @@ async function persistDocumentMutation(candidate,replaceId,issuanceContext){
     return true;
   }catch(error){
     DB.documents=previousDocuments; DB.counters=previousCounters;
-    toast(error.message||tr('บันทึกไม่สำเร็จ ยังไม่ได้ออกเอกสาร'),'err'); return false;
+    const raw=String(error?.message||'');
+    toast(/syncV3|SYNC_|PRO_REQUIRED|fetch failed/.test(raw)?syncErrorText(error):(raw||tr('บันทึกไม่สำเร็จ ยังไม่ได้ออกเอกสาร')),'err'); return false;
   }
 }
 let editDoc = null;
@@ -5940,7 +5943,8 @@ Object.assign(I18N_EN,{
   'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้':'This Mac cannot store the sign-in securely yet',
   'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
   'บัญชีนี้ยังใช้ซิงก์ไม่ได้':'This account cannot use sync yet',
-  'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account'
+  'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account',
+  'เชื่อมต่อ Google Drive ไม่ได้ตอนนี้ ข้อมูลและร่างในเครื่องยังอยู่ ลองอีกครั้งเมื่อมีอินเทอร์เน็ต':'Can\'t reach Google Drive right now. Your data and drafts are safe on this Mac — try again when you\'re online.'
 });
 // Everything that stops issuing, listed at once with a way to fix each item.
 // issuanceError() stays the authoritative gate; this list only explains it.
@@ -6021,8 +6025,11 @@ async function saveDoc(){
   }
   const error=issuanceError(editDoc,finalize);
   if(error){toast(error,'err');return;}
-  const d=JSON.parse(JSON.stringify(editDoc));
-  d.id=d.id||uid(); d.createdAt=d.createdAt||new Date().toISOString();
+  // A new document keeps one id while its editor is open, so retrying after a lost network
+  // response reuses the same synced number reservation instead of skipping a number.
+  if(!editDoc.id) editDoc.pendingNewId=editDoc.pendingNewId||uid();
+  const d=JSON.parse(JSON.stringify(editDoc)); delete d.pendingNewId;
+  d.id=d.id||editDoc.pendingNewId||uid(); d.createdAt=d.createdAt||new Date().toISOString();
   d.status=finalize?(d.type==='receipt'?'issued':'sent'):'draft';
   if(d.type!=='receipt'){
     d.paidDate=null; d.fullPaymentConfirmed=false;

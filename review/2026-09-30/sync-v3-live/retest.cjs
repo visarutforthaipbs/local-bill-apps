@@ -24,12 +24,12 @@ const out={};const log=(k,v)=>{out[k]=v;console.log(k,JSON.stringify(v));};
  await loser.evaluate(async()=>{for(const c of [...syncV3Info.conflicts])await resolveSyncV3(c.key,'remote');});
  log('R2-after',{sync:await both(A,B),same:JSON.stringify(await view(A))===JSON.stringify(await view(B))});
  // R3 — both Macs pay the same invoice: the losing Mac must not show a receipt before its invoice is settled.
- const pay=p=>p.evaluate(async()=>{const inv=DB.documents.find(d=>d.number==='INV-69-003');let paid,receipt;
+ const pay=p=>p.evaluate(async()=>{const inv=DB.documents.find(d=>d.number==='INV-69-004');let paid,receipt;
    try{paid=await setStatus(inv.id,'paid',{paidDate:todayISO(),fullPaymentConfirmed:true});}catch(e){paid='ERR '+e.message;}
    try{receipt=(await createReceipt(inv.id))?.number||null;}catch(e){receipt='ERR '+e.message;}return {paid,receipt};});
  const [pa,pb]=await Promise.all([pay(A),pay(B)]);log('R3-pay',{A:pa,B:pb});
  const r3=await both(A,B);log('R3-sync',r3);
- const half=async p=>p.evaluate(()=>{const inv=DB.documents.find(d=>d.number==='INV-69-003');const rc=DB.documents.filter(d=>d.type==='receipt'&&d.parentId===inv.id&&!d.deletedAt);
+ const half=async p=>p.evaluate(()=>{const inv=DB.documents.find(d=>d.number==='INV-69-004');const rc=DB.documents.filter(d=>d.type==='receipt'&&d.parentId===inv.id&&!d.deletedAt);
    return {invoice:inv.status,receiptsShown:rc.map(r=>r.number),halfState:rc.length>0&&inv.status!=='paid',conflicts:syncV3Info.conflicts.map(c=>c.key),dialogNote:(()=>{openSyncV3Conflicts();const t=document.getElementById('modal').innerText;closeModal();return /อีกเครื่องบันทึกการรับเงินนี้ไว้แล้ว/.test(t);})()};});
  log('R3-state',{A:await half(A),B:await half(B)});
  for(const p of [A,B])await p.evaluate(async()=>{for(const c of [...syncV3Info.conflicts])await resolveSyncV3(c.key,'remote');});
