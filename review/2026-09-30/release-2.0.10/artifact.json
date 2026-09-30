@@ -1,0 +1,16 @@
+{
+  "version": "2.0.10",
+  "commit": "f99b500f047938f92d5d683d97d12d6a85540baf",
+  "dmg": "dist/2.0.10/BillNgai-2.0.10-universal.dmg",
+  "bytes": 223535003,
+  "sha256": "f960e8947b8e9f1efac0f1d7e665c5b68c38eb8abcb6a9eb62159f1aee5e7d23",
+  "appAsarSha256": "b13ccbb481ca5441b724dc268addb3cd5faa8b779891a4e46e6d62fb3a0f02be",
+  "notarySubmission": "d3b6736a-e7f2-4eba-9b0a-23f3ee74c226",
+  "notaryStatus": "Accepted",
+  "team": "79QFYKTJMN",
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "testedHardware": "arm64 only"
+}

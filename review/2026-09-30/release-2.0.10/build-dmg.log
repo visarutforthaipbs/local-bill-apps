@@ -1,0 +1,4 @@
+  • electron-builder  version=26.15.3 os=27.2.0
+  • loaded configuration  file=package.json ("build" field)
+  • building        target=DMG arch=universal file=dist/2.0.10/BillNgai-2.0.10-universal.dmg
+  • building block map  blockMapFile=dist/2.0.10/BillNgai-2.0.10-universal.dmg.blockmap

@@ -1,0 +1,6 @@
+
+> billngai-app@2.0.10 icon
+> electron make-icon.js
+
+wrote build/icon.png
+wrote build/icon.icns
