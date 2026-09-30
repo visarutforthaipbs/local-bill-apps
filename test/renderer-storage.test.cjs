@@ -32,7 +32,7 @@ test('backup dates use local timezone including date rollover, old/new names and
 function renderer(save, failed = false) {
   const messages = [], actions = [];
   const context = vm.createContext({ IS_ELECTRON: true, DB: { documents: [] }, loadFailed: failed,
-    dirty: false, syncTimer: null, tr: s => s, toast: (s, kind) => messages.push({ s, kind }),
+    syncV3Info: {connected:false}, dirty: false, syncTimer: null, tr: s => s, toast: (s, kind) => messages.push({ s, kind }),
     clearTimeout() {}, render: () => actions.push('render'), updateFileStatus() {},
     appendJournal: () => actions.push('journal'), scheduleSync: () => actions.push('sync'),
     window: { billingAPI: { save } } });
@@ -71,7 +71,7 @@ test('pending persistence tracks the real disk promise until completion for quit
   assert.deepEqual(h.actions, ['journal', 'sync']);
 });
 test('2.0.3 pauses automatic Pro sync even after load recovery', () => {
-  const context = vm.createContext({ CLOUD_SYNC_PAUSED: true, IS_ELECTRON: true, loadFailed: true, isPro: () => true, syncInfo: { connected: true } });
+  const context = vm.createContext({ CLOUD_SYNC_PAUSED: true, syncV3Info:{connected:false}, IS_ELECTRON: true, loadFailed: true, isPro: () => true, syncInfo: { connected: true } });
   vm.runInContext(section('function isSyncEnabled()', '// ฟิลด์การเงิน'), context);
   assert.equal(context.isSyncEnabled(), false);
   context.loadFailed = false;

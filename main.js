@@ -776,8 +776,22 @@ async function saveData(text) {
   session.text = text;
   return true;
 }
+// Sync binding (account, cursor, heads) belongs to one live profile. Backups, imports and
+// exports never carry it, so restoring a file can never re-bind or lock this Mac's saves.
+function withoutSyncBinding(text) {
+  const data = JSON.parse(text);
+  if (!data || typeof data !== 'object' || !Object.hasOwn(data, 'syncV3')) return text;
+  delete data.syncV3;
+  return JSON.stringify(data, null, 2);
+}
+async function assertNotSyncBound() {
+  const current = await readDataFile(await activePath());
+  if (current !== null) { try { if (JSON.parse(current).syncV3) throw new Error('SYNC_DISCONNECT_REQUIRED'); } catch (e) { if (e.message === 'SYNC_DISCONNECT_REQUIRED') throw e; } }
+}
 async function recoverData(text) {
   validateData(text); // Validate selected recovery data before touching the current file.
+  await assertNotSyncBound();
+  text = withoutSyncBinding(text);
   const cfg = await readConfig();
   const file = cfg.externalPath || DEFAULT_DATA;
   // Recovery must not recreate an absent Drive mount as an ordinary local directory.
@@ -787,16 +801,16 @@ async function recoverData(text) {
   await markDataInitialized();
   await atomicWrite(file, text);
   dataSession = { file, text };
-  return true;
+  return text;
 }
 handleIPC('data:load', () => withDataLock(loadData));
 handleIPC('data:save', (_e, text) => withDataLock(async () => {
-  try { const result = await saveData(text); lastSaveError = null; return result; }
+  try { const result = await nativeSyncSave(text); lastSaveError = null; return result; }
   catch (error) { lastSaveError = error; throw error; }
 }));
 // Explicit import/cloud restore only; ordinary autosaves cannot clear a failed-load lock.
 handleIPC('data:recover', (_e, text) => withDataLock(async () => {
-  const result = await recoverData(text); lastSaveError = null; return result;
+  await recoverData(text); lastSaveError = null; return true;
 }));
 
 
@@ -848,10 +862,9 @@ handleIPC('backups:snapshot', (_e, label) => withDataLock(() => labeledSnapshot(
 
 handleIPC('backups:restore', (_e, name) => withDataLock(async () => {
   if (!/^billing-[A-Za-z0-9._-]+\.json$/.test(String(name || ''))) throw new Error('invalid backup name');
-  const text = await fsp.readFile(path.join(BACKUP_DIR, name), 'utf8');
-  await recoverData(text);
+  const restored = await recoverData(await fsp.readFile(path.join(BACKUP_DIR, name), 'utf8'));
   lastSaveError = null;
-  return text;
+  return restored;
 }));
 
 /* Evidence is selected explicitly, retained byte-for-byte, and never injected
@@ -1061,7 +1074,8 @@ async function writeSyncState(st) { await fsp.writeFile(SYNC_STATE_PATH, JSON.st
 // token เก็บผ่าน safeStorage (Keychain) — ไม่อยู่ใน billing.json และไม่ sync
 async function saveTokens(tokens) {
   const raw = JSON.stringify(tokens);
-  const buf = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(raw) : Buffer.from(raw, 'utf8');
+  if(!safeStorage.isEncryptionAvailable()) throw new Error('SYNC_KEYCHAIN_REQUIRED');
+  const buf = safeStorage.encryptString(raw);
   await fsp.writeFile(TOKENS_PATH, buf);
 }
 async function loadTokens() {
@@ -1107,7 +1121,7 @@ async function oauthConnect() {
       redirectUri = 'http://127.0.0.1:' + server.address().port + '/callback';
       shell.openExternal('https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID, redirect_uri: redirectUri, response_type: 'code',
-        scope: GDRIVE_SCOPE + ' email', access_type: 'offline', prompt: 'consent',
+        scope: GDRIVE_SCOPE + ' openid email', access_type: 'offline', prompt: 'consent',
         code_challenge: challenge, code_challenge_method: 'S256', state
       }));
     });
@@ -1119,7 +1133,7 @@ async function oauthConnect() {
   });
   let email = '';
   try { email = JSON.parse(Buffer.from(j.id_token.split('.')[1], 'base64').toString('utf8')).email || ''; } catch (e) {}
-  await saveTokens({ access_token: j.access_token, refresh_token: j.refresh_token, expiry: Date.now() + (j.expires_in || 3600) * 1000, email });
+  await saveTokens({ access_token: j.access_token, refresh_token: j.refresh_token, id_token: j.id_token, expiry: Date.now() + (j.expires_in || 3600) * 1000, email });
 }
 async function refreshTokens() {
   const t = await loadTokens();
@@ -1128,7 +1142,7 @@ async function refreshTokens() {
     grant_type: 'refresh_token', refresh_token: t.refresh_token, client_id: GOOGLE_CLIENT_ID,
     ...(GOOGLE_CLIENT_SECRET ? { client_secret: GOOGLE_CLIENT_SECRET } : {})
   });
-  const nt = { ...t, access_token: j.access_token, expiry: Date.now() + (j.expires_in || 3600) * 1000 };
+  const nt = { ...t, access_token: j.access_token, id_token: j.id_token || t.id_token, expiry: Date.now() + (j.expires_in || 3600) * 1000 };
   await saveTokens(nt);
   return nt;
 }
@@ -1232,6 +1246,110 @@ async function syncStatusInfo() {
     devices: st.devices || []
   };
 }
+
+// V3 is a private development pilot until native/two-device acceptance is complete.
+// Legacy sync remains disabled, including every legacy mutation IPC.
+function nativeSyncConfigured() { return !app.isPackaged && !!process.env.BILLNGAI_SYNC_V3_URL; }
+async function nativeSyncDB() {
+  const session = await currentSession(); const db = validateData(session.text);
+  if(db.syncV3){
+    const S=require('./lib/sync-v3.cjs'),B=require('./lib/sync-v3-billing.cjs');S.validate(db.syncV3);
+    const visible=JSON.parse(JSON.stringify(db.syncV3));
+    for(const [key,intent] of Object.entries(visible.intents||{})){if(intent.present)visible.records[key]=intent.before;else delete visible.records[key];}
+    if(S.canonical(B.flatten(db))!==S.canonical(B.flatten(B.project(db,visible))))throw new Error('SYNC_LOCAL_STATE_MISMATCH');
+  }
+  return db;
+}
+async function nativeSyncTransport(root, account, counterFloors) {
+  if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
+  const { createDriveTransport } = require('./lib/sync-v3-drive.cjs');
+  return createDriveTransport({ origin: process.env.BILLNGAI_SYNC_V3_URL, root, account, counterFloors,
+    accessToken, identityToken: async () => {
+      let tokens = await loadTokens();
+      if (!tokens || !tokens.id_token) throw new Error('SYNC_RECONNECT_REQUIRED');
+      if (Date.now() > (tokens.expiry || 0) - 60000) tokens = await refreshTokens();
+      return tokens.id_token;
+    } });
+}
+async function nativeSyncController() {
+  const db = await nativeSyncDB();
+  if (!db.syncV3) throw new Error('SYNC_NOT_CONNECTED');
+  const { BillingSyncController } = require('./lib/sync-v3-controller.cjs');
+  const transport = await nativeSyncTransport(db.syncV3.root, db.syncV3.account, db.syncV3.counterFloors);
+  if (db.syncV3.mode === 'initializing') transport.commit = transport.initialize;
+  return new BillingSyncController({ account: db.syncV3.account, read: nativeSyncDB,
+    write: next => saveData(JSON.stringify(next, null, 2)), transport,
+    validateDatabase: next => validateData(JSON.stringify(next)) });
+}
+async function nativeSyncSave(text) {
+  const session = await currentSession();
+  if (session.text === null) return saveData(text);
+  const db = validateData(session.text);
+  // Only the connect flow may create a binding; an imported/restored copy cannot.
+  if (!db.syncV3) return saveData(withoutSyncBinding(text));
+  if (db.syncV3.mode !== 'active') throw new Error('SYNC_SETUP_PENDING');
+  const incoming = validateData(text);
+  if(incoming.syncV3?.cursor!==db.syncV3.cursor || canonicalJson(incoming.syncV3?.heads||{})!==canonicalJson(db.syncV3.heads)) throw new Error('SYNC_REFRESH_REQUIRED');
+  const result = await (await nativeSyncController()).save(incoming);
+  return { text: JSON.stringify(result) };
+}
+async function nativeSyncStatus() {
+  let db; try { db = await nativeSyncDB(); } catch { /* May run before first load. */ }
+  const s = db && db.syncV3;
+  return { configured: nativeSyncConfigured(), connected: !!s, mode: s?.mode || '',
+    conflicts: Object.entries(s?.conflicts || {}).map(([key, value]) => ({ key, ...value })),
+    pending: Object.keys(s?.intents || {}).length, account: s?.account || '' };
+}
+handleIPC('syncV3:status', () => nativeSyncStatus());
+handleIPC('syncV3:connect', () => withDataLock(async () => {
+  if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
+  if (!licenseStatusOf(await readConfig()).valid) throw new Error('PRO_REQUIRED');
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('SYNC_KEYCHAIN_REQUIRED');
+  const db = await nativeSyncDB();
+  if (db.syncV3) throw new Error('SYNC_ALREADY_CONNECTED');
+  if ((await readConfig()).externalPath) throw new Error('SYNC_USE_LOCAL_STORAGE');
+  // Validate IDs and capacity before opening OAuth or touching Drive.
+  const S = require('./lib/sync-v3.cjs'), B = require('./lib/sync-v3-billing.cjs');
+  const records = B.flatten(db);
+  if (Object.keys(records).length > 512) throw new Error('SYNC_BOOTSTRAP_TOO_LARGE');
+  await snapshotText(JSON.stringify(db), 'before-sync-v3');
+  await oauthConnect();
+  let transport = await nativeSyncTransport('pendingRoot');
+  const remote = await transport.status();
+  if (!remote.account || remote.protocol !== 3) throw new Error('SYNC_INVALID_WORKSPACE');
+  // Existing data must not be silently merged into another established workspace.
+  if (remote.root && ((db.documents || []).length || (db.clients || []).length || (db.reviewEvents || []).length)) throw new Error('SYNC_JOIN_REQUIRES_EMPTY_PROFILE');
+  let root = remote.root;
+  if (!root) {
+    const response = await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name:'BillNgai Workspace v3',mimeType:'application/vnd.google-apps.folder',appProperties:{billngaiProtocol:'3'}})
+    });
+    root = (await response.json()).id;
+  }
+  const state = S.initial(remote.account);state.root = root;state.mode = remote.root ? 'joining' : 'initializing';
+  state.records = remote.root ? {} : records;state.counterFloors=remote.root?{}:B.counterFloors(db);
+  db.syncV3 = state;
+  await saveData(JSON.stringify(db, null, 2));
+  return nativeSyncStatus();
+}));
+handleIPC('syncV3:run', () => withDataLock(async () => {
+  const before = await nativeSyncDB();
+  const controller = await nativeSyncController();
+  if (before.syncV3.mode === 'joining') await controller.session().pull(); else await controller.sync();
+  const next = await nativeSyncDB();
+  if (!next.syncV3.pending) { next.syncV3.mode = 'active'; await saveData(JSON.stringify(next, null, 2)); }
+  return { text: JSON.stringify(next), status: await nativeSyncStatus() };
+}));
+handleIPC('syncV3:reserve', (_event, key, parts) => withDataLock(async () => {
+  const db = await nativeSyncDB();
+  if (db.syncV3?.mode !== 'active') throw new Error('SYNC_SETUP_PENDING');
+  return (await nativeSyncController()).reserve(key, parts);
+}));
+handleIPC('syncV3:resolve', (_event, key, choice) => withDataLock(async () => {
+  const db = await (await nativeSyncController()).resolve(key, choice);
+  return { text: JSON.stringify(db), status: await nativeSyncStatus() };
+}));
 
 handleIPC('sync:status', async () => syncStatusInfo());
 // Safety-release boundary: renderer controls are not sufficient IPC protection.
@@ -1393,6 +1511,8 @@ handleIPC('data:linkExisting', async () => {
   return withDataLock(async () => {
     const text = await fsp.readFile(file, 'utf8');
     validateData(text); // Never switch the store to an empty/unrelated JSON file.
+    await assertNotSyncBound();
+    if (JSON.parse(text).syncV3) throw new Error('SYNC_FILE_BOUND_ELSEWHERE');
     await preserveBefore204(file, text);
     const cfg = await readConfig(); cfg.externalPath = file; await writeConfig(cfg);
     await markDataInitialized();
@@ -1416,6 +1536,7 @@ handleIPC('data:createExternal', async (_e, text) => {
 async function moveDataStore(file, text) {
   validateData(text);
   await currentSession();
+  await assertNotSyncBound();
   const previous = await readDataFile(file);
   if (previous !== null) await snapshotText(previous, 'pre-replace');
   await markDataInitialized();
@@ -1435,7 +1556,7 @@ handleIPC('data:export', async (_e, text) => {
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
   if (r.canceled || !r.filePath) return false;
-  await fsp.writeFile(r.filePath, text, 'utf8');
+  await fsp.writeFile(r.filePath, withoutSyncBinding(text), 'utf8');
   return r.filePath;
 });
 

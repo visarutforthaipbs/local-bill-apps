@@ -82,6 +82,11 @@ continues to control the seller's document color and its preview through
 brand. `.paper` defines its own light palette and original radius values, so OS
 dark mode and the app restyle do not change invoice/PDF appearance.
 
+Color settings use circular 32px preset swatches inside fixed 48px targets,
+with a checkmark and `aria-pressed` selection. The custom picker is a square
+48px control with the input-radius token; the HEX field uses the shared field style.
+Saved seller colors, including the former green default, must survive reload.
+
 The existing orange BillNgai logo remains the product mark; this change does
 not replace installed icons or marketing artwork.
 

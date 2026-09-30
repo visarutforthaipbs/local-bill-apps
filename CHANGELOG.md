@@ -3,6 +3,14 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+- Add a private, disabled-by-default Google Drive v3 sync pilot with durable conflicts, idempotent commits and coordinated numbering. Not enabled in installed releases. First live two-Mac test on 2026-09-30 against a private staging service; its findings are fixed (no false conflicts from unchanged records, dependent payment records reviewed together, visible waiting state, backups never carry the sync binding). See `SYNC-V3-PILOT.md` and `review/2026-09-30/sync-v3-live/`.
+
+### Fixed
+- Keep seller color presets round with accessible square targets; style the custom picker and HEX field consistently. Preview follows the chosen document color.
+- Preserve chosen dark green when reopening, and reject invalid HEX input before saving settings. App colors and issued document snapshots remain unchanged.
+
 ## [2.0.9] - 2026-09-29
 
 Private macOS release: audit fixes, approved fintech UI, and corrected historical receipts.

@@ -17,7 +17,7 @@ function mainHarness(root, source = path.resolve(__dirname, '../../main.js'), cu
     dialog: { showOpenDialog: async () => dialogs.open, showSaveDialog: async () => dialogs.save,
       showMessageBox: async (_win, options) => { messages.push(options); return { response: 0 }; } },
     shell: { openPath() {}, showItemInFolder() {} }, Menu: {}, safeStorage: {} };
-  const context = vm.createContext({ require: name => name === 'electron' ? electron : name === 'fs' ? customFs : require(name),
+  const context = vm.createContext({ require: name => name === 'electron' ? electron : name === 'fs' ? customFs : name.startsWith('./') ? require(path.resolve(path.dirname(source), name)) : require(name),
     // Deliberately do not load the project's OAuth config in tests.
     __dirname: root, process: { platform: process.platform, env: {} }, console,
     Buffer, URL, URLSearchParams, setTimeout, clearTimeout });

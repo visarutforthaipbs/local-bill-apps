@@ -1,0 +1,14 @@
+// Private staging for the two-Mac sync test. Access is still deny-by-default (ALLOWED_SUBJECTS).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "billngai-sync-coordinator-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": true, "head_sampling_rate": 0.1},
+  "vars": {"GOOGLE_CLIENT_ID": "", "ALLOWED_SUBJECTS": "", "LOG_REJECTED_SUBJECT": ""},
+  "durable_objects": {"bindings": [{"name": "WORKSPACES", "class_name": "Workspace"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["Workspace"]}]
+}

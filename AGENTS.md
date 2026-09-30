@@ -27,6 +27,8 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 ## Cross-references
 
+- `../handoff.md` — latest development checkpoint, uncommitted work and sync v3 continuation.
+
 - `INSTALL-2.0.9.md` — latest private direct-macOS release, artifact verification and rollback.
 
 - `RELEASE-2.0.4.md` and `SESSION-HANDOFF-2.0.4.md` — current authorized release

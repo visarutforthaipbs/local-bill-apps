@@ -45,6 +45,7 @@
       "main.js",
       "preload.js",
       "billing.html",
+      "lib/*.cjs",
       "logo.svg",
       "assets/brand/characters/set-1-01-freelancer-on-laptop.png",
       "assets/brand/characters/set-1-02-freelancer-holding-invoice.png",

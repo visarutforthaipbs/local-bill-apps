@@ -19,7 +19,7 @@ test('all cloud mutation/read/ack IPC entries fail before touching data', async 
 });
 test('renderer sync/connect/restore and e-Tax entry points are contained', async () => {
   const messages=[];
-  const ctx = vm.createContext({ CLOUD_SYNC_PAUSED:true, tr:s=>s, toast:s=>messages.push(s) });
+  const ctx = vm.createContext({ CLOUD_SYNC_PAUSED:true, syncV3Info:{connected:false}, tr:s=>s, toast:s=>messages.push(s) });
   for(const [start,end] of [
     ['async function syncNow(', 'async function connectDrive('],
     ['async function connectDrive(', 'async function disconnectDrive('],
