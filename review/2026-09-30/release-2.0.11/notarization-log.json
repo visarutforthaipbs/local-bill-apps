@@ -1,0 +1,366 @@
+{
+  "logFormatVersion": 1,
+  "jobId": "9c1ac454-c91a-4192-94e8-4f611773372c",
+  "status": "Accepted",
+  "statusSummary": "Ready for distribution",
+  "statusCode": 0,
+  "archiveFilename": "BillNgai-2.0.11-universal.dmg",
+  "uploadDate": "2026-09-30T07:57:18.633Z",
+  "sha256": "83fe153ee8fd41070c4b71b004e50f8d332678f16d627fe0c2f9b4d07caaf389",
+  "ticketContents": [
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ec0ccad172c2b139c7a832859180de50ae14ff3f",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "168bf1f7b270c2b4e2a554215be27a0aced7a1ec",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app/Contents/MacOS/BillNgai Helper (GPU)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ec0ccad172c2b139c7a832859180de50ae14ff3f",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app/Contents/MacOS/BillNgai Helper (GPU)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "168bf1f7b270c2b4e2a554215be27a0aced7a1ec",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "042355f99ccd807d329808dd7ce9dbc8ce60e9cf",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7bc144f8a19ca2550d1dd6c4807c8f0a129fafc1",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app/Contents/MacOS/BillNgai Helper (Plugin)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "042355f99ccd807d329808dd7ce9dbc8ce60e9cf",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app/Contents/MacOS/BillNgai Helper (Plugin)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7bc144f8a19ca2550d1dd6c4807c8f0a129fafc1",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "3d731b671ecd7c8c4457519b3bb3cbfaadc83671",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "e5b9f3a4c60eac88d7301b1771c53dbfcc0407f0",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app/Contents/MacOS/BillNgai Helper (Renderer)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "3d731b671ecd7c8c4457519b3bb3cbfaadc83671",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app/Contents/MacOS/BillNgai Helper (Renderer)",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "e5b9f3a4c60eac88d7301b1771c53dbfcc0407f0",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "4e043e215b1e183cf003808b3133eefce6017187",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "cd1690a283b339aeeb681e51d6fdce9ae8eb797b",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app/Contents/MacOS/BillNgai Helper",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "4e043e215b1e183cf003808b3133eefce6017187",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app/Contents/MacOS/BillNgai Helper",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "cd1690a283b339aeeb681e51d6fdce9ae8eb797b",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "45084a62ee51bd87e1b61982ac9077135c0a9996",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ae220036bb5558c67681f4d84eddd4258873a658",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "042355f99ccd807d329808dd7ce9dbc8ce60e9cf",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7bc144f8a19ca2550d1dd6c4807c8f0a129fafc1",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "3d731b671ecd7c8c4457519b3bb3cbfaadc83671",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "e5b9f3a4c60eac88d7301b1771c53dbfcc0407f0",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ec0ccad172c2b139c7a832859180de50ae14ff3f",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "168bf1f7b270c2b4e2a554215be27a0aced7a1ec",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "26f319f3ad8480fab24f5c4a8f06783a96609b29",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "88eb06a2940bba7b0b51ba3d7645ab3c75f248a7",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7c1800cbf73007a92326035a8b1d5972badfa709",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "c03ffb87df5e3c4b541d316f227abfa1fb103f34",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "2bcef0154a899631cb6d98a61a7a8d21a9636ec5",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "8ede43bf014344318361c3b5e341dcf5d17e484a",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "4e043e215b1e183cf003808b3133eefce6017187",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/BillNgai Helper.app",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "cd1690a283b339aeeb681e51d6fdce9ae8eb797b",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "e8cb30e62466a3434cbbec8122510554cd445ad8",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "8b8764b1a86a06f57aa8a17343d37efeaeeca681",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "52976ff9ea4c4d5c1c84f884bfa0bb29769f69c4",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/Current",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "0a91b9b737e98afe9251b8e25a7a1e7c39a203fd",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7c1800cbf73007a92326035a8b1d5972badfa709",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "c03ffb87df5e3c4b541d316f227abfa1fb103f34",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "45084a62ee51bd87e1b61982ac9077135c0a9996",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Helpers/chrome_crashpad_handler",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ae220036bb5558c67681f4d84eddd4258873a658",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libEGL.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "a0bdef7c83f59d445acabe94280426f741db21bc",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libEGL.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "5a05907c6814e3eaf84037b2fbc1899303bc61e1",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7492b73c78fecd6d85df7abe57017c9a77741079",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libffmpeg.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "18dde23f2938d9cd5eb28f2eec27f236b0809151",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libGLESv2.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "d01702b6a3f29d9aba9bedfaef54c82cfa36d974",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libGLESv2.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "ad734d851367b9f93fc083084c0782e4372c7593",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7c979338dd235e7421d854671d600083f82c3f87",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Libraries/libvk_swiftshader.dylib",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "7ca3ea13111a7e227fae617e2c08bf7e5c333c60",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/A/Mantle",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "26f319f3ad8480fab24f5c4a8f06783a96609b29",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/A/Mantle",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "88eb06a2940bba7b0b51ba3d7645ab3c75f248a7",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/A/ReactiveObjC",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "e8cb30e62466a3434cbbec8122510554cd445ad8",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/A/ReactiveObjC",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "8b8764b1a86a06f57aa8a17343d37efeaeeca681",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "52976ff9ea4c4d5c1c84f884bfa0bb29769f69c4",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/A/Squirrel",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "0a91b9b737e98afe9251b8e25a7a1e7c39a203fd",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "af99b9b0777de42af9423bba6d0d42c64c50a743",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/A/Resources/ShipIt",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "694e5a631301de40e175866c6cb30d9824bc7914",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/MacOS/BillNgai",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "2bcef0154a899631cb6d98a61a7a8d21a9636ec5",
+      "arch": "x86_64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg/BillNgai.app/Contents/MacOS/BillNgai",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "8ede43bf014344318361c3b5e341dcf5d17e484a",
+      "arch": "arm64"
+    },
+    {
+      "path": "BillNgai-2.0.11-universal.dmg",
+      "digestAlgorithm": "SHA-256",
+      "cdhash": "5db67049526cb652363fbb7e6f9357b7c834d84b"
+    }
+  ],
+  "issues": null
+}
