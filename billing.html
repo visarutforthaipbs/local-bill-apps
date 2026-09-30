@@ -775,6 +775,19 @@
     .modal-foot{position:sticky;bottom:0;z-index:2;gap:8px;flex-wrap:wrap;background:var(--surface)}
     .settings-savebar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 24px;bottom:16px;box-shadow:var(--shadow)}
     .document-brand-preview{--accent:var(--document-accent);--accent-ink:var(--document-accent-ink)}
+    .brand-controls,.brand-presets,.document-brand-preview{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .brand-controls{gap:16px;margin-bottom:16px}
+    .brand-controls .field{margin:0;width:160px;max-width:100%}
+    .brand-color-input{appearance:none;flex:0 0 48px;width:48px;height:48px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer}
+    .brand-color-input::-webkit-color-swatch-wrapper{padding:0}
+    .brand-color-input::-webkit-color-swatch{border:0;border-radius:var(--radius-sm)}
+    .brand-swatch{position:relative;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:8px;border-radius:var(--radius-pill)}
+    .brand-swatch::before{content:'';display:block;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--swatch-color);border:1px solid var(--border)}
+    .brand-swatch[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--text)}
+    .brand-swatch[aria-pressed="true"]::after{content:'✓';position:absolute;right:0;bottom:0;width:16px;height:16px;line-height:16px;font-size:12px;font-weight:700;border-radius:var(--radius-pill);background:var(--surface);color:var(--text)}
+    .document-brand-preview{margin-top:16px;color:var(--accent-ink)}
+    .brand-preview-bar{width:80px;height:16px;background:var(--accent);border:1px solid var(--border);border-radius:var(--radius-pill)}
+    .brand-preview-label{color:var(--text-dim)}
     .year-pick{flex-wrap:wrap}
     .doc-actions{padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
     .toast{bottom:24px;max-width:calc(100vw - 32px)}
@@ -1313,7 +1326,7 @@ function openUpgradeModal(){
       <div class="grid-2" style="align-items:start">
         <div class="card-block" style="margin-bottom:0">
           <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
-          <div class="desc">${tr('ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
+          <div class="desc">${tr('ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
           ${li(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'))}
           ${li(tr('สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี'))}
           ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
@@ -1759,8 +1772,8 @@ function migrate(data){
       if(!hasIssuedSnapshot(d)) d.legacy_review_required = true;
     }else if(!d.currency) d.currency = merged.business.currency || 'THB';
   });
-  // rebrand 1.4.0: ผู้ใช้ที่ยังใช้สีเขียวค่าเริ่มต้นเดิม (ไม่เคยเลือกเอง) ย้ายมาส้มแบรนด์ใหม่
-  if((merged.business.brandColor||'').toLowerCase()==='#1f5d43') merged.business.brandColor = '#ff6b00';
+  // Preserve explicit seller colors, including the former green default.
+  // New profiles receive DEFAULT_BRAND from blankDB; color alone cannot prove user intent.
   // v2 (sync-ready): ประทับ updatedAt/deletedAt ให้ทุก record ที่มาจากไฟล์เก่า
   const bootNow = new Date().toISOString();
   const stampV2 = r=>{ if(!r.updatedAt) r.updatedAt = r.createdAt || bootNow; if(r.deletedAt===undefined) r.deletedAt = null; };
@@ -3599,6 +3612,9 @@ function renderDashboard(c,ta){
   const recent = [...activeDocs()].sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
   const due = dueRecurring();
   const pendingCerts = whtPendingList();
+  // WHT already deducted on received payments, still waiting for its 50 ทวิ certificate (THB only).
+  let pendingWht=0;
+  pendingCerts.forEach(d=>{ const t=compute(d); if(reportAmountsValid(t) && t.currency==='THB') pendingWht+=t.whtAmount; });
 
   // One prioritised to-do list instead of stacked banners; the money comes first.
   const todo=[];
@@ -3634,8 +3650,8 @@ function renderDashboard(c,ta){
       </div>
       <div class="pillar wht"><div class="accent-bar"></div>
         <div class="label">${ic('scissors')} ${tr('หัก ณ ที่จ่าย')}</div>
-        <div class="val" data-cu="${expectedWht}" data-cu-pre="฿">${fmtMoneyC(expectedWht,'THB')}</div>
-        <div class="sub">${tr('ยอดที่ลูกค้าจะหัก — ขอใบ 50 ทวิ')}</div>
+        <div class="val" data-cu="${pendingWht}" data-cu-pre="฿">${fmtMoneyC(pendingWht,'THB')}</div>
+        <div class="sub">${pendingCerts.length?tr('รอใบ 50 ทวิ {n} ใบ').replace('{n}',pendingCerts.length):tr('ไม่มีใบ 50 ทวิค้างรับ')}${expectedWht?` · ${tr('บิลค้างรับจะถูกหักอีก {x}').replace('{x}',fmtMoneyC(expectedWht,'THB'))}`:''}</div>
       </div>
     </div>
 
@@ -3686,6 +3702,7 @@ function wizCollect(){
   set('phone',g('w_phone')); set('email',g('w_email'));
   set('promptpayId',g('w_pp')); set('bankName',g('w_bank'));
   set('bankAccountName',g('w_bankAccName')); set('bankAccount',g('w_bankAcc'));
+  const vat=g('w_vat'); if(vat!=null && vat!==(b.vatStatus||'unknown')) applyVatStatus(b,vat);
 }
 function wizNext(){ wizCollect(); wizStep++; drawWizard(); }
 function wizBack(){ wizCollect(); wizStep--; drawWizard(); }
@@ -3694,7 +3711,7 @@ function wizDone(skip){
   DB.meta.setupDone = true;
   // ข้าม wizard เปล่า ๆ ต้องไม่นับเป็น "การแก้ไขโปรไฟล์" — ไม่งั้น sync จะพาโปรไฟล์เปล่าไปทับเครื่องอื่น
   const b=DB.business;
-  if(String(b.businessName||'').trim() || String(b.taxId||'').trim() || String(b.promptpayId||'').trim() || (b.logo||'')) touch(b);
+  if(String(b.businessName||'').trim() || String(b.taxId||'').trim() || String(b.promptpayId||'').trim() || (b.logo||'') || b.vatStatusConfirmedAt) touch(b);
   persist(true); applyTheme(); render(); closeModal();
   if(!skip) toast(tr('พร้อมใช้งานแล้ว — เพิ่มลูกค้าแล้วออกเอกสารแรกได้เลย'),'ok');
 }
@@ -3717,11 +3734,19 @@ function drawWizard(){
       <div class="asset-btns"><button class="btn btn-sm" onclick="wizPickAsset(${jsArg(key)})">${ic('upload',13)} ${tr('เลือกรูป')}</button>
       ${b[key]?`<button class="btn btn-sm btn-danger" onclick="wizCollect();DB.business[${jsArg(key)}]='';drawWizard()">${tr('ลบ')}</button>`:''}</div></div>`;
   const bodies=[`
-      <div class="field"><label>${tr('ชื่อธุรกิจ / ชื่อ-นามสกุล *')}</label><input id="w_name" value="${attr(b.businessName)}" placeholder="${tr('เช่น นายสมชาย ใจดี หรือ Studio ABC')}"></div>
+      <div class="field"><label for="w_name">${tr('ชื่อธุรกิจ / ชื่อ-นามสกุล *')}</label><input id="w_name" value="${attr(b.businessName)}" placeholder="${tr('เช่น นายสมชาย ใจดี หรือ Studio ABC')}"></div>
       <div class="grid-2">
-        <div class="field"><label>${tr('เลขประจำตัวผู้เสียภาษี')}</label><input id="w_taxid" value="${attr(b.taxId)}" placeholder="${tr('13 หลัก (เลขบัตรประชาชนสำหรับบุคคลธรรมดา)')}"></div>
-        <div class="field"><label>${tr('โทรศัพท์')}</label><input id="w_phone" value="${attr(b.phone)}"></div>
+        <div class="field"><label for="w_taxid">${tr('เลขประจำตัวผู้เสียภาษี')}</label><input id="w_taxid" value="${attr(b.taxId)}" maxlength="13" inputmode="numeric" placeholder="${tr('13 หลัก (เลขบัตรประชาชนสำหรับบุคคลธรรมดา)')}" aria-describedby="taxIdFeedback" oninput="taxIdFeedback(this.value)" onblur="taxIdFeedback(this.value,true)">
+          <div id="taxIdFeedback" aria-live="polite"></div></div>
+        <div class="field"><label for="w_phone">${tr('โทรศัพท์')}</label><input id="w_phone" value="${attr(b.phone)}"></div>
       </div>
+      <div class="field"><label for="w_vat">${tr('ยืนยันสถานะ VAT ของผู้รับเงิน')}</label>
+        <select id="w_vat">
+          <option value="unknown" ${!['registered','non_registered'].includes(b.vatStatus)?'selected':''}>${tr('ยังไม่ยืนยัน')}</option>
+          <option value="non_registered" ${b.vatStatus==='non_registered'?'selected':''}>${tr('ยืนยันว่าไม่ได้จดทะเบียน VAT')}</option>
+          <option value="registered" ${b.vatStatus==='registered'?'selected':''}>${tr('จดทะเบียน VAT แล้ว')}</option>
+        </select>
+        <div class="hint">${tr('ต้องยืนยันก่อนออกใบเสร็จ — รุ่นนี้รองรับใบเสร็จสำหรับผู้ไม่จด VAT')}</div></div>
       <div class="field"><label>${tr('ที่อยู่ (แสดงบนหัวเอกสาร)')}</label><textarea id="w_addr">${escapeHtml(b.address)}</textarea></div>
       <div class="field"><label>${tr('อีเมล')}</label><input id="w_email" value="${attr(b.email)}"></div>
       <div class="hint" style="font-size:12px;color:var(--text-faint)">${tr('ข้อมูลนี้จะขึ้นบนหัวเอกสารทุกใบ — แก้ไขภายหลังได้ที่ ตั้งค่า')}</div>`,`
@@ -3739,7 +3764,7 @@ function drawWizard(){
         ${assetBox('logo',tr('โลโก้'))}
         ${assetBox('signature',tr('ลายเซ็น'))}
       </div>
-      <div class="field" style="margin-top:16px"><label>${tr('สีแบรนด์ (ธีมของแอปและเอกสารทุกใบ)')}</label>
+      <div class="field" style="margin-top:16px"><label>${tr('สีบนเอกสาร')}</label>
         <div class="pill-select">
           ${WIZ_BRANDS.map(h=>`<button class="${(b.brandColor||DEFAULT_BRAND)===h?'on':''}" style="background:${h};border-color:${h};color:#fff;width:38px" onclick="wizSetBrand(${jsArg(h)})">${(b.brandColor||DEFAULT_BRAND)===h?'✓':'&nbsp;'}</button>`).join('')}
         </div>
@@ -3952,7 +3977,7 @@ function renderWht(c,ta){
           <span class="document-info"><span class="document-heading"><b>${escapeHtml(d.number)}</b></span>
             <span class="document-client">${cl?escapeHtml(cl.name):'—'}</span>
             <span class="document-meta">${tr('วันที่รับเงิน')} ${fmtDate(docTaxDate(d))}</span>
-            <span class="document-meta">${tr('ฐานภาษี')} ${fmtMoneyC(t.subtotal,t.currency)} · ${tr('หัก %')} ${t.whtRate}%</span>
+            <span class="document-meta">${tr('ฐานภาษี')} ${fmtMoneyC(t.subtotal,t.currency)} · ${tr('อัตราหัก')} ${t.whtRate}%</span>
           </span>
           <span class="document-amount"><span>${tr('ยอดหักคาดหมาย')}</span><strong>${fmtMoneyC(t.whtAmount,t.currency)}</strong></span>
         </button>
@@ -4094,11 +4119,11 @@ function drawRecItems(){
     <td><input value="${attr(it.description)}" oninput="editRec.items[${i}].description=this.value"></td>
     <td><input type="number" value="${attr(it.qty)}" oninput="editRec.items[${i}].qty=this.value;drawRecLadder();recRowTotal(${i})" style="text-align:right"></td>
     <td><input value="${attr(it.unit)}" oninput="editRec.items[${i}].unit=this.value"></td>
-    <td><input type="number" value="${attr(it.price)}" oninput="editRec.items[${i}].price=this.value;drawRecLadder();recRowTotal(${i})" style="text-align:right"></td>
-    <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px" class="rect">${money((Number(it.qty)||0)*(Number(it.price)||0))}</td>
+    <td><input type="number" min="0" step="0.01" value="${attr(it.price)}" oninput="editRec.items[${i}].price=this.value;drawRecLadder();recRowTotal(${i})" onchange="this.value=priceInput(this.value);editRec.items[${i}].price=this.value;drawRecLadder();recRowTotal(${i})" style="text-align:right"></td>
+    <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px" class="rect">${money(lineTotal(it))}</td>
     <td><button class="del" onclick="recDelItem(${i})">×</button></td></tr>`).join('');
 }
-function recRowTotal(i){ const it=editRec.items[i]; const cell=document.getElementById('recItemsBody').children[i]?.children[4]; if(cell) cell.textContent=money((Number(it.qty)||0)*(Number(it.price)||0)); }
+function recRowTotal(i){ const it=editRec.items[i]; const cell=document.getElementById('recItemsBody').children[i]?.children[4]; if(cell) cell.textContent=money(lineTotal(it)); }
 function recAddItem(){ editRec.items.push({description:'',qty:1,unit:'',price:0}); drawRecItems(); drawRecLadder(); }
 function recDelItem(i){ editRec.items.splice(i,1); if(!editRec.items.length) recAddItem(); drawRecItems(); drawRecLadder(); }
 function recSetWht(x){ editRec.whtRate=x; document.querySelectorAll('#recWhtPills button').forEach(b=>b.classList.toggle('on',b.textContent===x+'%')); drawRecLadder(); }
@@ -4852,7 +4877,7 @@ function renderSettings(c,ta){
         <div class="field"><textarea id="s_addrEn" aria-label="Address (English)">${escapeHtml(b.addressEn||'')}</textarea></div>
       </details>
       <div class="grid-3">
-        <div class="field"><label>${tr('เลขประจำตัวผู้เสียภาษี (13 หลัก)')}</label><input id="s_taxid" value="${attr(b.taxId)}" maxlength="13" oninput="taxIdFeedback(this.value)"><div id="taxIdFeedback"></div></div>
+        <div class="field"><label>${tr('เลขประจำตัวผู้เสียภาษี (13 หลัก)')}</label><input id="s_taxid" value="${attr(b.taxId)}" maxlength="13" oninput="taxIdFeedback(this.value)" onblur="taxIdFeedback(this.value,true)"><div id="taxIdFeedback"></div></div>
         <div class="field"><label>${tr('โทรศัพท์')}</label><input id="s_phone" value="${attr(b.phone)}"></div>
         <div class="field"><label>${tr('อีเมล')}</label><input id="s_email" value="${attr(b.email)}"></div>
       </div>
@@ -4906,21 +4931,16 @@ function renderSettings(c,ta){
     <div class="card-block">
       <h4>${tr('สีองค์กร / แบรนด์')}</h4>
       <div class="desc">${tr('สีนี้ใช้บนเอกสารของคุณ ส่วนสีหน้าจอแอปคงเดิม')}</div>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <input type="color" id="s_brand" aria-label="${attr(tr('สีองค์กร / แบรนด์'))}" value="${attr(b.brandColor||'#ff6b00')}" oninput="previewBrand(this.value)"
-          style="width:54px;height:40px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;padding:3px">
-        <input id="s_brandHex" aria-label="HEX" value="${attr(b.brandColor||'#ff6b00')}" maxlength="7" spellcheck="false"
-          oninput="previewBrand(this.value)" style="width:110px;font-family:var(--font-display);letter-spacing:.5px;text-transform:uppercase">
-        <div class="pill-select" id="brandPresets">
-          ${BRAND_PRESETS.map(p=>`<button type="button" title="${p.name}" onclick="setBrandPreset(${jsArg(p.hex)})"
-            style="width:26px;height:26px;padding:0;border-radius:50%;background:${p.hex};border:2px solid ${ (b.brandColor||'#ff6b00').toLowerCase()===p.hex.toLowerCase() ? 'var(--text)' : 'var(--border)'}"></button>`).join('')}
-        </div>
-        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset('#ff6b00')">${tr('คืนค่าเริ่มต้น')}</button>
+      <div class="brand-controls">
+        <input type="color" class="brand-color-input" id="s_brand" aria-label="${attr(tr('สีองค์กร / แบรนด์'))}" value="${attr(b.brandColor||DEFAULT_BRAND)}" oninput="previewBrand(this.value)">
+        <div class="field"><input id="s_brandHex" aria-label="${attr(tr('รหัสสี HEX'))}" value="${attr(b.brandColor||DEFAULT_BRAND)}" maxlength="7" spellcheck="false" autocapitalize="off" oninput="previewBrand(this.value)"></div>
       </div>
-      <div class="hint document-brand-preview" style="margin-top:12px">${tr('ตัวอย่างสด:')}
-        <span class="badge-status s-paid" style="margin:0 4px"><span class="d"></span>${tr('สีบนเอกสาร')}</span>
-        <span style="display:inline-block;width:84px;height:10px;border-radius:6px;background:var(--accent);vertical-align:middle"></span>
-        <span style="color:var(--accent-ink);font-weight:700"> ${tr('ตัวอักษรเน้น')}</span>
+      <div class="brand-presets" id="brandPresets" role="group" aria-label="${attr(tr('สีสำเร็จรูป'))}">
+        ${BRAND_PRESETS.map(p=>`<button class="brand-swatch" type="button" title="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-label="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-pressed="${(b.brandColor||DEFAULT_BRAND).toLowerCase()===p.hex}" data-brand-color="${p.hex}" onclick="setBrandPreset(${jsArg(p.hex)})" style="--swatch-color:${p.hex}"></button>`).join('')}
+        <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset(DEFAULT_BRAND)">${tr('คืนค่าเริ่มต้น')}</button>
+      </div>
+      <div class="hint document-brand-preview"><span class="brand-preview-label">${tr('ตัวอย่างสด:')}</span>
+        <span class="brand-preview-bar" aria-hidden="true"></span><strong>${tr('สีบนเอกสาร')}</strong>
       </div>
     </div>
     ${saveBar}`;
@@ -5154,19 +5174,27 @@ const BRAND_PRESETS = [
   {name:'เทาถ่าน',hex:'#3a3f44'},
   {name:'ดำหมึก',hex:'#26221a'}
 ];
+Object.assign(I18N_EN,{
+  'รหัสสี HEX':'HEX color code','สีสำเร็จรูป':'Preset colors',
+  'กรุณาใส่รหัสสี 6 หลัก เช่น #2456C8':'Enter a six-digit color code, such as #2456C8.',
+  'ส้มบิลง่าย (ค่าเริ่มต้น)':'BillNgai orange (default)','เขียวมรกต':'Emerald green','เขียวสด':'Bright green',
+  'น้ำเงินโคบอลต์':'Cobalt blue','น้ำเงินเข้ม':'Dark blue','ฟ้าเทอควอยซ์':'Turquoise','คราม':'Indigo',
+  'ม่วงไวโอเล็ต':'Violet','ม่วงพลัม':'Plum','ชมพูโรส':'Rose','แดงเบอร์กันดี':'Burgundy',
+  'ส้มแทนเจอรีน':'Tangerine','บรอนซ์ทอง':'Bronze','เทาถ่าน':'Charcoal','ดำหมึก':'Ink black'
+});
+function normalizeBrandHex(value){const s=String(value||'').trim();return (s.startsWith('#')?s:'#'+s).toLowerCase();}
 function validHex(s){ return /^#[0-9a-fA-F]{6}$/.test(String(s||'').trim()); }
 // Live-preview a brand color without committing it; keeps the two inputs + swatches in sync.
 function previewBrand(val){
-  val = String(val||'').trim();
-  if(val && val[0]!=='#') val = '#'+val;
+  val = normalizeBrandHex(val);
   const hexEl=document.getElementById('s_brandHex'), colEl=document.getElementById('s_brand');
   if(hexEl && document.activeElement!==hexEl) hexEl.value = val;
   if(validHex(val)){
     if(colEl) colEl.value = val;
+    if(hexEl) hexEl.removeAttribute('aria-invalid');
     applyTheme(val);
-    document.querySelectorAll('#brandPresets button').forEach(btn=>{
-      const on = btn.style.background.replace(/\s/g,'')!=='' && rgbToHex(btn.style.background)===val.toLowerCase();
-      btn.style.borderColor = on ? 'var(--text)' : 'var(--border)';
+    document.querySelectorAll('#brandPresets [data-brand-color]').forEach(btn=>{
+      btn.setAttribute('aria-pressed',String(btn.dataset.brandColor===val));
     });
   }
 }
@@ -5219,6 +5247,11 @@ function previewPromptpay(val){
 // อ่านเฉพาะฟิลด์ที่อยู่บนแท็บปัจจุบัน (แท็บอื่นไม่มีใน DOM) — silent ใช้ตอนสลับแท็บอัตโนมัติ
 async function saveSettings(silent){
   if(issuanceBusy) return false;
+  const brandHex=document.getElementById('s_brandHex');
+  if(brandHex&&!validHex(normalizeBrandHex(brandHex.value))){
+    brandHex.setAttribute('aria-invalid','true');brandHex.focus();
+    toast(tr('กรุณาใส่รหัสสี 6 หลัก เช่น #2456C8'),'err');return false;
+  }
   const original=DB.business, b=JSON.parse(JSON.stringify(original));
   let touched=false, langChanged=false;
   const set=(id,fn)=>{ const el=document.getElementById(id); if(el){ fn(el); touched=true; } };
@@ -5229,8 +5262,8 @@ async function saveSettings(silent){
   set('s_bankNameEn',el=>b.bankNameEn=el.value); set('s_swift',el=>b.swiftCode=el.value.trim().toUpperCase());
   set('s_bankAccNameEn',el=>b.bankAccountNameEn=el.value); set('s_bankAddr',el=>b.bankAddress=el.value);
   set('s_promptpay',el=>b.promptpayId=el.value.trim());
-  set('s_brand',el=>{ const brand=el.value||b.brandColor||'#ff6b00'; b.brandColor = validHex(brand) ? brand.toLowerCase() : '#ff6b00'; });
-  set('s_vatStatus',el=>{ b.vatStatus=['non_registered','registered'].includes(el.value)?el.value:'unknown'; b.isVatRegistered=b.vatStatus==='registered'; b.vatStatusConfirmedAt=b.vatStatus==='unknown'?null:new Date().toISOString(); });
+  set('s_brand',el=>{ const brand=normalizeBrandHex(brandHex?brandHex.value:el.value); b.brandColor=validHex(brand)?brand:(b.brandColor||DEFAULT_BRAND); });
+  set('s_vatStatus',el=>applyVatStatus(b,el.value));
   set('s_vatRate',el=>b.defaultVatRate=Number(el.value)||0); set('s_whtRate',el=>b.defaultWhtRate=Number(el.value)||0);
   set('s_cur',el=>b.currency=el.value); set('s_terms',el=>b.defaultTerms=el.value); set('s_termsEn',el=>b.defaultTermsEn=el.value);
   set('s_year',el=>b.yearMode=el.value); set('s_lang',el=>b.lang=el.value);
@@ -5263,7 +5296,7 @@ function openClientEditor(id){
       <div class="field"><label>${tr('ชื่อลูกค้า / บริษัท *')}</label><input id="c_name" value="${attr(cl.name)}" placeholder="${tr('เช่น Thai PBS, มูลนิธิ LPN')}"></div>
       <div class="grid-2">
         <div class="field"><label>${tr('ผู้ติดต่อ')}</label><input id="c_contact" value="${attr(cl.contactPerson)}"></div>
-        <div class="field"><label>${tr('เลขประจำตัวผู้เสียภาษี')}</label><input id="c_taxid" value="${attr(cl.taxId)}" maxlength="13" placeholder="${tr('กรอกเมื่อจำเป็นต้องแสดงบนเอกสาร')}" oninput="taxIdFeedback(this.value)"><div id="taxIdFeedback"></div></div>
+        <div class="field"><label>${tr('เลขประจำตัวผู้เสียภาษี')}</label><input id="c_taxid" value="${attr(cl.taxId)}" maxlength="13" placeholder="${tr('กรอกเมื่อจำเป็นต้องแสดงบนเอกสาร')}" oninput="taxIdFeedback(this.value)" onblur="taxIdFeedback(this.value,true)"><div id="taxIdFeedback"></div></div>
       </div>
       <div class="field"><label>${tr('ที่อยู่')}</label><textarea id="c_addr">${escapeHtml(cl.address)}</textarea></div>
       <div class="grid-2">
@@ -5473,7 +5506,7 @@ function openDocEditor(type, existingId, presetItems, parentId, presetMeta){
   if(!activeClients().length){
     pendingNewDocType=type;setView('clients');openClientEditor();return;
   }
-  pendingEditorDraft=null;
+  pendingEditorDraft=null; editorIssues=[];
   editDraftStorageKey=editorDraftKey(existingId);editDocBaseJSON=null;editDocDirty=false;
   const saved=loadDraft();
   if(existingId){
@@ -5539,6 +5572,34 @@ function openReceiptSettings(){
   if(closeModal()===false)return;
   settingsTab='docs';setView('settings');
 }
+// One place that records the owner's VAT answer (settings, first-run setup, receipt prompt).
+function applyVatStatus(b,value){
+  b.vatStatus=['non_registered','registered'].includes(value)?value:'unknown';
+  b.isVatRegistered=b.vatStatus==='registered';
+  b.vatStatusConfirmedAt=b.vatStatus==='unknown'?null:new Date().toISOString();
+}
+// Receipts need an explicit non-VAT answer; ask in place instead of sending people to Settings.
+// Only an unanswered status is offered here — a registered business must change it in Settings.
+async function confirmNonVatInline(){
+  const b=DB.business;
+  if(b.vatStatus==='non_registered') return true;
+  if(b.vatStatus==='registered'){
+    toast(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'),'err',{label:tr('ตั้งค่าสถานะ VAT'),run:openReceiptSettings});
+    return false;
+  }
+  if(!await askConfirm(tr('ธุรกิจของคุณไม่ได้จดทะเบียน VAT ใช่ไหม?'),{
+    detail:tr('ใบเสร็จในรุ่นนี้สำหรับผู้ไม่จด VAT เท่านั้น เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี'),
+    confirmLabel:tr('ยืนยันว่าไม่ได้จด VAT')})) return false;
+  const previous={vatStatus:b.vatStatus,isVatRegistered:b.isVatRegistered,vatStatusConfirmedAt:b.vatStatusConfirmedAt,updatedAt:b.updatedAt};
+  applyVatStatus(b,'non_registered'); touch(b);
+  if(await persist(true)===false){ Object.assign(b,previous); return false; }
+  return true;
+}
+async function confirmReceiptPrerequisite(){
+  if(!await confirmNonVatInline() || !editDoc) return;
+  if(editorIssues.length) editorIssues=issueBlockers(editDoc);
+  drawDocEditor();
+}
 function drawDocEditor(){
   const d=editDoc; const b=DB.business;
   const m=document.getElementById('modal');
@@ -5546,7 +5607,9 @@ function drawDocEditor(){
   if(d.type==='receipt'&&b.vatStatus!=='non_registered'){
     m.innerHTML=`<div class="modal-head"><h3>${tr('ก่อนสร้างใบเสร็จ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
       <div class="modal-body"><p>${tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</p><p>${tr('กรุณายืนยันสถานะ VAT ของธุรกิจในตั้งค่าก่อน')}</p></div>
-      <div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button></div>`;return;
+      <div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button>${b.vatStatus==='registered'
+        ?`<button class="btn btn-primary" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button>`
+        :`<button class="btn" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button><button class="btn btn-primary" onclick="confirmReceiptPrerequisite()">${tr('ยืนยันว่าไม่ได้จด VAT')}</button>`}</div>`;return;
   }
   const typeOpts = {quotation:tr('ใบเสนอราคา'),invoice:tr('ใบแจ้งหนี้'),receipt:tr('ใบเสร็จรับเงิน'),tax_invoice:tr('ใบเสร็จรับเงิน / ใบกำกับภาษี')};
   m.innerHTML = `
@@ -5554,6 +5617,7 @@ function drawDocEditor(){
       ${d.number?`<span class="muted" style="margin-left:10px;font-size:13px">${escapeHtml(d.number)}</span>`:''}
       <div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
     <div class="modal-body">
+      ${issueChecklistHtml()}
       ${pendingEditorDraft?`<div class="banner info"><span class="banner-text">${tr('พบเอกสารที่พิมพ์ค้างไว้เมื่อ {t} — กู้คืนไหม').replace('{t}',escapeHtml(fmtDate(String(pendingEditorDraft.savedAt||'').slice(0,10))))}</span>
         <button class="btn btn-sm" onclick="discardEditorDraft()">${tr('ทิ้ง')}</button><button class="btn btn-sm btn-primary" onclick="restoreEditorDraft()">${tr('กู้คืน')}</button></div>`:''}
       ${d.type==='receipt'?`<div class="hint">${tr('ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น')}</div>`:''}
@@ -5668,8 +5732,8 @@ function drawItems(){
       <td><input value="${attr(it.description)}" placeholder="${tr('ค่าบริการ / ค่าที่ปรึกษา')}" oninput="updItem(${i},'description',this.value)"></td>
       <td><input type="number" value="${attr(it.qty)}" oninput="updItem(${i},'qty',this.value)" style="text-align:right"></td>
       <td><input value="${attr(it.unit)}" placeholder="${tr('งาน')}" oninput="updItem(${i},'unit',this.value)"></td>
-      <td><input type="number" value="${attr(it.price)}" oninput="updItem(${i},'price',this.value)" style="text-align:right"></td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px">${money((Number(it.qty)||0)*(Number(it.price)||0))}</td>
+      <td><input type="number" min="0" step="0.01" value="${attr(it.price)}" oninput="updItem(${i},'price',this.value)" onchange="this.value=priceInput(this.value);updItem(${i},'price',this.value)" style="text-align:right"></td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px">${money(lineTotal(it))}</td>
       <td><button class="del" onclick="delItem(${i})">×</button></td>
     </tr>`).join('');
 }
@@ -5683,8 +5747,12 @@ function drawItemTotal(i){
   const body=document.getElementById('itemsBody');
   const it=editDoc.items[i];
   const cell=body.children[i]?.children[4];
-  if(cell) cell.textContent = money((Number(it.qty)||0)*(Number(it.price)||0));
+  if(cell) cell.textContent = money(lineTotal(it));
 }
+// Printed unit prices have two decimals, so stored prices must too — otherwise qty × printed price
+// differs from the printed line total. Entry is rounded when the field is left.
+function priceInput(v){ const n=Number(v); return String(v).trim()!=='' && Number.isFinite(n) ? String(round2(n)) : v; }
+function lineTotal(it){ return round2((Number(it.qty)||0)*(Number(it.price)||0)); }
 function drawLadder(){
   const t=compute(editDoc); const el=document.getElementById('ladder');
   const b=DB.business; const M=n=>fmtMoneyC(n,t.currency);
@@ -5701,15 +5769,97 @@ async function saveDraft(){
   editDoc.issueConfirmed=false;
   return saveDoc();
 }
+Object.assign(I18N_EN,{
+  'ไม่มีใบ 50 ทวิค้างรับ':'No 50 tawi certificates pending',
+  'บิลค้างรับจะถูกหักอีก {x}':'unpaid invoices will have {x} withheld',
+  'ต้องยืนยันก่อนออกใบเสร็จ — รุ่นนี้รองรับใบเสร็จสำหรับผู้ไม่จด VAT':'Required before issuing receipts — this version supports receipts for businesses not registered for VAT',
+  'อัตราหัก':'Rate',
+  'ธุรกิจของคุณไม่ได้จดทะเบียน VAT ใช่ไหม?':'Is your business not registered for VAT?',
+  'ใบเสร็จในรุ่นนี้สำหรับผู้ไม่จด VAT เท่านั้น เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี':'Receipts in this version are only for businesses not registered for VAT. You can change this later in Settings → Documents & tax.',
+  'ยืนยันว่าไม่ได้จด VAT':'Confirm not VAT-registered',
+  'เลือกลูกค้า':'Choose a client',
+  'ตรวจวันที่ออกและวันครบกำหนด':'Check the issue and due dates',
+  'ใส่รายละเอียดให้ทุกรายการ':'Describe every line item',
+  'จำนวนต้องมากกว่า 0 และราคาต้องไม่ติดลบ':'Quantities must be above 0 and prices not negative',
+  'ราคาต่อหน่วยใช้ทศนิยมได้ไม่เกิน 2 ตำแหน่ง':'Unit prices can have at most 2 decimal places',
+  'ปัดเป็น 2 ตำแหน่ง':'Round to 2 decimals',
+  'ยอดรวมต้องมากกว่า 0':'The total must be above 0',
+  'อัตราหัก ณ ที่จ่ายต้องอยู่ระหว่าง 0–100%':'Withholding rate must be between 0 and 100%',
+  'ใส่ชื่อ ที่อยู่ และเลขประจำตัวผู้เสียภาษี 13 หลักของคุณในตั้งค่า':'Add your name, address and 13-digit tax ID in Settings',
+  'ไปที่ข้อมูลธุรกิจ':'Open business details',
+  'ตรวจอัตราหัก ณ ที่จ่ายกับผู้จ่าย แล้วเปิดสวิตช์ยืนยัน':'Check the withholding rate with the payer, then turn on the confirmation switch',
+  'ไปที่สวิตช์':'Go to switch',
+  'ยืนยันสถานะ VAT':'Confirm VAT status',
+  'ยังออกเอกสารไม่ได้ — แก้ {n} ข้อนี้ก่อน':'Can’t issue yet — fix these {n} items first',
+  'ใบแจ้งหนี้นี้ยังไม่มีช่องทางรับเงิน (PromptPay หรือบัญชีธนาคาร) — เพิ่มได้ที่ ตั้งค่า → ธุรกิจของฉัน':'This invoice has no payment details (PromptPay or bank account). Add them in Settings → My business.',
+  'ยอดที่ควรได้รับ {net}':'Amount due {net}',
+  'ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Free to use for your documents; your data stays on your computer',
+  'หลังหัก ณ ที่จ่าย {wht}':'after {wht} withholding'
+});
+// Everything that stops issuing, listed at once with a way to fix each item.
+// issuanceError() stays the authoritative gate; this list only explains it.
+let editorIssues=[];
+function issueBlockers(d){
+  const b=DB.business, cl=clientById(d.clientId), out=[];
+  const add=(msg,run,label)=>out.push({msg,run,label});
+  if(!cl || cl.deletedAt || !String(cl.name||'').trim()) add(tr('เลือกลูกค้า'));
+  if(!validDocumentDate(d.issueDate) || (d.dueDate && !validDocumentDate(d.dueDate))) add(tr('ตรวจวันที่ออกและวันครบกำหนด'));
+  const items=Array.isArray(d.items)?d.items:[];
+  if(!items.length || items.some(it=>!it || !String(it.description||'').trim())) add(tr('ใส่รายละเอียดให้ทุกรายการ'));
+  if(items.some(it=>it && (!Number.isFinite(Number(it.qty)) || Number(it.qty)<=0 || !Number.isFinite(Number(it.price)) || Number(it.price)<0)))
+    add(tr('จำนวนต้องมากกว่า 0 และราคาต้องไม่ติดลบ'));
+  if(hasUnroundedPrice(d)) add(tr('ราคาต่อหน่วยใช้ทศนิยมได้ไม่เกิน 2 ตำแหน่ง'),'roundEditorPrices()',tr('ปัดเป็น 2 ตำแหน่ง'));
+  const t=compute(d); if(!(Number.isFinite(t.grandTotal) && t.grandTotal>0)) add(tr('ยอดรวมต้องมากกว่า 0'));
+  if(!Number.isFinite(Number(d.whtRate)) || Number(d.whtRate)<0 || Number(d.whtRate)>100) add(tr('อัตราหัก ณ ที่จ่ายต้องอยู่ระหว่าง 0–100%'));
+  if(!String(b.businessName||'').trim() || !String(b.address||'').trim() || !/^\d{13}$/.test(String(b.taxId||'').trim()))
+    add(tr('ใส่ชื่อ ที่อยู่ และเลขประจำตัวผู้เสียภาษี 13 หลักของคุณในตั้งค่า'),'openBusinessSettings()',tr('ไปที่ข้อมูลธุรกิจ'));
+  if(!d.whtReviewed) add(tr('ตรวจอัตราหัก ณ ที่จ่ายกับผู้จ่าย แล้วเปิดสวิตช์ยืนยัน'),'focusWhtReview()',tr('ไปที่สวิตช์'));
+  if(d.type==='receipt'){
+    if(b.vatStatus!=='non_registered') add(tr('กรุณายืนยันว่าไม่ได้จด VAT ในตั้งค่าก่อน'),b.vatStatus==='registered'?'openReceiptSettings()':'confirmReceiptPrerequisite()',tr('ยืนยันสถานะ VAT'));
+    if(!validDocumentDate(d.paidDate) || d.paidDate>todayISO() || d.paidDate>d.issueDate || !d.fullPaymentConfirmed) add(tr('กรอกวันรับเงินจริงและยืนยันรับเต็มจำนวน'));
+  }
+  return out;
+}
+function issueChecklistHtml(){
+  if(!editorIssues.length) return '';
+  return `<div class="banner" role="alert" id="issueChecklist"><div class="banner-text"><b>${tr('ยังออกเอกสารไม่ได้ — แก้ {n} ข้อนี้ก่อน').replace('{n}',editorIssues.length)}</b>
+    <ul style="margin:8px 0 0;padding-left:20px">${editorIssues.map(i=>`<li>${escapeHtml(i.msg)}${i.run?` <button class="btn btn-sm btn-ghost" type="button" onclick="${i.run}">${escapeHtml(i.label)}</button>`:''}</li>`).join('')}</ul></div></div>`;
+}
+function hasUnroundedPrice(d){ return (d.items||[]).some(it=>it && Number.isFinite(Number(it.price)) && Number(it.price)!==round2(Number(it.price))); }
+function roundEditorPrices(){
+  if(!editDoc) return;
+  markDirty(); editDoc.items.forEach(it=>{ if(it && Number.isFinite(Number(it.price))) it.price=round2(Number(it.price)); });
+  editorIssues=issueBlockers(editDoc); drawDocEditor();
+}
+function focusWhtReview(){
+  const el=document.getElementById('d_whtReviewed'); if(!el) return;
+  const details=el.closest('details'); if(details && !details.open) details.open=true;
+  el.scrollIntoView({block:'center'}); el.focus();
+}
+function openBusinessSettings(){
+  if(closeModal()===false)return;
+  settingsTab='business';setView('settings');
+}
 // Issuing is irreversible, so it is a separate action with a plain-language summary to confirm.
 async function issueDoc(){
   if(issuanceBusy || !editDoc) return false;
-  const error=issuanceError({...editDoc,issueConfirmed:true},true);
-  if(error){ toast(error,'err'); return false; }
+  const error=issuanceError({...editDoc,issueConfirmed:true},true)||(hasUnroundedPrice(editDoc)?tr('ราคาต่อหน่วยใช้ทศนิยมได้ไม่เกิน 2 ตำแหน่ง'):'');
+  if(error){
+    editorIssues=issueBlockers(editDoc);
+    if(!editorIssues.length){ toast(error,'err'); return false; }
+    drawDocEditor();
+    const box=document.getElementById('issueChecklist'); if(box) box.scrollIntoView({block:'nearest'});
+    return false;
+  }
+  editorIssues=[];
   const t=compute(editDoc), cl=clientById(editDoc.clientId)||{};
   const summary=tr('ออก{type}ให้ {client} ยอด {amount}?').replace('{type}',typeName(editDoc.type))
     .replace('{client}',cl.name||'—').replace('{amount}',curSymOf(t.currency)+money(t.netPayable));
-  if(!await askConfirm(summary,{detail:tr('ออกแล้วแก้ไขหรือลบไม่ได้ ยกเลิกได้โดยระบุเหตุผลเท่านั้น'),confirmLabel:tr('ออกเอกสาร')}) || !editDoc) return false;
+  const b=DB.business;
+  // An invoice without PromptPay or a bank account gives the client no way to pay; warn, never block.
+  const noPayment=editDoc.type==='invoice' && !(t.currency==='THB' && promptpayPayload(b.promptpayId,null)) && !String(b.bankAccount||'').trim();
+  const detail=tr('ออกแล้วแก้ไขหรือลบไม่ได้ ยกเลิกได้โดยระบุเหตุผลเท่านั้น')+(noPayment?'\n\n'+tr('ใบแจ้งหนี้นี้ยังไม่มีช่องทางรับเงิน (PromptPay หรือบัญชีธนาคาร) — เพิ่มได้ที่ ตั้งค่า → ธุรกิจของฉัน'):'');
+  if(!await askConfirm(summary,{detail,confirmLabel:tr('ออกเอกสาร')}) || !editDoc) return false;
   editDoc.issueConfirmed=true;
   await saveDoc();
   if(editDoc){ editDoc.issueConfirmed=false; return false; }   // save failed — the editor stays open as a draft
@@ -5859,7 +6009,10 @@ function openVoidDialog(id){
 }
 async function submitVoidDialog(id){return voidDocument(id,document.getElementById('voidReason').value);}
 function openPaymentDialog(id){
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body"><div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
+  const inv=DB.documents.find(x=>x.id===id), t=inv&&compute(inv);
+  // Show the amount being confirmed so the owner can compare it with the actual transfer.
+  const amountLine=t&&reportAmountsValid(t)?`<p>${tr('ยอดที่ควรได้รับ {net}').replace('{net}',fmtMoneyC(t.netPayable,t.currency))}${t.whtAmount?` · ${tr('หลังหัก ณ ที่จ่าย {wht}').replace('{wht}',fmtMoneyC(t.whtAmount,t.currency))}`:''}</p>`:'';
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
 }
 async function submitPaymentDialog(id){return setStatus(id,'paid',{paidDate:document.getElementById('paymentDate').value,fullPaymentConfirmed:document.getElementById('paymentFull').checked});}
 async function archiveDocument(id,archived){
@@ -6699,6 +6852,7 @@ async function createReceipt(id){
     fullPaymentConfirmed:true,docLang:docLangOf(inv)==='en'?'bilingual':docLangOf(inv),fxRate:original.fxRate||null,
     incomeCategory:original.incomeCategory||'',deletedAt:null,notes:original.notes,createdAt:new Date().toISOString(),
     whtCertReceived:inv.whtCertReceived===true,whtCertNo:inv.whtCertNo||'',whtCertDate:inv.whtCertDate||''};
+  if(!await confirmNonVatInline() || issuanceBusy) return;
   const error=issuanceError(rec,true,inv.issuedSnapshot); if(error){toast(error,'err');return;}
   if(!await askConfirm(tr('ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?'),{confirmLabel:tr('ออกใบเสร็จรับเงิน')}) || issuanceBusy) return;
   issuanceBusy=true;
@@ -6991,10 +7145,12 @@ function validateThaiTaxId(id){
   for(let i=0;i<12;i++) sum+=parseInt(id[i])*(13-i);
   return (11-sum%11)%10===parseInt(id[12]);
 }
-function taxIdFeedback(val){
+function taxIdFeedback(val,finished){
   const el=document.getElementById('taxIdFeedback');
   if(!el) return;
-  const r=validateThaiTaxId(val);
+  const s=String(val||'').trim();
+  // Partial digits stay quiet while typing; letters, or a short number on leaving the field, are flagged.
+  const r=!s ? null : s.length===13 ? validateThaiTaxId(s) : (/^\d{1,12}$/.test(s) && !finished ? null : false);
   if(r===null){el.textContent='';el.className='';return;}
   el.textContent=r?'✓ '+tr('เลขประจำตัวผู้เสียภาษีถูกต้อง'):'✗ '+tr('เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง');
   el.className=r?'taxid-valid':'taxid-invalid';

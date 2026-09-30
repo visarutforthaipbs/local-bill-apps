@@ -3,6 +3,21 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.10] - 2026-09-30
+
+Private macOS release (public-release candidate): 2.0.9 plus pre-publish audit fixes. The Google Drive sync v3 pilot is not included. See `PREPUBLISH-FIXES-VERIFICATION.md` and `INSTALL-2.0.10.md`.
+
+### Fixed
+- New users are no longer stopped at the first receipt: setup asks for VAT status, and issuing a receipt asks for a missing non-VAT answer in place, saves it, then continues. A VAT-registered business is directed to Settings and never changed automatically.
+- Issuing shows one checklist of everything still missing, each with a way to fix it, instead of one message at a time.
+- Unit prices keep two decimals, so quantity × printed price always equals the printed line total. Older drafts with more decimals can be rounded with one click before issuing; already issued documents are unchanged.
+- The dashboard withholding card shows tax still waiting for 50 ทวิ certificates after payment, plus the amount unpaid invoices will have withheld.
+- Tax-ID feedback appears in setup and flags letters or short numbers when leaving the field.
+- Issuing an invoice with no PromptPay or bank account shows a warning (it does not block).
+- The payment dialog shows the amount due after withholding. The in-app plan card describes Local as free. Setup no longer says the seller color changes the app theme. The English WHT list reads “Rate 3%”.
+- Keep seller color presets round with accessible square targets; style the custom picker and HEX field consistently. Preview follows the chosen document color.
+- Preserve chosen dark green when reopening, and reject invalid HEX input before saving settings. App colors and issued document snapshots remain unchanged.
+
 ## [2.0.9] - 2026-09-29
 
 Private macOS release: audit fixes, approved fintech UI, and corrected historical receipts.
