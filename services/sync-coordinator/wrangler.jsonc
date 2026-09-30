@@ -7,7 +7,7 @@
   "workers_dev": false,
   "preview_urls": false,
   "observability": {"enabled": true, "head_sampling_rate": 0.1},
-  "vars": {"GOOGLE_CLIENT_ID": "", "ALLOWED_SUBJECTS": "", "LOG_REJECTED_SUBJECT": ""},
+  "vars": {"GOOGLE_CLIENT_ID": "", "ALLOWED_SUBJECTS": "", "LOG_REJECTED_SUBJECT": "", "LICENSE_PUBLIC_KEY": "", "MAX_ACCOUNTS_PER_LICENSE": "3"},
   "durable_objects": {"bindings": [{"name": "WORKSPACES", "class_name": "Workspace"}]},
   "migrations": [{"tag": "v1", "new_sqlite_classes": ["Workspace"]}]
 }

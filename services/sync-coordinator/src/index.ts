@@ -29,6 +29,7 @@ export class Workspace extends DurableObject<Env> {
       else if(action==='initialize') data=this.initialize(input);
       else if(action==='reserve') data=this.reserve(input);
       else if(action==='commit') data=this.commit(input);
+      else if(action==='claimLicense') data=this.claimLicense(input);
       else throw new ProtocolError('NOT_FOUND',404);
       return {status:200,data};
     } catch(error) {
@@ -135,6 +136,19 @@ export class Workspace extends DurableObject<Env> {
     sql.exec('INSERT INTO operations(id,request,result) VALUES(?,?,?)',input.operation,canonical(input),JSON.stringify(result));
     return result;
   }
+  // Stored in the object named 'license:<hash>': which Google accounts have used one Pro key.
+  claimLicense(input: unknown) {
+    const v = input as {subject:string; max:number};
+    need(v && identifier(v.subject) && Number.isSafeInteger(v.max) && v.max>=1 && v.max<=20, 'INVALID_LICENSE_CLAIM');
+    this.ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS license_subjects (subject TEXT PRIMARY KEY, first_seen TEXT NOT NULL)');
+    return this.ctx.storage.transactionSync(() => {
+      if (this.ctx.storage.sql.exec('SELECT subject FROM license_subjects WHERE subject=?', v.subject).toArray().length) return {ok:true};
+      const used = this.ctx.storage.sql.exec<{n:number}>('SELECT COUNT(*) AS n FROM license_subjects').one().n;
+      need(used < v.max, 'LICENSE_ACCOUNT_LIMIT', 403);
+      this.ctx.storage.sql.exec('INSERT INTO license_subjects(subject,first_seen) VALUES (?,?)', v.subject, new Date().toISOString());
+      return {ok:true};
+    });
+  }
   pull(after: number) {
     need(Number.isSafeInteger(after) && after>=0,'INVALID_CURSOR'); this.ready();
     need(after<=this.status().sequence,'CURSOR_AHEAD',409);
@@ -143,6 +157,24 @@ export class Workspace extends DurableObject<Env> {
   }
 }
 
+// BillNgai Pro keys are `base64(payload).base64(signature)`, Ed25519 over the canonical
+// payload — the same offline check the app does. The key itself is never stored; only its hash.
+const b64=(s:string)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function verifiedLicense(key: string, env: Env): Promise<string|null> {
+  if (!env.LICENSE_PUBLIC_KEY || typeof key !== 'string' || key.length < 10 || key.length > 4096) return null;
+  try {
+    const [p, s] = key.trim().split('.'); if (!p || !s) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64(p)));
+    if (payload?.license !== 'billngai-pro' || !['pro','pro-lifetime'].includes(payload.plan || 'pro')) return null;
+    const der = b64(String(env.LICENSE_PUBLIC_KEY).replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, ''));
+    const publicKey = await crypto.subtle.importKey('spki', der, {name:'Ed25519'}, false, ['verify']);
+    if (!await crypto.subtle.verify({name:'Ed25519'}, publicKey, b64(s), new TextEncoder().encode(canonical(payload)))) return null;
+    const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);   // Thailand date, as in the app
+    if (payload.validUntil && payload.validUntil < today) return null;
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key.trim()));
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch { return null; }
+}
 async function limitedJSON(request: Request): Promise<unknown> {
   need(request.headers.get('content-type')?.split(';')[0]==='application/json','CONTENT_TYPE',415);
   need(request.body,'EMPTY_BODY');
@@ -155,8 +187,8 @@ async function limitedJSON(request: Request): Promise<unknown> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
-      // Deny by default until a separate test account and OAuth audience are configured.
-      need(env.GOOGLE_CLIENT_ID && env.ALLOWED_SUBJECTS,'SERVICE_NOT_CONFIGURED',503);
+      // Deny by default: an OAuth audience plus either a Pro licence key or an explicit allow-list.
+      need(env.GOOGLE_CLIENT_ID && (env.ALLOWED_SUBJECTS || env.LICENSE_PUBLIC_KEY),'SERVICE_NOT_CONFIGURED',503);
       const auth=request.headers.get('authorization')||'';
       need(auth.startsWith('Bearer ') && auth.length<8192,'UNAUTHORIZED',401);
       let subject:string;
@@ -164,10 +196,16 @@ export default {
         const {payload}=await jwtVerify(auth.slice(7),googleKeys,{issuer:['https://accounts.google.com','accounts.google.com'],audience:env.GOOGLE_CLIENT_ID,algorithms:['RS256'],requiredClaims:['sub','exp','iat']});
         need(identifier(payload.sub),'UNAUTHORIZED',401);subject=payload.sub;
       }catch{throw new ProtocolError('UNAUTHORIZED',401);}
-      if(!String(env.ALLOWED_SUBJECTS).split(',').map(s=>s.trim()).includes(subject)){
-        // Staging only: lets the operator learn a new test account's subject from `wrangler tail`.
-        if(env.LOG_REJECTED_SUBJECT==='1') console.log(JSON.stringify({rejectedSubject:subject}));
-        throw new ProtocolError('ACCOUNT_NOT_ENABLED',403);
+      if(!String(env.ALLOWED_SUBJECTS||'').split(',').map(s=>s.trim()).filter(Boolean).includes(subject)){
+        // Any valid Pro key works, for a limited number of Google accounts per key.
+        const license=await verifiedLicense(request.headers.get('X-BillNgai-License')||'',env);
+        if(!license){
+          // Staging only: lets the operator learn a new test account's subject from `wrangler tail`.
+          if(env.LOG_REJECTED_SUBJECT==='1') console.log(JSON.stringify({rejectedSubject:subject}));
+          throw new ProtocolError(env.LICENSE_PUBLIC_KEY?'PRO_REQUIRED':'ACCOUNT_NOT_ENABLED',403);
+        }
+        const claim:{status:number;data:unknown}=await env.WORKSPACES.getByName('license:'+license).request('claimLicense',{subject,max:Number(env.MAX_ACCOUNTS_PER_LICENSE||3)});
+        if(claim.status!==200) throw new ProtocolError((claim.data as {error?:string}).error||'LICENSE_ACCOUNT_LIMIT',claim.status);
       }
       const expected=request.headers.get('X-BillNgai-Account');
       need(!expected||expected===subject,'SYNC_ACCOUNT_MISMATCH',403);

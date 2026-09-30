@@ -1277,12 +1277,41 @@ async function assignSyncNumber(d,key){
   const parts={series:counterKey(d.type,d.issueDate),prefix:match?fmt.slice(0,match.index):fmt+'-',suffix:match?fmt.slice(match.index+match[0].length):'',width:match?match[1].length:3};
   d.number=await window.billingAPI.syncV3Reserve(key||'document:'+d.id,parts);return true;
 }
+// Plain-language reasons for sync errors raised by the main process or the service.
+const SYNC_ERROR_TEXT={
+  PRO_REQUIRED:'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้',
+  LICENSE_ACCOUNT_LIMIT:'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ',
+  SYNC_DRIVE_PERMISSION_REQUIRED:'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้',
+  SYNC_BOOTSTRAP_TOO_LARGE:'ข้อมูลมากกว่า 512 รายการ รุ่นนี้ยังเชื่อมต่อได้ไม่ครบ ติดต่อฝ่ายช่วยเหลือ',
+  SYNC_USE_LOCAL_STORAGE:'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive',
+  SYNC_KEYCHAIN_REQUIRED:'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้',
+  SYNC_FINALIZATION_PENDING:'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน',
+  ACCOUNT_NOT_ENABLED:'บัญชีนี้ยังใช้ซิงก์ไม่ได้',
+  SYNC_ACCOUNT_MISMATCH:'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่',
+};
+function syncErrorText(e){
+  const msg=String(e?.message||e||'');const code=Object.keys(SYNC_ERROR_TEXT).find(k=>msg.includes(k));
+  return code?tr(SYNC_ERROR_TEXT[code]):tr('เชื่อมต่อไม่สำเร็จ:')+' '+msg.replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
+}
 async function connectSyncV3(){
   if(!isPro()){openUpgradeModal();return;}
-  if(!await askConfirm(tr('เชื่อมต่อพื้นที่ทดสอบ Google Drive?'),{detail:tr('รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น'),confirmLabel:tr('เชื่อมต่อ Google Drive')}))return;
+  if(!await askConfirm(tr('เชื่อมต่อ Google Drive?'),{detail:tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ ทุกเครื่องที่ใช้บัญชีเดียวกันจะเห็นข้อมูลชุดเดียวกัน เครื่องนี้จะสำรองข้อมูลไว้ก่อนเชื่อมต่อ'),confirmLabel:tr('เชื่อมต่อ Google Drive')}))return;
   // Upload the same normalized records this app will keep saving, not an older on-disk shape.
   if(!await persist(true))return;
-  try{syncV3Info=await window.billingAPI.syncV3Connect();await runSyncV3(false);}catch(e){toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+e.message,'err');}
+  try{syncV3Info=await window.billingAPI.syncV3Connect();}
+  catch(e){
+    if(!String(e.message).includes('SYNC_JOIN_REQUIRES_EMPTY_PROFILE')){toast(syncErrorText(e),'err');return;}
+    // This Google Drive already holds a BillNgai workspace and this Mac has its own data.
+    if(!await askConfirm(tr('Google Drive นี้มีข้อมูล BillNgai อยู่แล้ว ใช้ข้อมูลจาก Drive แทนข้อมูลในเครื่องนี้ไหม?'),{detail:tr('ข้อมูลในเครื่องนี้จะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจาก Google Drive ไม่มีการรวมข้อมูลสองชุดเข้าด้วยกัน'),confirmLabel:tr('ใช้ข้อมูลจาก Drive'),danger:true}))return;
+    try{syncV3Info=await window.billingAPI.syncV3Connect({replaceLocal:true});}catch(e2){toast(syncErrorText(e2),'err');return;}
+  }
+  await runSyncV3(false);
+}
+async function disconnectSyncV3(){
+  if(!await askConfirm(tr('หยุดซิงก์เครื่องนี้กับ Google Drive?'),{detail:tr('ข้อมูลในเครื่องนี้ยังอยู่ครบ แต่จะไม่ซิงก์กับเครื่องอื่นอีก เครื่องนี้จะสำรองข้อมูลไว้ก่อน ข้อมูลใน Google Drive ไม่ถูกลบ'),confirmLabel:tr('หยุดซิงก์')}))return;
+  if(!await persist(true))return;
+  try{const result=await window.billingAPI.syncV3Disconnect();DB=migrate(JSON.parse(result.text));syncV3Info=result.status;render();toast(tr('หยุดซิงก์แล้ว'),'ok');}
+  catch(e){toast(syncErrorText(e),'err');}
 }
 let syncV3Waiting=false,syncV3RetryTimer=null;
 async function runSyncV3(silent){
@@ -5083,7 +5112,11 @@ function renderSettings(c,ta){
     ${saveBar}`;
 
   const dataCards = ()=> IS_ELECTRON ? `
-    ${syncV3Info.configured?`<div class="card-block"><h4>Google Drive · Pro</h4><p>${tr('ร่างงานออฟไลน์ได้ เชื่อมต่อก่อนออกเอกสาร')}</p><p class="hint">${tr('รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น')} · ${tr('ไฟล์หลักฐานแนบต้องส่งออกแยก')}</p>${syncV3Info.connected?`<button class="btn" onclick="runSyncV3(false)">${tr('ซิงก์ตอนนี้')}</button><button class="btn btn-ghost" onclick="openSyncV3Conflicts()">${tr('ตรวจข้อมูลที่แก้ไขชนกัน')}</button>`:`<button class="btn btn-primary" onclick="connectSyncV3()">${tr('เชื่อมต่อ Google Drive')}</button>`}</div>`:''}
+    ${syncV3Info.configured?`<div class="card-block"><h4>${tr('ซิงก์ Google Drive')} · Pro</h4>
+      <p>${tr('ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ')}</p>
+      <p class="hint">${tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก')}</p>
+      ${syncV3Info.connected?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="runSyncV3(false)">${tr('ซิงก์ตอนนี้')}</button>${syncV3Info.conflicts.length?`<button class="btn" onclick="openSyncV3Conflicts()">${tr('ตรวจข้อมูลที่แก้ไขชนกัน')} (${syncV3Info.conflicts.length})</button>`:''}<button class="btn btn-ghost" onclick="disconnectSyncV3()">${tr('หยุดซิงก์เครื่องนี้')}</button></div>`
+        :`<button class="btn btn-primary" onclick="connectSyncV3()">${tr('เชื่อมต่อ Google Drive')}</button>`}</div>`:''}
 
 
     <div class="card-block">
@@ -5886,6 +5919,28 @@ Object.assign(I18N_EN,{
   'ยอดที่ควรได้รับ {net}':'Amount due {net}',
   'ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Free to use for your documents; your data stays on your computer',
   'หลังหัก ณ ที่จ่าย {wht}':'after {wht} withholding'
+});
+Object.assign(I18N_EN,{
+  'เชื่อมต่อ Google Drive?':'Connect Google Drive?',
+  'ข้อมูลเอกสารเก็บใน Google Drive ของคุณ ทุกเครื่องที่ใช้บัญชีเดียวกันจะเห็นข้อมูลชุดเดียวกัน เครื่องนี้จะสำรองข้อมูลไว้ก่อนเชื่อมต่อ':'Your documents are stored in your own Google Drive, and every Mac using the same account sees the same data. This Mac makes a backup before connecting.',
+  'Google Drive นี้มีข้อมูล BillNgai อยู่แล้ว ใช้ข้อมูลจาก Drive แทนข้อมูลในเครื่องนี้ไหม?':'This Google Drive already has BillNgai data. Use the Drive data instead of the data on this Mac?',
+  'ข้อมูลในเครื่องนี้จะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจาก Google Drive ไม่มีการรวมข้อมูลสองชุดเข้าด้วยกัน':'This Mac\'s data is backed up first, then replaced by the Google Drive data. The two sets are never merged.',
+  'ใช้ข้อมูลจาก Drive':'Use Drive data',
+  'หยุดซิงก์เครื่องนี้กับ Google Drive?':'Stop syncing this Mac with Google Drive?',
+  'ข้อมูลในเครื่องนี้ยังอยู่ครบ แต่จะไม่ซิงก์กับเครื่องอื่นอีก เครื่องนี้จะสำรองข้อมูลไว้ก่อน ข้อมูลใน Google Drive ไม่ถูกลบ':'All data stays on this Mac but no longer syncs with other Macs. This Mac makes a backup first; nothing in Google Drive is deleted.',
+  'หยุดซิงก์':'Stop syncing','หยุดซิงก์แล้ว':'Sync stopped on this Mac','หยุดซิงก์เครื่องนี้':'Stop syncing this Mac',
+  'ซิงก์ Google Drive':'Google Drive sync',
+  'ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ':'Use the same data on several Macs. Drafts work offline; issuing a document needs internet so numbers never repeat.',
+  'ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก':'Documents are stored in your own Google Drive · attached evidence files are exported separately · if two Macs change the same record, both versions are kept for you to choose',
+  'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้':'Google Drive sync needs an active BillNgai Pro licence',
+  'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ':'This Pro key is already used with the maximum number of Google accounts. Please contact support.',
+  'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้':'Google Drive access was not granted — try again and tick the Google Drive box on the sign-in page',
+  'ข้อมูลมากกว่า 512 รายการ รุ่นนี้ยังเชื่อมต่อได้ไม่ครบ ติดต่อฝ่ายช่วยเหลือ':'More than 512 records: this version cannot connect them all yet. Please contact support.',
+  'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive':'Move your data back to in-app storage first, then connect Google Drive',
+  'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้':'This Mac cannot store the sign-in securely yet',
+  'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
+  'บัญชีนี้ยังใช้ซิงก์ไม่ได้':'This account cannot use sync yet',
+  'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account'
 });
 // Everything that stops issuing, listed at once with a way to fix each item.
 // issuanceError() stays the authoritative gate; this list only explains it.

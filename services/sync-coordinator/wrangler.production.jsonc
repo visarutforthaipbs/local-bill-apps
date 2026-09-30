@@ -1,7 +1,7 @@
-// Private staging for the two-Mac sync test. Access is still deny-by-default (ALLOWED_SUBJECTS).
+// Production sync coordinator for BillNgai Pro. Access: valid Pro licence (max accounts per key) or ALLOWED_SUBJECTS.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "billngai-sync-coordinator-staging",
+  "name": "billngai-sync-coordinator",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-29",
   "compatibility_flags": ["nodejs_compat"],

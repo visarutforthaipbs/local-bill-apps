@@ -1131,6 +1131,8 @@ async function oauthConnect() {
     ...(GOOGLE_CLIENT_SECRET ? { client_secret: GOOGLE_CLIENT_SECRET } : {}),
     redirect_uri: redirectUri, code_verifier: verifier
   });
+  // An unticked Drive box still returns a token; refuse it rather than failing later with 403s.
+  if (!String(j.scope || '').split(' ').includes(GDRIVE_SCOPE)) throw new Error('SYNC_DRIVE_PERMISSION_REQUIRED');
   let email = '';
   try { email = JSON.parse(Buffer.from(j.id_token.split('.')[1], 'base64').toString('utf8')).email || ''; } catch (e) {}
   await saveTokens({ access_token: j.access_token, refresh_token: j.refresh_token, id_token: j.id_token, expiry: Date.now() + (j.expires_in || 3600) * 1000, email });
@@ -1249,7 +1251,27 @@ async function syncStatusInfo() {
 
 // V3 is a private development pilot until native/two-device acceptance is complete.
 // Legacy sync remains disabled, including every legacy mutation IPC.
-function nativeSyncConfigured() { return !app.isPackaged && !!process.env.BILLNGAI_SYNC_V3_URL; }
+// Installed builds use the production coordinator. Runs from source must name a test service,
+// so development can never write to production workspaces by accident.
+const SYNC_V3_SERVICE = 'https://billngai-sync-coordinator.visarutforthaipbs.workers.dev';
+function nativeSyncServiceUrl() { return app.isPackaged ? SYNC_V3_SERVICE : (process.env.BILLNGAI_SYNC_V3_URL || ''); }
+function nativeSyncConfigured() { return !!nativeSyncServiceUrl(); }
+// Development only: simulate network loss from a JSON rules file, e.g.
+// {"/v3/commit":{"mode":"after","count":1}} — "before" drops the request, "after" loses the response.
+function syncFaultFetch() {
+  const file = !app.isPackaged && process.env.BILLNGAI_SYNC_V3_FAULTS_FILE;
+  if (!file) return fetch;
+  return async (url, options) => {
+    let rules = {};
+    try { rules = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fetch(url, options); }
+    const key = Object.keys(rules).find(k => String(url).includes(k) && rules[k].count > 0);
+    if (!key) return fetch(url, options);
+    const rule = rules[key]; rule.count -= 1; fs.writeFileSync(file, JSON.stringify(rules));
+    if (rule.mode !== 'after') throw new TypeError('fetch failed (simulated network loss)');
+    const response = await fetch(url, options); await response.arrayBuffer().catch(() => {});
+    throw new TypeError('fetch failed (simulated lost response)');
+  };
+}
 async function nativeSyncDB() {
   const session = await currentSession(); const db = validateData(session.text);
   if(db.syncV3){
@@ -1263,7 +1285,8 @@ async function nativeSyncDB() {
 async function nativeSyncTransport(root, account, counterFloors) {
   if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
   const { createDriveTransport } = require('./lib/sync-v3-drive.cjs');
-  return createDriveTransport({ origin: process.env.BILLNGAI_SYNC_V3_URL, root, account, counterFloors,
+  return createDriveTransport({ origin: nativeSyncServiceUrl(), root, account, counterFloors,
+    license: (await readConfig()).licenseKey || '', fetchImpl: syncFaultFetch(),
     accessToken, identityToken: async () => {
       let tokens = await loadTokens();
       if (!tokens || !tokens.id_token) throw new Error('SYNC_RECONNECT_REQUIRED');
@@ -1301,7 +1324,19 @@ async function nativeSyncStatus() {
     pending: Object.keys(s?.intents || {}).length, account: s?.account || '' };
 }
 handleIPC('syncV3:status', () => nativeSyncStatus());
-handleIPC('syncV3:connect', () => withDataLock(async () => {
+// Stop syncing on this Mac. Local data stays; the binding and Google sign-in are removed after a backup.
+handleIPC('syncV3:disconnect', () => withDataLock(async () => {
+  const db = await nativeSyncDB();
+  if (!db.syncV3) return { text: JSON.stringify(db), status: await nativeSyncStatus() };
+  if (db.syncV3.pending || Object.keys(db.syncV3.intents || {}).length) throw new Error('SYNC_FINALIZATION_PENDING');
+  await snapshotText(JSON.stringify(db, null, 2), 'before-sync-disconnect');
+  delete db.syncV3;
+  await saveData(JSON.stringify(db, null, 2));
+  await clearTokens();
+  return { text: JSON.stringify(db), status: await nativeSyncStatus() };
+}));
+handleIPC('syncV3:connect', (_event, options) => withDataLock(async () => {
+  const replaceLocal = options?.replaceLocal === true;
   if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
   if (!licenseStatusOf(await readConfig()).valid) throw new Error('PRO_REQUIRED');
   if (!safeStorage.isEncryptionAvailable()) throw new Error('SYNC_KEYCHAIN_REQUIRED');
@@ -1317,8 +1352,15 @@ handleIPC('syncV3:connect', () => withDataLock(async () => {
   let transport = await nativeSyncTransport('pendingRoot');
   const remote = await transport.status();
   if (!remote.account || remote.protocol !== 3) throw new Error('SYNC_INVALID_WORKSPACE');
-  // Existing data must not be silently merged into another established workspace.
-  if (remote.root && ((db.documents || []).length || (db.clients || []).length || (db.reviewEvents || []).length)) throw new Error('SYNC_JOIN_REQUIRES_EMPTY_PROFILE');
+  // Existing data is never silently merged into an established workspace. The owner may
+  // explicitly replace this Mac's data with the workspace copy; the local copy is backed up first.
+  const hasLocalData = (db.documents || []).length || (db.clients || []).length || (db.reviewEvents || []).length || (db.recurring || []).length;
+  if (remote.root && hasLocalData) {
+    if (!replaceLocal) throw new Error('SYNC_JOIN_REQUIRES_EMPTY_PROFILE');
+    await snapshotText(JSON.stringify(db, null, 2), 'before-sync-replace');
+    Object.assign(db, { clients: [], documents: [], recurring: [], reviewEvents: [], counters: {} });
+    await recoverData(JSON.stringify(db, null, 2));
+  }
   let root = remote.root;
   if (!root) {
     const response = await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id', {
