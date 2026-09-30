@@ -1,8 +1,8 @@
 # บิลง่าย / BillNgai — agent hand-off
 
-**Current source (2026-09-30):** private signed/notarized 2.0.11 installed locally (branch `release/2.0.10`).
-Read `INSTALL-2.0.11.md` (and `INSTALL-2.0.10.md`) for actual build, notarization and installation status, and
-`PREPUBLISH-FIXES-VERIFICATION.md` for what changed since 2.0.9. The sync v3 pilot lives only in `BillNgai-development/`.
+**Current source (2026-09-30):** signed/notarized 2.0.12 (Google Drive sync for Pro) installed locally (branch `release/2.0.10`).
+Read `INSTALL-2.0.12.md`, `SYNC-V3-PILOT.md` and `INSTALL-2.0.11.md` for actual build, notarization and installation status, and
+`PREPUBLISH-FIXES-VERIFICATION.md` for what changed since 2.0.9. Sync v3 ships in 2.0.12; production coordinator `billngai-sync-coordinator` (Cloudflare).
 Start with `FINTECH-UI-VERIFICATION.md`, `AUDIT-FIXES-VERIFICATION.md`, `BRAND.md`, and `INSTALL-2.0.8.md`.
 The owner approved the card-based fintech UI with the original orange accent and warm cream light background; the seller’s document brand is independent.
 Source edits do not update the installed app or authorize release/signing.
@@ -10,7 +10,7 @@ Older release and handoff files remain historical evidence.
 
 Local-first quotation / invoice / receipt desktop app with Thai tax handling
 (ordinary documents, หัก ณ ที่จ่าย / 50 ทวิ tracking, accounting summaries, PromptPay QR).
-New tax invoices, payable/refund tax estimates, e-Tax XML and cloud sync remain paused.
+New tax invoices, payable/refund tax estimates and e-Tax XML remain paused. The old (v1) cloud sync is retired; Google Drive sync v3 is live for Pro in 2.0.12.
 Historical records and compatibility code remain; accounting summaries are not tax returns.
 Authorized zero-VAT historical corrections can now issue ordinary receipts using the
 reviewed correction workflow; see `RECEIPT-REISSUE-VERIFICATION.md`. Corrections

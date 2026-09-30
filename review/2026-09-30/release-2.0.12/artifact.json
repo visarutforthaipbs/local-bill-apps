@@ -1,0 +1,17 @@
+{
+  "version": "2.0.12",
+  "commit": "1dcbf0ad6fa635671c4253fd7870ba785bbd6352",
+  "dmg": "dist/2.0.12/BillNgai-2.0.12-universal.dmg",
+  "bytes": 223534776,
+  "sha256": "6d43fdfbbfbf4fd8442577f57bc70acc5ee1229b29330696de5793b965aedc60",
+  "appAsarSha256": "28cd779f5d5867523183a80ad9b1697ddb845ac1bf6356b06cfeeebb01093b07",
+  "notarySubmission": "8a1ce18c-e795-4a38-b953-ec42b918909f",
+  "notaryStatus": "Accepted",
+  "team": "79QFYKTJMN",
+  "architectures": [
+    "x86_64",
+    "arm64"
+  ],
+  "testedHardware": "arm64 only",
+  "syncService": "https://billngai-sync-coordinator.visarutforthaipbs.workers.dev"
+}

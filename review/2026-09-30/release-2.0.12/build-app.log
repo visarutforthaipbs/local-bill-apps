@@ -1,0 +1,25 @@
+  • electron-builder  version=26.15.3 os=27.2.0
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=43.7.3 arch=x64 buildFromSource=false workspaceRoot=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10 projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=43.7.3 appOutDir=dist/2.0.12-staging/mac-universal-x64-temp
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10/dist/2.0.12-staging/mac-universal-x64-temp
+  • searching for node modules  pm=npm searchDir=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10
+  • searching for node modules  pm=traversal searchDir=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules returned while searching directories  searchDirectories=[""]
+  • executing @electron/rebuild  electronVersion=43.7.3 arch=arm64 buildFromSource=false workspaceRoot=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10 projectDir=./ appDir=./
+  • installing native dependencies  arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=43.7.3 appOutDir=dist/2.0.12-staging/mac-universal-arm64-temp
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10/dist/2.0.12-staging/mac-universal-arm64-temp
+  • searching for node modules  pm=npm searchDir=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10
+  • searching for node modules  pm=traversal searchDir=/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules returned while searching directories  searchDirectories=[""]
+  • packaging       platform=darwin arch=universal electron=43.7.3 appOutDir=dist/2.0.12-staging/mac-universal
+  • signing         file=dist/2.0.12-staging/mac-universal/BillNgai.app platform=darwin type=distribution identityName=Developer ID Application: Visarut Sankham (79QFYKTJMN) identityHash=B9024AC92CF806F9EC9FDD8F9B4B0B88784505C1 provisioningProfile=none
+  • skipped macOS notarization  reason=`notarize` options were set explicitly `false`

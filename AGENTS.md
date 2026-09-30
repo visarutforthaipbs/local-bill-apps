@@ -29,7 +29,7 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 - `../handoff.md` — latest development checkpoint and sync v3 continuation.
 
-- `INSTALL-2.0.11.md` — latest private direct-macOS release (clean PDF output); `INSTALL-2.0.10.md` — previous private direct-macOS release, artifact verification, cleanup and rollback.
+- `INSTALL-2.0.12.md` — latest release (Google Drive sync for Pro); `INSTALL-2.0.11.md` — clean PDF output; `INSTALL-2.0.10.md` — previous private direct-macOS release, artifact verification, cleanup and rollback.
 
 - `RELEASE-2.0.4.md` and `SESSION-HANDOFF-2.0.4.md` — current authorized release
   continuation and stabilization/recovery evidence. Check actual publication state.

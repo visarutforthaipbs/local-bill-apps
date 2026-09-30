@@ -1,0 +1,11 @@
+const {_electron}=require('playwright'),fs=require('fs/promises'),os=require('os'),path=require('path');
+(async()=>{const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-packaged-sync-')),profile=path.join(root,'profile');await fs.mkdir(profile);
+ const cfg=JSON.parse(await fs.readFile(process.argv[3],'utf8'));await fs.writeFile(path.join(profile,'config.json'),JSON.stringify({externalPath:null,licenseKey:cfg.licenseKey}));
+ await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify({version:2,business:{businessName:'Synthetic',vatStatus:'non_registered'},clients:[],documents:[],reviewEvents:[],meta:{setupDone:true},counters:{},recurring:[]}));
+ const app=await _electron.launch({executablePath:process.argv[2],args:['--user-data-dir='+profile],env:{...process.env,BILLNGAI_SYNC_V3_URL:'https://should-be-ignored.invalid'}});
+ try{const page=await app.firstWindow();await page.waitForFunction(()=>typeof DB!=='undefined'&&DB&&!loadFailed);
+  const r=await page.evaluate(async()=>{await refreshSyncInfo();PRO=await window.billingAPI.licenseStatus();settingsTab='data';setView('settings');await new Promise(r=>setTimeout(r,300));
+   return {packagedVersion:(await window.billingAPI.licenseStatus())&&document.title,configured:syncV3Info.configured,connected:syncV3Info.connected,pro:isPro(),card:!!document.querySelector('#content')?.innerText.includes('ซิงก์ Google Drive'),connectButton:[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='เชื่อมต่อ Google Drive')};});
+  const url=await app.evaluate(({app})=>app.isPackaged);
+  console.log(JSON.stringify({...r,isPackaged:url}));
+ }finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});await fs.rm(root,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exit(1);});

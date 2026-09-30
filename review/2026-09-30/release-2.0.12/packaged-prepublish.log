@@ -1,0 +1,2 @@
+PASS: first-run setup with tax-ID feedback, full issue checklist, 2-decimal price, no-payment warning, payment amount, inline VAT answer, receipt, pending WHT card, EN checklist, reload.
+SYNTHETIC_ARTIFACTS=/var/folders/tb/619_zw050jd0m07bpqrll38r0000gn/T/billngai-prepublish-Ng13vB
