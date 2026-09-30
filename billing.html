@@ -1189,7 +1189,7 @@ async function refreshSyncInfo(){
 }
 async function syncNow(silent){
   if(syncV3Info.connected)return runSyncV3(silent);
-  if(CLOUD_SYNC_PAUSED){ if(!silent) toast(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'),'err'); return; }
+  if(CLOUD_SYNC_PAUSED){ if(!silent) toast(tr('ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง'),'err'); return; }
   if(!isSyncEnabled() || syncBusy) return;
   syncBusy = true; syncErr = ''; updateFileStatus();
   try{
@@ -1225,7 +1225,7 @@ async function syncNow(silent){
   syncBusy = false; updateFileStatus();
 }
 async function connectDrive(){
-  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'),'err'); return; }
+  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง'),'err'); return; }
   try{
     const plat = /Mac/i.test(navigator.platform||'') ? 'Mac' : 'PC';
     const name = plat+' · '+((DB.business.businessName||'').trim()||DEVICE_ID.slice(0,6));
@@ -1247,7 +1247,7 @@ async function disconnectDrive(){
   }catch(e){ toast(tr('ยกเลิกไม่สำเร็จ'),'err'); }
 }
 async function restoreFromCloudFlow(){
-  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'),'err'); return; }
+  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง'),'err'); return; }
   if(!await askConfirm(tr('กู้คืนพื้นที่ทำงานจาก Google Drive? ข้อมูลปัจจุบันในเครื่องจะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจากคลาวด์'),{confirmLabel:tr('กู้คืน')})) return;
   try{
     const r = await window.billingAPI.syncRestore();
@@ -1390,7 +1390,7 @@ function openConflictsModal(){
   openModal();
 }
 function resolveConflict(i, useRemote){
-  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'),'err'); return; }
+  if(CLOUD_SYNC_PAUSED){ toast(tr('ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง'),'err'); return; }
   const c = syncConflicts[i]; if(!c) return;
   if(c.kind==='record'){
     const arr = arrOfType(c.type);
@@ -1423,11 +1423,11 @@ function openUpgradeModal(){
           ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
         </div>
         <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
-          <h4>${tr('BillNgai Pro — Local AI')}</h4>
-          <div class="desc">${tr('พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์')}</div>
+          <h4>BillNgai Pro</h4>
+          <div class="desc">${tr('ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง')}</div>
           ${li(tr('ทุกอย่างที่มีใน Local'))}
           ${li(tr('AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ'))}
-          ${li(tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง'))}
+          ${li(tr('ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)'))}
           ${li(tr('ประเภทเงินได้ใช้ได้ทุกแพ็กเกจ'))}
           <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน')}</div>
         </div>
@@ -1893,7 +1893,7 @@ function updateFileStatus(){
       syncLine=`<div>${ic('repeat',12)} ${syncBusy?tr('กำลังซิงก์…'):syncV3Waiting?tr('รอปิดหน้าต่างที่เปิดอยู่ แล้วจะซิงก์ต่อ'):syncV3Info.pending?tr('รอยืนยันการออกเอกสาร'):syncErr?tr('ซิงก์ไม่สำเร็จ — ลองอีกครั้ง'):tr('เชื่อมต่อ Google Drive แล้ว')} <button class="btn btn-sm btn-ghost" onclick="runSyncV3(false)">${tr('ซิงก์ตอนนี้')}</button>${syncV3Info.conflicts.length?`<button class="btn btn-sm" onclick="openSyncV3Conflicts()">${tr('ตรวจข้อมูลที่แก้ไขชนกัน')} (${syncV3Info.conflicts.length})</button>`:''}</div>`;
     }else if(isPro() && syncInfo.connected){
       const t = syncInfo.lastSyncAt ? (d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'))(new Date(syncInfo.lastSyncAt)) : null;
-      const stx = CLOUD_SYNC_PAUSED ? tr('ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง') : syncBusy ? tr('กำลังซิงก์…')
+      const stx = CLOUD_SYNC_PAUSED ? tr('ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง') : syncBusy ? tr('กำลังซิงก์…')
         : syncErr ? tr('ซิงก์ไม่สำเร็จ — จะลองใหม่ให้อัตโนมัติ')
         : t ? tr('ซิงก์ล่าสุด {t}').replace('{t}',t) : tr('ยังไม่ได้ซิงก์');
       const cf = syncConflicts.length
@@ -5944,6 +5944,9 @@ Object.assign(I18N_EN,{
   'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
   'บัญชีนี้ยังใช้ซิงก์ไม่ได้':'This account cannot use sync yet',
   'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account',
+  'ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง':'Google Drive sync across Macs, plus on-device AI quotation drafts',
+  'ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)':'Google Drive sync — the same data on several Macs (up to 3 Google accounts per key)',
+  'ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง':'The old sync has been retired — connect Google Drive again in Settings → Data & backup',
   'เชื่อมต่อ Google Drive ไม่ได้ตอนนี้ ข้อมูลและร่างในเครื่องยังอยู่ ลองอีกครั้งเมื่อมีอินเทอร์เน็ต':'Can\'t reach Google Drive right now. Your data and drafts are safe on this Mac — try again when you\'re online.'
 });
 // Everything that stops issuing, listed at once with a way to fix each item.

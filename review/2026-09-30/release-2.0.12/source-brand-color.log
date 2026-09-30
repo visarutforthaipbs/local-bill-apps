@@ -1,0 +1,2 @@
+PASS: all 15 presets save/reload; custom HEX and native input; invalid HEX blocks save; circular 48px targets; fixed app palette; new document color; frozen issued documents unchanged; TH/EN and narrow layout.
+ARTIFACTS=/var/folders/tb/619_zw050jd0m07bpqrll38r0000gn/T/billngai-brand-color-P5KK9s

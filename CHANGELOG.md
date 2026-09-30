@@ -3,9 +3,20 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.0.12] - 2026-09-30
 
-- Add a private, disabled-by-default Google Drive v3 sync pilot with durable conflicts, idempotent commits and coordinated numbering. Not enabled in installed releases. First live two-Mac test on 2026-09-30 against a private staging service; its findings are fixed (no false conflicts from unchanged records, dependent payment records reviewed together, visible waiting state, backups never carry the sync binding). See `SYNC-V3-PILOT.md` and `review/2026-09-30/sync-v3-live/`.
+macOS release: Google Drive sync for BillNgai Pro. Includes all 2.0.10–2.0.11 fixes. See `INSTALL-2.0.12.md`.
+
+### Added
+- Google Drive sync (Pro): the same data on several Macs, stored in your own Google Drive ("BillNgai Workspace v3"). Drafts work offline; issuing a document reserves its number online so numbers never repeat across Macs. A lost connection never duplicates a document or income; a retried issue keeps its reserved number.
+- When two Macs change the same record, both versions are kept for you to choose. Identical changes clear themselves; a payment and its receipt are reviewed together; the conflict card explains when another Mac already recorded a payment.
+- Stop syncing a Mac at any time (local data stays, a backup is made first). A Mac that already has data can join by replacing its data with the Drive copy (backed up first, never merged).
+- Access is checked by the sync service against a valid Pro licence (up to 3 Google accounts per key). Clear messages for missing Drive permission, licence limits and no internet.
+
+### Changed
+- Backups, imports and exports never include the sync connection or Google account ID. Import, restore and storage moves wait until a Mac stops syncing.
+- Leaving Settings without changes no longer creates a new version of the business profile.
+- Privacy policy describes exactly what the sync coordination service stores (no document content, names or amounts).
 
 ## [2.0.11] - 2026-09-30
 

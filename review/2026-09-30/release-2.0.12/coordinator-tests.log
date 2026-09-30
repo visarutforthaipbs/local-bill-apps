@@ -1,0 +1,13 @@
+
+> test
+> vitest run
+
+
+ RUN  v4.1.11 /Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.10/services/sync-coordinator
+
+
+ Test Files  4 passed (4)
+      Tests  23 passed (23)
+   Start at  19:18:48
+   Duration  764ms (transform 383ms, setup 0ms, import 906ms, tests 229ms, environment 0ms)
+

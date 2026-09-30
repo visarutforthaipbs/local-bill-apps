@@ -1,3 +1,7 @@
+# Google Drive sync v3 — released in 2.0.12 (2026-09-30)
+
+Status: shipped to all BillNgai Pro users in 2.0.12. Installed builds use the production coordinator `billngai-sync-coordinator` (Cloudflare, licence-checked, max 3 Google accounts per Pro key); source runs require `BILLNGAI_SYNC_V3_URL`. Live two-Mac evidence: `review/2026-09-30/sync-v3-live/`. The history below describes the pilot phase.
+
 # Google Drive sync v3 — private pilot, 2026-09-29
 
 Status: implemented in source for isolated development testing. **Not enabled in
