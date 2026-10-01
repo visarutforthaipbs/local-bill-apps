@@ -180,7 +180,7 @@ test('restart within 30 minutes does not create another automatic snapshot', asy
 
 test('failed atomic rename keeps original bytes and cleans the unique temp file', async t => {
   const injected = { ...fs, promises: { ...fsp, rename: async (src, dest) => {
-    if (dest.endsWith('/billing.json')) throw new Error('injected rename failure');
+    if (path.basename(dest) === 'billing.json') throw new Error('injected rename failure');
     return fsp.rename(src, dest);
   } } };
   const h = await fixture(t, undefined, injected);

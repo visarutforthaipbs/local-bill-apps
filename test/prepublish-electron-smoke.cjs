@@ -4,6 +4,7 @@
 const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-prepublish-')),profile=path.join(root,'profile');await fs.mkdir(profile);
+ await fs.writeFile(path.join(profile,'config.json'),JSON.stringify({externalPath:null}));
  const exe=process.argv[2],app=await _electron.launch({executablePath:exe||require('electron'),args:[...(exe?[]:[path.resolve(__dirname,'..')]),'--user-data-dir='+profile]});
  try{
   assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));

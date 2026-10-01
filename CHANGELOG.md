@@ -3,6 +3,14 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.12 Windows Beta] - 2026-10-01
+
+- Windows x64 NSIS installer of the 2.0.12 runtime, built and tested on Windows 11.
+- Verified upgrade from 2.0.1 without changing existing profile files; rollback backup retained.
+- Unsigned Beta; live Windows Google Drive login/sync and uninstall data retention remain unverified.
+- Explicit per-user packaging and Windows-compatible storage failure test. Mac release unchanged.
+- See `WINDOWS-2.0.12.md` for test evidence and SHA-256.
+
 ## [2.0.12] - 2026-09-30
 
 macOS release: Google Drive sync for BillNgai Pro. Includes all 2.0.10–2.0.11 fixes. See `INSTALL-2.0.12.md`.

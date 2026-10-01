@@ -1,0 +1,10 @@
+
+Error occurred in handler for 'data:load': Error: DATA_MISSING
+    at loadData (C:\Users\New55\BillNgai-builds\2.0.12\main.js:736:59)
+[8444:1001/123730.202:ERROR:content\browser\gpu\gpu_process_host.cc:1108] GPU process exited unexpectedly: exit_code=34
+Error occurred in handler for 'data:save': Error: DATA_CHANGED_ON_DISK
+    at currentSession (C:\Users\New55\BillNgai-builds\2.0.12\main.js:750:11)
+    at async nativeSyncSave (C:\Users\New55\BillNgai-builds\2.0.12\main.js:1308:19)
+    at async C:\Users\New55\BillNgai-builds\2.0.12\main.js:808:24
+PASS: Electron 43.7.3 boot lock, 3-document preservation, IPC recovery, document save/reload, TH/EN backup history, ordinary receipt issuance/frozen paper/PDF, and failed editor save.
+Isolated fixture/screenshots: C:\Users\New55\AppData\Local\Temp\billngai-electron-smoke-IXNAkF

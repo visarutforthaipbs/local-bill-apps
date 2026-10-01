@@ -1,0 +1,2 @@
+PASS: 8 packaged source files match build source; package version 2.0.12 and entry point verified
+PASS: Google OAuth release configuration is valid.

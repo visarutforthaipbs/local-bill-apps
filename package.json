@@ -16,7 +16,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac",
     "dist:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.notarize=false",
-    "dist:mas": "electron-builder --mac mas"
+    "dist:mas": "electron-builder --mac mas",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "keywords": [
     "billing",
@@ -91,6 +92,24 @@
       "sign": true,
       "format": "UDZO",
       "internetEnabled": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon_source.png",
+      "artifactName": "BillNgai-${version}-${arch}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false
     }
   }
 }

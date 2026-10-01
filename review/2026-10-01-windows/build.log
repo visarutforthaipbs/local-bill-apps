@@ -1,0 +1,23 @@
+
+> billngai-app@2.0.12 dist:win
+> electron-builder --win nsis --x64 --publish never
+
+  • electron-builder  version=26.15.3 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=43.7.3 arch=x64 buildFromSource=false workspaceRoot=C:\Users\New55\BillNgai-builds\2.0.12 projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=43.7.3 appOutDir=dist\win-unpacked
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=C:\Users\New55\BillNgai-builds\2.0.12\dist\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\New55\BillNgai-builds\2.0.12
+  • searching for node modules  pm=traversal searchDir=C:\Users\New55\BillNgai-builds\2.0.12
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules returned while searching directories  searchDirectories=[""]
+  • updating asar integrity executable resource  executablePath=dist\win-unpacked\BillNgai.exe
+  • signing with signtool.exe  path=dist\win-unpacked\BillNgai.exe
+  • building        target=nsis file=dist\BillNgai-2.0.12-x64-Setup.exe archs=x64 oneClick=true perMachine=false
+  • signing with signtool.exe  path=dist\win-unpacked\resources\elevate.exe
+  • signing with signtool.exe  path=dist\BillNgai-2.0.12-x64-Setup.__uninstaller.exe
+  • signing with signtool.exe  path=dist\BillNgai-2.0.12-x64-Setup.exe
+  • building block map  blockMapFile=dist\BillNgai-2.0.12-x64-Setup.exe.blockmap
