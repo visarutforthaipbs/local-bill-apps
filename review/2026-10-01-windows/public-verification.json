@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "d2be9de886f7bfed6d0b9f6f5bf6f967c453d449",
+  "tag": "v2.0.12-windows",
+  "sha256": "98e43635ce8622fafc8e7a96462696aac54b3ecfb012b3f92b0aa293d63d3d56",
+  "r2AnonymousDownload": "matched",
+  "githubAnonymousDownload": "matched",
+  "checksumDownload": "matched",
+  "packagedFilesMatchingCommit": 22,
+  "windowsSignature": "NotSigned",
+  "upgrade": "2.0.1 to 2.0.12",
+  "profileFilesUnchanged": 200,
+  "websiteCommit": "9f9da94",
+  "websiteDeployment": "https://7af09659.billiong-landing.pages.dev",
+  "liveHomeAndSupport": "verified"
+}

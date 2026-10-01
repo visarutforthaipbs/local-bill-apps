@@ -55,3 +55,19 @@ Windows remains unsigned Beta; live Windows sync and uninstall checks are outsta
 - Package and package-lock both remain 2.0.12; this adds the Windows channel, not a new Mac version.
 - Installed-app first-use workflow is additionally exercised after upgrade.
 - Original Mac v2.0.12 tag and artifacts remain immutable.
+
+## Published Windows Beta — 2026-10-01
+
+- Packaging source commit `d2be9de886f7bfed6d0b9f6f5bf6f967c453d449`; tag `v2.0.12-windows`.
+- GitHub prerelease: https://github.com/visarutforthaipbs/local-bill-apps/releases/tag/v2.0.12-windows
+- R2 installer: https://pub-4ed16d146bff4f168839661507e1748a.r2.dev/BillNgai-2.0.12-x64-Setup.exe
+- R2 checksum: same base URL, `BillNgai-2.0.12-windows-SHA256SUMS.txt`.
+- Anonymous R2 and GitHub downloads match the tested SHA-256 above. 22 packaged files match the tagged source.
+- Website commit `9f9da94`, Pages production deployment `https://7af09659.billiong-landing.pages.dev`.
+- Live homepage and support page verified: Windows 2.0.12 Beta, unsigned and live-sync limitations, valid R2 and GitHub fallback links.
+- Mac tag/assets retained; existing release notes now link to the separate Windows Beta.
+- PC upgraded at `C:\Users\New55\AppData\Local\Programs\billngai-app\BillNgai.exe`.
+- Rollback backup: `C:\Users\New55\BillNgai-builds\2.0.12\rollback-2.0.1`.
+  Retain until owner no longer needs rollback; contains private profile copies and must not be uploaded.
+- Installed-app workflow passed with an isolated synthetic profile. No owner-profile launch performed.
+- Public Windows is intentionally Beta: Authenticode signing, live Windows cloud sync, uninstall retention and other Windows versions remain open.
