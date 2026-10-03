@@ -61,6 +61,12 @@
   input,select,textarea{font-family:inherit;font-size:14px}
   a{color:var(--accent-ink);text-decoration:none}
   .ic{display:inline-block;vertical-align:-.18em;flex:0 0 auto}
+  @media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+    .btn .ic{transition:transform .2s ease-out}
+    .btn:hover .ic{transform:translateY(-1px)}
+    .nav button:hover .ico{transform:translateY(-1px)}
+  }
+  @media (prefers-reduced-motion:reduce){.btn .ic,.nav button .ico{transition:none;transform:none}}
   .empty .big .ic,.nav .ico .ic{vertical-align:middle}
   ::selection{background:var(--accent-sel)}
   ::-webkit-scrollbar{width:11px;height:11px}
@@ -133,7 +139,8 @@
   .nav button:hover{background:var(--accent-soft);color:var(--text)}
   .nav button.active{background:var(--accent-tint);color:var(--text);font-weight:700;border:1px solid var(--accent-tint-bd)}
   .nav button.active::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);position:static;flex:0 0 auto;order:-1}
-  .nav button .ico{width:18px;text-align:center;font-size:15px;opacity:.85}
+  .nav button .ico{width:24px;height:24px;display:flex;align-items:center;justify-content:center;opacity:1;transition:color .2s ease-out,transform .2s ease-out}
+  .nav button.active .ico{color:inherit}
   .nav .badge{margin-left:auto;font-size:11px;background:var(--accent-fill);color:var(--on-accent);
     border-radius:20px;padding:1px 7px;font-weight:600;min-width:20px;text-align:center;font-variant-numeric:tabular-nums}
   .addon-nav{padding:12px 12px 10px;border-top:1px solid var(--border-soft)}
@@ -220,18 +227,12 @@
   .brand-snapshot h3{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:0;line-height:1.15;margin-bottom:8px}
   .brand-snapshot p{font-size:13px;color:var(--text-dim);max-width:520px}
   .brand-snapshot .brand-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:17px}
-  .brand-snapshot .brand-art{position:relative;min-height:170px;border-radius:var(--radius);
-    background:var(--bg);border:1px solid var(--border);overflow:hidden}
-  .brand-snapshot .brand-art::before,.brand-snapshot .brand-art::after{
-    content:"";position:absolute;border-radius:999px;background:var(--accent);opacity:.95;
-  }
-  .brand-snapshot .brand-art::before{width:8px;height:8px;left:28px;top:30px}
-  .brand-snapshot .brand-art::after{width:5px;height:5px;right:34px;top:36px}
-  .brand-snapshot .character{position:absolute;right:28px;bottom:-1px;width:154px;max-height:160px;object-fit:contain}
+  .brand-snapshot .brand-art{min-height:170px;display:flex;align-items:center;justify-content:center;
+    background:var(--surface);overflow:hidden}
+  .brand-snapshot .brand-art .fintech-art{width:240px;height:160px;max-width:100%;object-fit:cover}
   @media(max-width:860px){
-    .brand-snapshot{grid-template-columns:1fr;padding:20px}
-    .brand-snapshot .brand-art{min-height:150px}
-    .brand-snapshot .character{right:50%;transform:translateX(50%)}
+    .brand-snapshot{grid-template-columns:1fr;padding:24px}
+    .brand-snapshot .brand-art{min-height:160px}
   }
   .mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:8px}
   .mini-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow-sm);transition:transform .3s var(--spring),border-color .16s ease}
@@ -285,7 +286,7 @@
   /* สถานะ AI กำลังทำงาน — skeleton แบน ๆ ตาม BRAND.md (ไม่ใช้ spinner/ไล่เฉดสี) */
   .ai-working{padding:4px 0}
   .ai-working-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:14px}
-  .ai-working-head .ic{color:var(--accent-ink);animation:aiGlow 1.4s ease-in-out infinite alternate}
+  .ai-working-head .ic{color:var(--accent-ink)}
   .ai-working-head b{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--accent-ink)}
   .ai-skel i{display:block;height:12px;border-radius:6px;margin-bottom:10px;background:var(--surface-3);animation:aiPulse 1.1s ease-in-out infinite alternate}
   .ai-skel i:nth-child(2){animation-delay:.15s}
@@ -294,7 +295,6 @@
   .ai-skel i:nth-child(5){animation-delay:.6s}
   .ai-skel i:nth-child(6){animation-delay:.75s}
   @keyframes aiPulse{from{opacity:.4}to{opacity:1}}
-  @keyframes aiGlow{from{opacity:.5}to{opacity:1}}
   /* stepper ของหน้า TOR → Invoice — เดินทีละขั้น */
   .ai-steps{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
   .ai-steps .step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text-faint)}
@@ -377,6 +377,26 @@
   .empty.brand-empty .brand-empty-title{color:var(--text-dim);font-weight:600}
   .empty.brand-empty .brand-empty-sub{font-size:12px;margin-top:4px;color:var(--text-faint)}
 
+  /* Local decorative renders: finite entrance, then optional pointer feedback. */
+  .empty.brand-empty .brand-empty-art img.fintech-art,.fintech-art{
+    width:216px;height:136px;max-width:100%;object-fit:cover;object-position:center 55%;
+    display:block;flex-shrink:0;
+    animation:fintechArtIn 240ms ease-out;
+    transition:transform 200ms ease-out;
+  }
+  .empty.brand-empty .brand-empty-art img.fintech-art-portrait{height:160px;max-height:none}
+  .setup-art{display:flex;align-items:center;justify-content:center;height:136px;margin-bottom:16px;overflow:hidden}
+  @keyframes fintechArtIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media(hover:hover) and (pointer:fine){
+    .brand-empty-art:hover .fintech-art,.setup-art:hover .fintech-art,.brand-art:hover .fintech-art{transform:translateY(-4px) rotate(-2deg)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .fintech-art,.empty.brand-empty .brand-empty-art img.fintech-art,
+    .brand-empty-art:hover .fintech-art,.setup-art:hover .fintech-art{
+      animation:none!important;transition:none!important;transform:none!important;
+    }
+  }
+
   /* client cards */
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
   .client-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
@@ -402,7 +422,7 @@
   .modal-head .spacer{flex:1}
   .modal-body{padding:24px}
   .modal-foot{display:flex;gap:10px;padding:17px 24px;border-top:1px solid var(--border-soft);justify-content:flex-end;background:var(--surface-2);border-radius:0 0 var(--radius-lg) var(--radius-lg)}
-  .x{font-size:21px;color:var(--text-faint);width:32px;height:32px;border-radius:8px;transition:.16s}
+  .x{display:inline-flex;align-items:center;justify-content:center;font-size:21px;color:var(--text-faint);width:32px;height:32px;border-radius:8px;transition:.16s}
   .x:hover{background:var(--surface-3);color:var(--text)}
 
   /* forms */
@@ -557,6 +577,25 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.err{border-color:var(--red);background:var(--red-bg);color:var(--red);pointer-events:auto;cursor:pointer}
   .toast.has-action{pointer-events:auto}
+
+  /* Finite, local task feedback; never animates amounts or blocks a control. */
+  .toast.outcome{display:flex;align-items:center;gap:16px}
+  .outcome-art{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 48px;width:48px;height:48px;order:-1;color:var(--accent)}
+  .outcome-base{display:inline-flex;animation:outcomeSettle .2s ease-out both}
+  .outcome-check{position:absolute;right:0;bottom:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid var(--accent);border-radius:var(--radius-pill);background:var(--text);color:var(--surface);animation:outcomeCheck .2s ease-out both}
+  .outcome-file{position:absolute;top:0;left:8px;background:var(--text);animation:outcomeFile .2s ease-out both}
+  .motion-enter,.settings-panel,.wizard-step{animation:panelEnter .2s ease-out both}
+  .tax-details[open] > :not(summary),.audio-guide[open] > :not(summary){animation:panelEnter .2s ease-out both}
+  @keyframes outcomeSettle{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @keyframes outcomeCheck{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @keyframes outcomeFile{from{opacity:0;transform:translate(-8px,-8px)}to{opacity:1;transform:none}}
+  @keyframes panelEnter{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .outcome-base,.outcome-check,.outcome-file,.motion-enter,.settings-panel,.wizard-step,
+    .tax-details[open] > :not(summary),.audio-guide[open] > :not(summary){animation:none!important;transform:none!important}
+    .tax-details summary .ic{transition:none}
+    .toast{transition:none}
+  }
   .toast-action{margin-left:14px;font-weight:700;text-decoration:underline;color:inherit;font-size:13px}
   .toast.ok{border-color:var(--accent);background:var(--text);color:var(--surface)}
 
@@ -788,7 +827,7 @@
     .brand-swatch{position:relative;flex:0 0 48px;width:48px;height:48px;min-height:48px;padding:8px;border-radius:var(--radius-pill)}
     .brand-swatch::before{content:'';display:block;width:32px;height:32px;border-radius:var(--radius-pill);background:var(--swatch-color);border:1px solid var(--border)}
     .brand-swatch[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--text)}
-    .brand-swatch[aria-pressed="true"]::after{content:'✓';position:absolute;right:0;bottom:0;width:16px;height:16px;line-height:16px;font-size:12px;font-weight:700;border-radius:var(--radius-pill);background:var(--surface);color:var(--text)}
+    .brand-swatch .swatch-check{display:none}.brand-swatch[aria-pressed="true"] .swatch-check{display:flex;align-items:center;justify-content:center;position:absolute;right:0;bottom:0;width:16px;height:16px;line-height:16px;font-size:12px;font-weight:700;border-radius:var(--radius-pill);background:var(--surface);color:var(--text)}
     .document-brand-preview{margin-top:16px;color:var(--accent-ink)}
     .brand-preview-bar{width:80px;height:16px;background:var(--accent);border:1px solid var(--border);border-radius:var(--radius-pill)}
     .brand-preview-label{color:var(--text-dim)}
@@ -826,6 +865,12 @@
     .grid-2,.grid-3{grid-template-columns:minmax(0,1fr)}
     .overlay{padding:16px}
   }
+    .audio-guide{margin:16px 0;padding:16px;border:1px solid var(--border);border-radius:var(--radius-sm)}
+    .audio-guide summary{cursor:pointer;color:var(--text-dim);font-weight:600;padding:8px 0;min-height:44px;box-sizing:border-box}
+    .audio-guide p{margin:16px 0;color:var(--text-dim)}
+    .audio-guide .btn{min-height:44px}
+    .audio-settings .toolbar{flex-wrap:wrap;gap:16px}
+    @media print{.audio-guide,.audio-settings{display:none!important}}
 </style>
 </head>
 <body>
@@ -1381,7 +1426,7 @@ function openConflictsModal(){
     </div>`;
   }).join('');
   m.innerHTML = `
-    <div class="modal-head"><h3>${tr('ข้อขัดแย้งจากการซิงก์')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr('ข้อขัดแย้งจากการซิงก์')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="desc" style="margin-bottom:14px">${tr('เอกสารถูกแก้ไขบนสองเครื่องพร้อมกัน — เลือกเวอร์ชันที่ถูกต้อง เวอร์ชันที่เลือกจะถูกใช้กับทุกเครื่อง')}</div>
       ${cards}
@@ -1411,7 +1456,7 @@ function openUpgradeModal(){
   const m = document.getElementById('modal');
   const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
   m.innerHTML = `
-    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="grid-2" style="align-items:start">
         <div class="card-block" style="margin-bottom:0">
@@ -1440,7 +1485,7 @@ function openUpgradeModal(){
           <button class="btn btn-primary" onclick="activateLicense()">${tr('เปิดใช้งานรหัส')}</button>
         </div>
         <div class="hint">${tr('ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย')}
-          <a href="https://lin.ee/pSl8nEH" target="_blank" rel="noopener" style="font-weight:700;margin-left:4px">${tr('ทักทาง LINE')} →</a></div>
+          <a href="https://lin.ee/pSl8nEH" target="_blank" rel="noopener" style="font-weight:700;margin-left:4px">${tr('ทักทาง LINE')} ${ic('arrowRight',14)}</a></div>
       </div>
     </div>`;
   openModal();
@@ -1518,7 +1563,7 @@ async function elUseDefault(){
 }
 async function elExport(){
   try{ const p = await window.billingAPI.exportData(JSON.stringify(exportableDB(),null,2));
-    if(p){ markBackup(); await persist(true); render(); toast(tr('สำรองข้อมูลแล้ว'),'ok'); } }
+    if(p){ markBackup(); await persist(true); render(); toast(tr('สำรองข้อมูลแล้ว'),'ok',null,'backup'); } }
   catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
 }
 async function elImport(){
@@ -2265,6 +2310,7 @@ const I18N_EN = {
   'สำรองข้อมูลครั้งล่าสุดเมื่อ {d} วันก่อน — แนะนำให้สำรองอีกครั้ง':'Last backup was {d} days ago — time to back up again',
   'สำรองตอนนี้':'Back up now',
   // --- dashboard ---
+  'เอกสารใหม่':'New document',
   '+ เอกสารใหม่':'+ New document',
   'มีรายการประจำถึงกำหนด {n} รายการ':'{n} recurring item(s) due',
   'ดูและสร้าง':'View & create',
@@ -2367,6 +2413,7 @@ const I18N_EN = {
   'บันทึก':'Save',
   'บันทึกข้อมูลใบ 50 ทวิ แล้ว':'50 tawi details saved',
   // --- recurring ---
+  'รายการประจำใหม่':'New recurring item',
   '+ รายการประจำใหม่':'+ New recurring item',
   'ยังไม่มีรายการประจำ':'No recurring items yet',
   'สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว':'Create templates for repeat billing (monthly / quarterly / yearly) and generate invoices in one click',
@@ -2389,6 +2436,7 @@ const I18N_EN = {
   'หน่วย':'Unit',
   'ราคา/หน่วย':'Unit price',
   'รวม':'Total',
+  'เพิ่มรายการ':'Add item',
   '+ เพิ่มรายการ':'+ Add item',
   'หัก ณ ที่จ่าย (%)':'Withholding tax (%)',
   'หมายเหตุ':'Notes',
@@ -2611,6 +2659,7 @@ const I18N_EN = {
   'ธุรกิจของฉัน':'My business',
   'เอกสารและภาษี':'Documents & tax',
   'ข้อมูลและสำรอง':'Data & backup',
+  'เสียง':'Sounds',
   'พื้นที่ทำงาน':'Workspace',
   'รุ่นนี้ยังไม่ได้ฝังค่า Google OAuth client — สำหรับนักพัฒนา: วางไฟล์ secrets/gdrive-oauth.json หรือตั้งค่า BILLNGAI_GDRIVE_CLIENT_ID':'This build has no Google OAuth client embedded — for developers: add secrets/gdrive-oauth.json or set BILLNGAI_GDRIVE_CLIENT_ID',
   'เชื่อมต่อ Google Drive':'Connect Google Drive',
@@ -2900,40 +2949,42 @@ const I18N_EN = {
   'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง':'Tax ID is invalid'
 };
 
-/* ---------- inline SVG icons (Lucide, MIT) — no emoji, works offline ---------- */
+/* ---------- BillNgai rounded outline icons — bundled, works offline ---------- */
 const ICONS = {
-  dashboard:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
-  fileText:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
-  repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
-  receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
-  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-  settings:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
-  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-  hash:'<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',
-  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
-  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
-  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
-  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
-  folderOpen:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
-  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
-  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
-  printer:'<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/>',
-  trash:'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
-  pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
-  copy:'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  check:'<path d="M20 6 9 17l-5-5"/>',
-  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
-  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  scissors:'<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',
-  barChart:'<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
-  sparkles:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
-  arrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
-  calendar:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
-  arrowRight:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
-  chevronRight:'<path d="m9 18 6-6-6-6"/>'
+  dashboard:'<rect x="3.5" y="3.5" width="7" height="10" rx="2"/><rect x="14.5" y="3.5" width="6" height="6" rx="2"/><rect x="3.5" y="17.5" width="7" height="3" rx="1.5"/><rect x="14.5" y="13.5" width="6" height="7" rx="2"/>',
+  fileText:'<path d="M14 3.5H7a2.5 2.5 0 0 0-2.5 2.5v12A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5V9L14 3.5Z M14 3.5V7a2 2 0 0 0 2 2h3.5 M8.5 13h7 M8.5 16.5h5"/>',
+  repeat:'<path d="M16.5 3.5 20 7l-3.5 3.5 M20 7H8a4 4 0 0 0-4 4 M7.5 20.5 4 17l3.5-3.5 M4 17h12a4 4 0 0 0 4-4"/>',
+  receipt:'<path d="M5 3.5 7.5 5 10 3.5 12.5 5 15 3.5 17.5 5 19 3.5v17l-2.5-1.5L14 20.5 11.5 19 9 20.5 6.5 19 5 20.5v-17Z M8.5 9h7 M8.5 13h7 M8.5 16.5h3.5"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M3.5 20v-2a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4v2 M16 5a3.5 3.5 0 0 1 0 7 M18 15a4 4 0 0 1 2.5 3.5V20"/>',
+  settings:'<path d="M9 5.5 10 3.5h4l1 2 2 1 2.3-.2 2 3.4-1.3 1.8v2l1.3 1.8-2 3.4L17 18.5l-2 1-1 2h-4l-1-2-2-1-2.3.2-2-3.4L4 13.5v-2l-1.3-1.8 2-3.4L7 6.5l2-1Z"/><circle cx="12" cy="12.5" r="3"/>',
+  user:'<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-2a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v2"/>',
+  hash:'<path d="M4.5 9h15 M4.5 15h15 M10 4l-2 16 M16 4l-2 16"/>',
+  mail:'<rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="m4 7 6.5 5a2.5 2.5 0 0 0 3 0L20 7"/>',
+  phone:'<path d="M8 4H5a1.5 1.5 0 0 0-1.5 1.7A17 17 0 0 0 18.3 20.5 1.5 1.5 0 0 0 20 19v-3l-4-1.5-2 2a13 13 0 0 1-6.5-6.5l2-2L8 4Z"/>',
+  alert:'<path d="M10 4.5a2.3 2.3 0 0 1 4 0l7 12a2.3 2.3 0 0 1-2 3.5H5a2.3 2.3 0 0 1-2-3.5l7-12Z M12 9v4 M12 16.5h.01"/>',
+  folder:'<path d="M3.5 7a2.5 2.5 0 0 1 2.5-2.5h3l2.5 3H18a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H6a2.5 2.5 0 0 1-2.5-2.5V7Z"/>',
+  folderOpen:'<path d="M3.5 17.5V7A2.5 2.5 0 0 1 6 4.5h3l2.5 3H18a2.5 2.5 0 0 1 2.5 2.5 M3.5 17.5 6 12h14.5l-2.3 6.8a2.5 2.5 0 0 1-2.4 1.7H6a2.5 2.5 0 0 1-2.5-3Z"/>',
+  download:'<path d="M12 3.5v11 M7.5 10 12 14.5l4.5-4.5 M4 16v2a2.5 2.5 0 0 0 2.5 2.5h11A2.5 2.5 0 0 0 20 18v-2"/>',
+  upload:'<path d="M12 14.5v-11 M7.5 8 12 3.5 16.5 8 M4 16v2a2.5 2.5 0 0 0 2.5 2.5h11A2.5 2.5 0 0 0 20 18v-2"/>',
+  printer:'<path d="M7 8V3.5h10V8 M7 17H5.5A2 2 0 0 1 3.5 15v-5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H17 M17 11.5h.01"/><rect x="7" y="14" width="10" height="6.5" rx="1"/>',
+  trash:'<path d="M4 7h16 M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2 M6 7l.8 11.5a2 2 0 0 0 2 2h6.4a2 2 0 0 0 2-2L18 7 M10 11v5.5 M14 11v5.5"/>',
+  pencil:'<path d="m14.5 5 4.5 4.5 M4 20l1-5 11-11a2 2 0 0 1 3 0l1 1a2 2 0 0 1 0 3L9 19l-5 1Z"/>',
+  copy:'<rect x="8" y="8" width="12.5" height="12.5" rx="2.5"/><path d="M15.5 8V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+  check:'<path d="m5.5 12 4.5 4.5 8.5-9"/>',
+  plus:'<path d="M5.5 12h13 M12 5.5v13"/>',
+  search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>',
+  scissors:'<circle cx="6.5" cy="6.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/><path d="m8.5 8.5 12 12 M8.5 15.5l12-12 M15 15l5.5 5.5"/>',
+  barChart:'<path d="M5 20V14 M12 20V9 M19 20V4"/>',
+  sparkles:'<path d="M12 3.5 14.5 9.5 20.5 12l-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5L12 3.5Z"/>',
+  arrowLeft:'<path d="M19 12H5 M11 6l-6 6 6 6"/>',
+  calendar:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3.5v4 M16 3.5v4 M3.5 10.5h17 M8 15h.01 M12 15h.01 M16 15h.01"/>',
+  arrowRight:'<path d="M5 12h14 M13 6l6 6-6 6"/>',
+  chevronRight:'<path d="m9 6 6 6-6 6"/>',
+  close:'<path d="m6.5 6.5 11 11 M17.5 6.5l-11 11"/>',
+  help:'<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4 M12 16.5h.01"/>'
 };
-function ic(name,size){ size=size||16; return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
+function ic(name,size){ size=size||16; return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]||''}</svg>`; }
 
 function money(n){
   n = Number(n)||0;
@@ -3253,7 +3304,149 @@ function hasReviewedPayment(doc){return (DB.reviewEvents||[]).some(e=>reviewedPa
 function effectiveStatus(doc){ return doc.voidedAt||doc.status==='void' ? 'void' : doc.deletedAt ? 'deleted' : hasReviewedPayment(doc) ? 'paid' : isOverdue(doc) ? 'overdue' : doc.status; }
 
 // Errors stay long enough to read (click to dismiss); an optional action offers Undo.
-function toast(msg,kind,action){
+/* ---------- optional offline audio (female Thai guides only) ---------- */
+Object.assign(I18N_EN, {
+  "เสียงและคำอธิบาย": "Sounds and explanations",
+  "เสียงแจ้งผลการทำงาน": "Button and task sounds",
+  "ลองเสียงปุ่ม": "Preview button sound",
+  "ปิดเป็นค่าเริ่มต้น บันทึกเฉพาะเครื่องนี้": "Off by default. Saved on this device only.",
+  "ลองเสียงออกเอกสาร": "Preview document sound",
+  "ลองเสียงบันทึกรับเงิน": "Preview payment sound",
+  "ลองเสียงส่งออก": "Preview export sound",
+  "ลองเสียงแจ้งเตือน": "Preview attention sound",
+  "คำอธิบายเสียงผู้หญิงภาษาไทย เล่นเมื่อกดฟังเท่านั้น": "Female Thai voice guides. Play only when requested.",
+  "ฟังเสียงภาษาไทย": "Listen in Thai",
+  "หยุดเสียง": "Stop audio",
+  "บันทึกการตั้งค่าเสียงไม่ได้": "Could not save sound preference",
+  "เล่นเสียงไม่ได้ ลองกดฟังอีกครั้ง": "Could not play audio. Try listening again.",
+  "สร้างบิลแรก": "Create your first bill",
+  "เพิ่มลูกค้าก่อน แล้วสร้างใบแจ้งหนี้ เลือกลูกค้า ใส่รายการงานและราคา ตรวจรายละเอียดให้ครบ ก่อนกดออกเอกสาร ยังไม่พร้อมออก ก็บันทึกร่างไว้ก่อนได้": "Add a client, then create an invoice. Select the client and enter the work items and prices. Review the details before issuing. You can save a draft if you are not ready.",
+  "ส่งบิลให้ลูกค้า": "Send a bill to your client",
+  "เปิดเอกสารที่ออกแล้ว แล้วกดบันทึก PDF หากต้องการส่งทางไลน์ ให้คัดลอกข้อความ ไปวางในแชตลูกค้า แล้วแนบไฟล์ PDF ตรวจผู้รับก่อนส่ง": "Open the issued document and save the PDF. To send through LINE, copy the message, paste it into the client chat, and attach the PDF. Check the recipient before sending.",
+  "ติดตามใบ 50 ทวิ": "Track withholding certificates",
+  "หน้านี้ช่วยติดตามใบห้าสิบทวิ เมื่อได้รับใบแล้ว กดบันทึกรับใบ ใส่เลขที่และวันที่ตามเอกสาร การบันทึกรับใบ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิตภาษี": "Track withholding certificates here. When one arrives, record receipt and enter its number and date. Recording receipt does not verify the amount or tax-credit eligibility.",
+  "สำรองและกู้คืนข้อมูล": "Back up and restore data",
+  "กดส่งออกไฟล์สำรอง เพื่อเก็บข้อมูลบิล ไฟล์ JSON ไม่รวมไฟล์หลักฐาน ให้ส่งออกชุดหลักฐานแยกไว้ด้วย การกู้คืนจะแทนที่ข้อมูลบิลปัจจุบัน แอปจะสำรองข้อมูลปัจจุบันก่อนกู้คืน": "Export a backup to keep your billing data. JSON excludes evidence attachments; export the evidence bundle separately. Restoring replaces current billing data. The desktop app backs up current data before restoring.",
+  "ร่างกับเอกสารที่ออกแล้ว": "Drafts and issued documents",
+  "บันทึกร่างไว้แก้ไขต่อได้ เมื่อออกเอกสารแล้ว จะแก้ไขหรือลบไม่ได้": "Save a draft to edit later. Once issued, the document cannot be edited or deleted.",
+  "บันทึกการรับเงิน": "Record a payment",
+  "บันทึกรับเงินเมื่อได้รับเงินเต็มจำนวนแล้ว เลือกวันที่รับเงินจริง แล้วกดยืนยัน": "Record a payment once you have received full payment. Select the actual payment date, then confirm."
+});
+const APP_AUDIO_GUIDES = {
+  "first-bill": {
+    "title": "สร้างบิลแรก",
+    "text": "เพิ่มลูกค้าก่อน แล้วสร้างใบแจ้งหนี้ เลือกลูกค้า ใส่รายการงานและราคา ตรวจรายละเอียดให้ครบ ก่อนกดออกเอกสาร ยังไม่พร้อมออก ก็บันทึกร่างไว้ก่อนได้",
+    "path": "assets/audio/voice/help-first-bill-th.mp3"
+  },
+  "send-bill": {
+    "title": "ส่งบิลให้ลูกค้า",
+    "text": "เปิดเอกสารที่ออกแล้ว แล้วกดบันทึก PDF หากต้องการส่งทางไลน์ ให้คัดลอกข้อความ ไปวางในแชตลูกค้า แล้วแนบไฟล์ PDF ตรวจผู้รับก่อนส่ง",
+    "path": "assets/audio/voice/help-send-bill-th.mp3"
+  },
+  "wht": {
+    "title": "ติดตามใบ 50 ทวิ",
+    "text": "หน้านี้ช่วยติดตามใบห้าสิบทวิ เมื่อได้รับใบแล้ว กดบันทึกรับใบ ใส่เลขที่และวันที่ตามเอกสาร การบันทึกรับใบ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิตภาษี",
+    "path": "assets/audio/voice/help-wht-th.mp3"
+  },
+  "backup": {
+    "title": "สำรองและกู้คืนข้อมูล",
+    "text": "กดส่งออกไฟล์สำรอง เพื่อเก็บข้อมูลบิล ไฟล์ JSON ไม่รวมไฟล์หลักฐาน ให้ส่งออกชุดหลักฐานแยกไว้ด้วย การกู้คืนจะแทนที่ข้อมูลบิลปัจจุบัน แอปจะสำรองข้อมูลปัจจุบันก่อนกู้คืน",
+    "path": "assets/audio/voice/help-backup-th.mp3"
+  },
+  "draft-issued": {
+    "title": "ร่างกับเอกสารที่ออกแล้ว",
+    "text": "บันทึกร่างไว้แก้ไขต่อได้ เมื่อออกเอกสารแล้ว จะแก้ไขหรือลบไม่ได้",
+    "path": "assets/audio/voice/help-draft-issued-th.mp3"
+  },
+  "payment": {
+    "title": "บันทึกการรับเงิน",
+    "text": "บันทึกรับเงินเมื่อได้รับเงินเต็มจำนวนแล้ว เลือกวันที่รับเงินจริง แล้วกดยืนยัน",
+    "path": "assets/audio/voice/help-payment-th.mp3"
+  }
+};
+
+const APP_SFX = {tap:'assets/audio/sfx/button-tap.mp3',issued:'assets/audio/sfx/document-issued.mp3',payment:'assets/audio/sfx/payment-recorded.mp3',export:'assets/audio/sfx/export-complete.mp3',attention:'assets/audio/sfx/needs-attention.mp3'};
+const AUDIO_SFX_KEY = 'billngai.audio.sfx.v1';
+let activeAppAudio=null, activeGuideButton=null, activeGuideId=null, audioEpoch=0;
+function sfxEnabled(){try{return localStorage.getItem(AUDIO_SFX_KEY)==='true';}catch(e){return false;}}
+function setSfxEnabled(enabled){
+  let failed=false;
+  try{localStorage.setItem(AUDIO_SFX_KEY,enabled?'true':'false');}catch(e){failed=true;}
+  const actual=sfxEnabled(), checkbox=document.getElementById('audioSfxToggle');
+  if(checkbox) checkbox.checked=actual;
+  if(!actual&&!activeGuideId) stopAppAudio();
+  if(failed||actual!==!!enabled) toast(tr('บันทึกการตั้งค่าเสียงไม่ได้'),'err');
+}
+function stopAppAudio(){
+  audioEpoch++;
+  const media=activeAppAudio, button=activeGuideButton;
+  activeAppAudio=null;activeGuideButton=null;activeGuideId=null;
+  if(media){media.onended=null;media.onerror=null;try{media.pause();media.currentTime=0;}catch(e){}}
+  if(button){button.textContent=tr('ฟังเสียงภาษาไทย');button.setAttribute('aria-pressed','false');}
+}
+function startAppAudio(path,button=null,guideId=null,volume=null){
+  stopAppAudio();
+  const epoch=audioEpoch;
+  const failed=()=>{if(epoch!==audioEpoch)return;stopAppAudio();if(guideId)toast(tr('เล่นเสียงไม่ได้ ลองกดฟังอีกครั้ง'),'err');};
+  try{
+    const media=new Audio(path);activeAppAudio=media;activeGuideButton=button;activeGuideId=guideId;
+    media.volume=volume ?? (guideId ? .8 : .55);
+    if(button){button.textContent=tr('หยุดเสียง');button.setAttribute('aria-pressed','true');}
+    media.onended=()=>{if(epoch===audioEpoch)stopAppAudio();};media.onerror=failed;
+    const playing=media.play();
+    if(playing&&typeof playing.then==='function') playing.then(()=>{
+      if(epoch!==audioEpoch){try{media.pause();media.currentTime=0;}catch(e){}}
+    }).catch(failed);
+  }catch(e){failed();}
+}
+function playAppSfx(key,preview=false){
+  if(activeGuideId||(!preview&&!sfxEnabled())||!Object.prototype.hasOwnProperty.call(APP_SFX,key))return;
+  if(key==='tap'&&activeAppAudio)return;
+  startAppAudio(APP_SFX[key],null,null,key==='tap' ? .25 : null);
+}
+// Tiny acknowledgement for deliberate controls, after their handlers finish rendering.
+let lastButtonTapAt=-Infinity;
+function buttonTapClick(event){
+  if(!event.isTrusted||!sfxEnabled()||activeAppAudio)return;
+  const target=event.target, control=target&&target.closest&&target.closest('button,summary,[role="button"],input[type="checkbox"],label.toggle,a[onclick]');
+  if(!control||control.disabled||control.getAttribute('aria-disabled')==='true'||control.matches(':disabled'))return;
+  if(control.closest('.audio-guide,.audio-settings,[data-audio-silent]')||control.id==='confirmOk')return;
+  // These actions already have an outcome cue; one sound is enough.
+  if(/\b(issueDoc|saveDoc|saveDraft|submitPaymentDialog|createReceipt|savePDF)\s*\(/.test(control.getAttribute('onclick')||''))return;
+  const now=Date.now();if(now-lastButtonTapAt<180)return;lastButtonTapAt=now;
+  const play=()=>{if(sfxEnabled()&&!activeAppAudio)playAppSfx('tap');};
+  if(typeof queueMicrotask==='function')queueMicrotask(play);else Promise.resolve().then(play);
+}
+document.addEventListener('click',buttonTapClick,true);
+function toggleAudioGuide(id,button){
+  if(!Object.prototype.hasOwnProperty.call(APP_AUDIO_GUIDES,id))return;
+  if(activeGuideId===id&&activeGuideButton===button){stopAppAudio();return;}
+  startAppAudio(APP_AUDIO_GUIDES[id].path,button,id);
+}
+function audioGuideCollapsed(details){
+  if(!details.open&&details.dataset.audioGuide===activeGuideId&&details.contains(activeGuideButton))stopAppAudio();
+}
+function renderAudioGuide(id){
+  if(!Object.prototype.hasOwnProperty.call(APP_AUDIO_GUIDES,id))return '';
+  const guide=APP_AUDIO_GUIDES[id];
+  return `<details class="audio-guide" data-audio-guide="${attr(id)}" ontoggle="audioGuideCollapsed(this)">
+    <summary>${escapeHtml(tr(guide.title))}</summary>
+    <p>${escapeHtml(tr(guide.text))}</p>
+    <button type="button" class="btn btn-sm" data-audio-play="${attr(id)}" aria-pressed="false" onclick="toggleAudioGuide(${jsArg(id)},this)">${tr('ฟังเสียงภาษาไทย')}</button>
+  </details>`;
+}
+function renderAudioSettings(){
+  return `<div class="card-block audio-settings"><h4>${tr('เสียงและคำอธิบาย')}</h4>
+    <label class="toggle"><input id="audioSfxToggle" type="checkbox" ${sfxEnabled()?'checked':''} oninput="event.stopPropagation()" onchange="event.stopPropagation();setSfxEnabled(this.checked)"><span class="track"></span><span>${tr('เสียงแจ้งผลการทำงาน')}</span></label>
+    <p class="hint">${tr('ปิดเป็นค่าเริ่มต้น บันทึกเฉพาะเครื่องนี้')}</p>
+    <div class="toolbar">${[['tap','ลองเสียงปุ่ม'],['issued','ลองเสียงออกเอกสาร'],['payment','ลองเสียงบันทึกรับเงิน'],['export','ลองเสียงส่งออก'],['attention','ลองเสียงแจ้งเตือน']].map(([key,label])=>`<button type="button" class="btn btn-sm" onclick="playAppSfx(${jsArg(key)},true)">${tr(label)}</button>`).join('')}</div>
+    <p class="hint">${tr('คำอธิบายเสียงผู้หญิงภาษาไทย เล่นเมื่อกดฟังเท่านั้น')}</p>
+    ${Object.keys(APP_AUDIO_GUIDES).filter(id=>id!=='backup'||IS_ELECTRON).map(renderAudioGuide).join('')}
+  </div>`;
+}
+/* ---------- end optional offline audio ---------- */
+
+function toast(msg,kind,action,outcome){
   const t = document.getElementById('toast');
   t.textContent = msg;
   if(t.setAttribute) t.setAttribute('role', kind==='err' ? 'alert' : 'status');
@@ -3263,7 +3456,15 @@ function toast(msg,kind,action){
     b.onclick=e=>{ e.stopPropagation(); hideToast(); action.run(); };
     t.append(b);
   }
-  t.className = 'toast show '+(kind||'')+(act?' has-action':'');
+  // Only explicit, confirmed outcomes get artwork; generic/error messages stay plain.
+  const visual=kind==='ok'&&['saved','issued','payment','export','backup'].includes(outcome)&&document.createElement;
+  if(visual){
+    const art=document.createElement('span');art.className='outcome-art';art.setAttribute('aria-hidden','true');
+    const folder=outcome==='export'||outcome==='backup';
+    art.innerHTML=`<span class="outcome-base">${ic(folder?'folder':outcome==='payment'?'receipt':'fileText',32)}</span>${folder?`<span class="outcome-file">${ic('fileText',16)}</span>`:''}<span class="outcome-check">${ic('check',16)}</span>`;
+    t.append(art);
+  }
+  t.className = 'toast show '+(kind||'')+(act?' has-action':'')+(visual?' outcome':'');
   clearTimeout(t._t);
   t._t = setTimeout(hideToast, kind==='err' ? 10000 : act ? 7000 : 2600);
 }
@@ -3288,6 +3489,7 @@ let currentView = 'dashboard';
 
 function setView(v){
   if(currentView==='legacy' && !captureLegacyDraft()) return false;
+  const viewChanged=currentView!==v;
   currentView = v;
   const navView=['recurring','legacy','corrections','docview'].includes(v)?'documents':v==='filing'?'report':v;
   document.querySelectorAll('#nav button, #addonNav button').forEach(b=>{
@@ -3295,6 +3497,9 @@ function setView(v){
     if(b.dataset.view===navView) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
   render();
+  const content=document.getElementById('content');
+  content.classList.remove('motion-enter');
+  if(viewChanged&&v!=='docview'){void content.offsetWidth;content.classList.add('motion-enter');}
 }
 // Leaving Settings saves pending edits first — navigating away must never drop them silently.
 async function navTo(v){
@@ -3332,7 +3537,7 @@ Object.assign(I18N_EN, {
   ,'ยอดสุทธิตามรายการรับเงิน ไม่ใช่เครดิตภาษีที่ตรวจแล้ว':'Net amount from payment records, not verified tax credits'
 });
 function openSafetyLimits(){
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ข้อจำกัดการใช้งาน')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ข้อจำกัดการใช้งาน')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">${[
       'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน',
       'พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์',
@@ -3343,7 +3548,7 @@ function openSafetyLimits(){
   openModal();
 }
 
-function render(){ setBreadcrumb(null);
+function render(){ stopAppAudio(); setBreadcrumb(null);
   applyUiLang();
   updateAiNavigation();
   document.getElementById('pageTitle').textContent = tr(TITLES[currentView]||'');
@@ -3411,13 +3616,11 @@ function updateBrand(){
 // เพิ่ม key ใหม่ที่นี่ = ต้องเพิ่ม path เดียวกันใน package.json build.files ด้วย
 // (DMG ไม่ได้แพ็กทั้ง assets/brand — ส่งเฉพาะไฟล์ที่แอปใช้จริง)
 const BRAND_ASSET = {
-  characterWorking: 'assets/brand/characters/set-1-01-freelancer-on-laptop.png',
-  characterInvoice: 'assets/brand/characters/set-1-02-freelancer-holding-invoice.png',
-  characterReview: 'assets/brand/characters/set-1-08-client-reviewing-bill.png',
-  characterReady: 'assets/brand/characters/set-1-10-creator-giving-thumbs-up.png',
-  objectLaptop: 'assets/brand/objects/set-1-01-laptop.png',
-  objectEnvelope: 'assets/brand/objects/set-1-23-envelope.png',
-  objectFolder: 'assets/brand/objects/set-1-24-folder.png'
+  assetInvoice: 'assets/brand/fintech/invoice-stack.png',
+  assetContacts: 'assets/brand/fintech/contact-cards.png',
+  assetDesk: 'assets/brand/fintech/freelancer-desk.png',
+  assetEnvelope: 'assets/brand/fintech/certificate-envelope.png',
+  assetFolder: 'assets/brand/fintech/document-folder.png'
 };
 function brandImg(key, alt='', cls=''){
   return `<img${cls?` class="${cls}"`:''} src="${BRAND_ASSET[key]}" alt="${attr(alt)}" loading="lazy">`;
@@ -3429,18 +3632,19 @@ function brandSnapshot(){
       <h3>${tr('ออกบิลไว เก็บเงินง่าย')}</h3>
       <p>${tr('เลือกงานถัดไปจากแดชบอร์ด แล้วส่งเอกสารให้ลูกค้าได้ทันที')}</p>
       <div class="brand-actions">
-        <button class="btn btn-sm btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>
+        <button class="btn btn-sm btn-primary" onclick="openDocEditor('quotation')">${ic('plus')} ${tr('เอกสารใหม่')}</button>
         <button class="btn btn-sm" onclick="setView('documents')">${tr('ดูเอกสาร')}</button>
       </div>
     </div>
     <div class="brand-art" aria-hidden="true">
-      ${brandImg('characterReady','', 'character')}
+      ${brandImg('assetDesk','','fintech-art')}
     </div>
   </section>`;
 }
 function brandEmpty(assetKey, title, sub=''){
+  const artClass=assetKey==='assetEnvelope'?'fintech-art fintech-art-portrait':'fintech-art';
   return `<div class="empty brand-empty">
-    <div class="brand-empty-art">${brandImg(assetKey,'')}</div>
+    <div class="brand-empty-art" aria-hidden="true">${brandImg(assetKey,'',artClass)}</div>
     <div class="brand-empty-title">${title}</div>
     ${sub?`<div class="brand-empty-sub">${sub}</div>`:''}
   </div>`;
@@ -3721,7 +3925,7 @@ function renderDashboard(c,ta){
   });
   const foreignKeys = Object.keys(foreign);
 
-  ta.innerHTML = `<button class="btn btn-primary" onclick="openDocEditor('quotation')">${tr('+ เอกสารใหม่')}</button>`;
+  ta.innerHTML = `<button class="btn btn-primary" onclick="openDocEditor('quotation')">${ic('plus')} ${tr('เอกสารใหม่')}</button>`;
 
   const recent = [...activeDocs()].sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,5);
   const due = dueRecurring();
@@ -3785,8 +3989,8 @@ function renderDashboard(c,ta){
 
     ${!firstRun && !recent.length ? brandSnapshot() : ''}
     <div class="section-title">${tr('เอกสารล่าสุด')}</div>
-    ${recent.length ? docTable(recent) : brandEmpty('characterInvoice', tr('ยังไม่มีเอกสาร — กด “เอกสารใหม่” เพื่อเริ่ม'), tr('เริ่มจากใบเสนอราคา แล้วแปลงเป็นใบแจ้งหนี้ได้ต่อทันที'))}
-    ${activeDocs().length>5?`<div style="margin-top:12px"><button class="btn btn-ghost" onclick="setView('documents')">${tr('ดูเอกสารทั้งหมด')} →</button></div>`:''}
+    ${recent.length ? docTable(recent) : brandEmpty('assetInvoice', tr('ยังไม่มีเอกสาร — กด “เอกสารใหม่” เพื่อเริ่ม'), tr('เริ่มจากใบเสนอราคา แล้วแปลงเป็นใบแจ้งหนี้ได้ต่อทันที'))}
+    ${activeDocs().length>5?`<div style="margin-top:12px"><button class="btn btn-ghost" onclick="setView('documents')">${tr('ดูเอกสารทั้งหมด')} ${ic('arrowRight')}</button></div>`:''}
   `;
   // Show financial amounts immediately; no count-up of intermediate values.
 }
@@ -3798,7 +4002,7 @@ function welcomeBanner(){
       ? tr('ตั้งค่าธุรกิจแล้ว — เพิ่มลูกค้ารายแรก แล้วออกเอกสารได้เลย')
       : tr('ยินดีต้อนรับ! ตั้งค่าข้อมูลธุรกิจแบบไว 3 ขั้นตอน — หรือดูตัวอย่างการใช้งานก่อนก็ได้')}</span>
     <button class="btn btn-sm" onclick="loadDemoData()">${tr('ลองดูข้อมูลตัวอย่าง')}</button>
-    ${named?`<button class="btn btn-sm btn-primary" onclick="setView('clients');openClientEditor()">${tr('+ เพิ่มลูกค้า')}</button>`
+    ${named?`<button class="btn btn-sm btn-primary" onclick="setView('clients');openClientEditor()">${ic('plus')} ${tr('เพิ่มลูกค้า')}</button>`
       :`<button class="btn btn-sm btn-primary" onclick="openWizard()">${tr('เริ่มตั้งค่า')}</button>`}</div>`;
 }
 
@@ -3880,14 +4084,14 @@ function drawWizard(){
       </div>
       <div class="field" style="margin-top:16px"><label>${tr('สีบนเอกสาร')}</label>
         <div class="pill-select">
-          ${WIZ_BRANDS.map(h=>`<button class="${(b.brandColor||DEFAULT_BRAND)===h?'on':''}" style="background:${h};border-color:${h};color:#fff;width:38px" onclick="wizSetBrand(${jsArg(h)})">${(b.brandColor||DEFAULT_BRAND)===h?'✓':'&nbsp;'}</button>`).join('')}
+          ${WIZ_BRANDS.map(h=>`<button class="${(b.brandColor||DEFAULT_BRAND)===h?'on':''}" style="background:${h};border-color:${h};color:#fff;width:38px" onclick="wizSetBrand(${jsArg(h)})">${(b.brandColor||DEFAULT_BRAND)===h?ic('check',16):'&nbsp;'}</button>`).join('')}
         </div>
         <div class="hint">${tr('เลือกสีอื่นแบบละเอียดได้ภายหลังที่ ตั้งค่า → สีองค์กร')}</div>
       </div>`];
   m.innerHTML = `
     <div class="modal-head"><h3>${tr('ตั้งค่าเริ่มต้น {step}/3 — {name}').replace('{step}',wizStep+1).replace('{name}',steps[wizStep])}</h3>
-      <div class="spacer"></div><button class="x" onclick="wizDone(true)">×</button></div>
-    <div class="modal-body" style="max-width:640px">${bodies[wizStep]}</div>
+      <div class="spacer"></div><button class="x" onclick="wizDone(true)">${ic('close')}</button></div>
+    <div class="modal-body wizard-step" style="max-width:640px">${wizStep===0?`<div class="setup-art" aria-hidden="true">${brandImg('assetDesk','','fintech-art')}</div>`:''}${bodies[wizStep]}</div>
     <div class="modal-foot">
       <button class="btn btn-ghost" style="margin-right:auto" onclick="wizDone(true)">${tr('ข้ามไปก่อน')}</button>
       ${wizStep>0?`<button class="btn" onclick="wizBack()">${ic('arrowLeft')} ${tr('ย้อนกลับ')}</button>`:''}
@@ -3962,7 +4166,7 @@ function newDocumentFromList(){ openDocEditor(['quotation','invoice','receipt'].
 function resetDocumentFilters(){docFilter='all';docStatusFilter='all';render();}
 function renderDocuments(c,ta){
   const legacyOpen=(paymentReview().unansweredGroups||[]).length;
-  ta.innerHTML = `<button class="btn" onclick="setView('recurring')">${tr('รายการประจำ')}</button>${legacyOpen?`<button class="btn" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')} (${legacyOpen})</button>`:''}<button class="btn" onclick="openDocumentArchive()">${tr('คลังเอกสาร')}</button><button class="btn btn-primary" onclick="newDocumentFromList()">${tr('+ เอกสารใหม่')}</button>`;
+  ta.innerHTML = `<button class="btn" onclick="setView('recurring')">${tr('รายการประจำ')}</button>${legacyOpen?`<button class="btn" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')} (${legacyOpen})</button>`:''}<button class="btn" onclick="openDocumentArchive()">${tr('คลังเอกสาร')}</button><button class="btn btn-primary" onclick="newDocumentFromList()">${ic('plus')} ${tr('เอกสารใหม่')}</button>`;
   const tabs = [['all','ทั้งหมด'],['quotation','ใบเสนอราคา'],['invoice','ใบแจ้งหนี้'],['receipt','ใบเสร็จ / ใบกำกับภาษี']];
   // status chip counts follow the active type tab
   let typed = activeDocs().filter(d=>!d.archivedAt);
@@ -3980,6 +4184,7 @@ function renderDocuments(c,ta){
         ${chips.map(([k,l,n])=>`<button data-s="${k}" class="${docStatusFilter===k?'on':''}" ${k==='overdue'&&n?'style="color:var(--red)"':''}>${tr(l)}${n?` (${n})`:''}</button>`).join('')}
       </div>
     </div>
+    ${renderAudioGuide('first-bill')}
     <div id="docListWrap"></div>
   `;
   c.querySelector('#docTabs').addEventListener('click',e=>{
@@ -4016,8 +4221,8 @@ function drawDocList(q){
   const wrap = document.getElementById('docListWrap');
   wrap.innerHTML = list.length ? docTable(list,true)
     : !activeDocs().filter(d=>!d.archivedAt).length
-      ? brandEmpty('characterInvoice',tr('ยังไม่มีเอกสาร'),tr('เพิ่มลูกค้า แล้วสร้างเอกสารแรก'))+`<button class="btn btn-primary" onclick="newDocumentFromList()">${tr(activeClients().length?'สร้างเอกสารแรก':'เพิ่มลูกค้า')}</button>`
-      : brandEmpty('characterInvoice',tr('ไม่พบเอกสาร'),tr('ลองเปลี่ยนตัวกรองหรือคำค้นหา'))+`<button class="btn" onclick="resetDocumentFilters()">${tr('ล้างตัวกรองและคำค้นหา')}</button>`;
+      ? brandEmpty('assetInvoice',tr('ยังไม่มีเอกสาร'),tr('เพิ่มลูกค้า แล้วสร้างเอกสารแรก'))+`<button class="btn btn-primary" onclick="newDocumentFromList()">${tr(activeClients().length?'สร้างเอกสารแรก':'เพิ่มลูกค้า')}</button>`
+      : brandEmpty('assetInvoice',tr('ไม่พบเอกสาร'),tr('ลองเปลี่ยนตัวกรองหรือคำค้นหา'))+`<button class="btn" onclick="resetDocumentFilters()">${tr('ล้างตัวกรองและคำค้นหา')}</button>`;
 }
 // One-click next step, right in the list row (mark paid / issue receipt).
 function docQuickAction(d, st){
@@ -4070,10 +4275,11 @@ function renderWht(c,ta){
   const whtReview={...paymentReview(),foreignMissing:list.filter(d=>!Number.isFinite(reportFxRate(d))).length};
   ta.innerHTML = list.length?`<button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('ส่งออก CSV (50 ทวิ)')}</button>`:'';
   if(!list.length){
-    c.innerHTML = reportReviewBanner(whtReview)+brandEmpty('objectEnvelope', tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย'), tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ'));
+    c.innerHTML = renderAudioGuide('wht')+reportReviewBanner(whtReview)+brandEmpty('assetEnvelope', tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย'), tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ'));
     return;
   }
   c.innerHTML = `
+    ${renderAudioGuide('wht')}
     <div class="banner info">
       ${ic('receipt')} ${tr('ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว')} ${tr('บันทึกรับใบ 50 ทวิ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิต')}
     </div>
@@ -4109,7 +4315,7 @@ function openWhtCert(id){
   if(!d)return false;
   const m=document.getElementById('modal');
   m.innerHTML=`
-    <div class="modal-head"><h3>${tr('ใบ 50 ทวิ —')} ${escapeHtml(d.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr('ใบ 50 ทวิ —')} ${escapeHtml(d.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="field"><label class="toggle"><input type="checkbox" id="w_got" ${d.whtCertReceived?'checked':''}><span class="track"></span><span>${tr('ได้รับใบหนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ) แล้ว')}</span></label></div>
       <div class="grid-2">
@@ -4151,10 +4357,10 @@ function dueRecurring(){ return activeRecurring().filter(r=> r.active!==false &&
 
 function renderRecurring(c,ta){
   setBreadcrumb([{label:tr('เอกสาร'),action:"setView('documents')"},{label:tr('รายการประจำ')}]);
-  ta.innerHTML = activeClients().length?`<button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button>`:'';
+  ta.innerHTML = activeClients().length?`<button class="btn btn-primary" onclick="openRecurringEditor()">${ic('plus')} ${tr('รายการประจำใหม่')}</button>`:'';
   const due = dueRecurring();
   if(!activeRecurring().length){
-    c.innerHTML = `${brandEmpty('objectFolder', tr('ยังไม่มีรายการประจำ'), tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว'))}${activeClients().length?`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openRecurringEditor()">${tr('+ รายการประจำใหม่')}</button></div>`:`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openClientEditor()">${tr('เพิ่มลูกค้า')}</button></div>`}`;
+    c.innerHTML = `${brandEmpty('assetFolder', tr('ยังไม่มีรายการประจำ'), tr('สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว'))}${activeClients().length?`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openRecurringEditor()">${ic('plus')} ${tr('รายการประจำใหม่')}</button></div>`:`<div style="text-align:center;margin-top:16px"><button class="btn btn-primary" onclick="openClientEditor()">${tr('เพิ่มลูกค้า')}</button></div>`}`;
     return;
   }
   c.innerHTML = `
@@ -4194,7 +4400,7 @@ function openRecurringEditor(id){
 function drawRecEditor(){
   const r=editRec; const b=DB.business; const m=document.getElementById('modal');
   m.innerHTML=`
-    <div class="modal-head"><h3>${tr(r.id?'แก้ไขรายการประจำ':'สร้างรายการประจำ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr(r.id?'แก้ไขรายการประจำ':'สร้างรายการประจำ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="grid-3">
         <div class="field"><label>${tr('ลูกค้า')}</label><select id="r_client" onchange="editRec.clientId=this.value">
@@ -4207,7 +4413,7 @@ function drawRecEditor(){
       <label style="display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin:6px 0 8px">${tr('รายการ')}</label>
       <table class="items-table"><thead><tr><th style="width:46%">${tr('รายละเอียด')}</th><th style="width:10%">${tr('จำนวน')}</th><th style="width:12%">${tr('หน่วย')}</th><th style="width:18%">${tr('ราคา/หน่วย')}</th><th style="width:14%;text-align:right">${tr('รวม')}</th><th></th></tr></thead>
         <tbody id="recItemsBody"></tbody></table>
-      <button class="btn btn-sm btn-ghost" onclick="recAddItem()">${tr('+ เพิ่มรายการ')}</button>
+      <button class="btn btn-sm btn-ghost" onclick="recAddItem()">${ic('plus')} ${tr('เพิ่มรายการ')}</button>
       <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-top:18px;align-items:start">
         <div>
           <div class="grid-2">
@@ -4235,7 +4441,7 @@ function drawRecItems(){
     <td><input value="${attr(it.unit)}" oninput="editRec.items[${i}].unit=this.value"></td>
     <td><input type="number" min="0" step="0.01" value="${attr(it.price)}" oninput="editRec.items[${i}].price=this.value;drawRecLadder();recRowTotal(${i})" onchange="this.value=priceInput(this.value);editRec.items[${i}].price=this.value;drawRecLadder();recRowTotal(${i})" style="text-align:right"></td>
     <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px" class="rect">${money(lineTotal(it))}</td>
-    <td><button class="del" onclick="recDelItem(${i})">×</button></td></tr>`).join('');
+    <td><button class="del" onclick="recDelItem(${i})">${ic('close')}</button></td></tr>`).join('');
 }
 function recRowTotal(i){ const it=editRec.items[i]; const cell=document.getElementById('recItemsBody').children[i]?.children[4]; if(cell) cell.textContent=money(lineTotal(it)); }
 function recAddItem(){ editRec.items.push({description:'',qty:1,unit:'',price:0}); drawRecItems(); drawRecLadder(); }
@@ -4307,9 +4513,9 @@ async function generateRecurring(id){
 
 /* ---------- CLIENTS ---------- */
 function renderClients(c,ta){
-  ta.innerHTML = `<button class="btn btn-primary" onclick="openClientEditor()">${tr('+ เพิ่มลูกค้า')}</button>`;
+  ta.innerHTML = `<button class="btn btn-primary" onclick="openClientEditor()">${ic('plus')} ${tr('เพิ่มลูกค้า')}</button>`;
   if(!activeClients().length){
-    c.innerHTML = brandEmpty('characterReview', tr('ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร'), tr('เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้'));
+    c.innerHTML = brandEmpty('assetContacts', tr('ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร'), tr('เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้'));
     return;
   }
   c.innerHTML = `<div class="cards">${activeClients().map(cl=>{
@@ -4649,7 +4855,7 @@ function renderLegacyReview(c,ta){
         <div class="field"><label class="toggle"><input type="checkbox" id="legacyConfirmed"><span class="track"></span><span>${tr('ยืนยันว่าคำตอบตรงกับเงินที่ฉันได้รับจริง')}</span></label></div>
         <div class="field"><label for="legacyNote">${tr('บันทึกประกอบ ไม่ใช่การรับรองความถูกต้อง')}</label><textarea id="legacyNote" maxlength="4000">${escapeHtml(draftNoteValid?draft?.note||'':'')}</textarea></div>
         <button class="btn btn-primary" onclick="submitLegacyAnswers()">${ic('check')} ${tr('บันทึกคำตอบ')}</button><button class="btn btn-ghost" onclick="discardLegacyDraft()">${tr('ทิ้งคำตอบที่ยังไม่บันทึก')}</button>
-      </div>`:brandEmpty('objectFolder',tr(summary.legacyGroups.length?'ตรวจข้อมูลเดิมครบแล้ว':'ไม่มีข้อมูลเดิมที่ต้องตรวจ'))}
+      </div>`:brandEmpty('assetFolder',tr(summary.legacyGroups.length?'ตรวจข้อมูลเดิมครบแล้ว':'ไม่มีข้อมูลเดิมที่ต้องตรวจ'))}
     ${answered.length?`<details class="card-block"><summary>${tr('ตอบแล้ว')} (${answered.length})</summary>
       ${answered.map(item=>`<div class="legacy-answered">${item.group.map(legacyRecordLine).join('')}
         <div class="muted">${tr('คำตอบล่าสุด')}: ${tr(LEGACY_DECISIONS[item.answer.decision])} · ${escapeHtml(fmtDate(item.answer.recordedAt.slice(0,10)))}</div>
@@ -4792,7 +4998,7 @@ function renderReport(c,ta){
     </div>
 
     ${reportReviewBanner(summary)}
-    ${!docs.length ? brandEmpty('objectLaptop', tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(reportYear)), tr('รับเงินที่บันทึกไว้ รวมบิลชำระแล้วและใบเสร็จ โดยตัดรายการซ้ำ')) : `
+    ${!docs.length ? brandEmpty('assetDesk', tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(reportYear)), tr('รับเงินที่บันทึกไว้ รวมบิลชำระแล้วและใบเสร็จ โดยตัดรายการซ้ำ')) : `
     <div class="report-cards">
       <div class="rc net"><div class="rl">${tr('ยอดรับสุทธิตามเอกสาร')}</div><div class="rv">${fmtMoneyC(agg.net,'THB')}</div><div class="rs">${tr('หลังหักภาษี ณ ที่จ่าย')}</div></div>
       <div class="rc"><div class="rl">${tr('ยอดหักคาดหมาย')}</div><div class="rv">−${fmtMoneyC(agg.wht,'THB')}</div><div class="rs">${tr('ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว')}</div></div>
@@ -4948,7 +5154,7 @@ function renderFiling(c,ta){
 }
 
 /* ---------- SETTINGS ---------- */
-/* ตั้งค่า 3 แท็บ: ธุรกิจของฉัน · เอกสารและภาษี · ข้อมูลและสำรอง */
+/* ตั้งค่า 4 แท็บ: ธุรกิจของฉัน · เอกสารและภาษี · ข้อมูลและสำรอง · เสียง */
 let settingsTab = 'business';
 let settingsDirty = false;   // unsaved edits on the current Settings tab
 function markSettingsDirty(dirty){
@@ -4969,7 +5175,7 @@ async function setSettingsTab(t){
 }
 function renderSettings(c,ta){
   const b = DB.business;
-  const tabs = [['business','ธุรกิจของฉัน'],['docs','เอกสารและภาษี'],['data','ข้อมูลและสำรอง']];
+  const tabs = [['business','ธุรกิจของฉัน'],['docs','เอกสารและภาษี'],['data','ข้อมูลและสำรอง'],['sounds','เสียง']];
   if(!tabs.some(([k])=>k===settingsTab)) settingsTab = 'business';
   settingsDirty = false;
   const saveBar = `<div class="settings-savebar">
@@ -5050,7 +5256,7 @@ function renderSettings(c,ta){
         <div class="field"><input id="s_brandHex" aria-label="${attr(tr('รหัสสี HEX'))}" value="${attr(b.brandColor||DEFAULT_BRAND)}" maxlength="7" spellcheck="false" autocapitalize="off" oninput="previewBrand(this.value)"></div>
       </div>
       <div class="brand-presets" id="brandPresets" role="group" aria-label="${attr(tr('สีสำเร็จรูป'))}">
-        ${BRAND_PRESETS.map(p=>`<button class="brand-swatch" type="button" title="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-label="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-pressed="${(b.brandColor||DEFAULT_BRAND).toLowerCase()===p.hex}" data-brand-color="${p.hex}" onclick="setBrandPreset(${jsArg(p.hex)})" style="--swatch-color:${p.hex}"></button>`).join('')}
+        ${BRAND_PRESETS.map(p=>`<button class="brand-swatch" type="button" title="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-label="${attr(tr(p.name))} ${p.hex.toUpperCase()}" aria-pressed="${(b.brandColor||DEFAULT_BRAND).toLowerCase()===p.hex}" data-brand-color="${p.hex}" onclick="setBrandPreset(${jsArg(p.hex)})" style="--swatch-color:${p.hex}"><span class="swatch-check">${ic('check',12)}</span></button>`).join('')}
         <button class="btn btn-sm btn-ghost" type="button" onclick="setBrandPreset(DEFAULT_BRAND)">${tr('คืนค่าเริ่มต้น')}</button>
       </div>
       <div class="hint document-brand-preview"><span class="brand-preview-label">${tr('ตัวอย่างสด:')}</span>
@@ -5114,6 +5320,7 @@ function renderSettings(c,ta){
     ${saveBar}`;
 
   const dataCards = ()=> IS_ELECTRON ? `
+    ${renderAudioGuide('backup')}
     ${syncV3Info.configured?`<div class="card-block"><h4>${tr('ซิงก์ Google Drive')} · Pro</h4>
       <p>${tr('ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ')}</p>
       <p class="hint">${tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก')}</p>
@@ -5206,12 +5413,12 @@ function renderSettings(c,ta){
       </div>
     </div>`;
 
-  const groups = { business: businessCards, docs: docsCards, data: dataCards };
+  const groups = { business: businessCards, docs: docsCards, data: dataCards, sounds: renderAudioSettings };
   c.innerHTML = `<div class="settings-grid">
     <div class="tabs">
       ${tabs.map(([k,l])=>`<button class="${settingsTab===k?'active':''}" onclick="setSettingsTab(${jsArg(k)})">${tr(l)}</button>`).join('')}
     </div>
-    ${(groups[settingsTab]||businessCards)()}
+    <div class="settings-panel">${(groups[settingsTab]||businessCards)()}</div>
   </div>`;
   if(IS_ELECTRON && settingsTab==='data') loadBackupHistory();
 }
@@ -5261,7 +5468,7 @@ async function makeManualSnapshot(){
   try{
     if(!await persist(true)) return;   // Never claim a backup of unsaved/failed-load data succeeded.
     const n = await window.billingAPI.snapshotBackup('manual');
-    if(n){ toast(tr('สร้างไฟล์สำรองแล้ว'),'ok'); loadBackupHistory(); }
+    if(n){ toast(tr('สร้างไฟล์สำรองแล้ว'),'ok',null,'backup'); loadBackupHistory(); }
   }catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
 }
 async function restoreBackupFile(name){
@@ -5414,7 +5621,7 @@ function openClientEditor(id){
   const m = document.getElementById('modal');
   m.innerHTML = `
     <div class="modal-head"><h3>${tr(id?'แก้ไขลูกค้า':'เพิ่มลูกค้า')}</h3><div class="spacer"></div>
-      <button class="x" onclick="closeModal()">×</button></div>
+      <button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="field"><label>${tr('ชื่อลูกค้า / บริษัท *')}</label><input id="c_name" value="${attr(cl.name)}" placeholder="${tr('เช่น Thai PBS, มูลนิธิ LPN')}"></div>
       <div class="grid-2">
@@ -5728,11 +5935,12 @@ async function confirmReceiptPrerequisite(){
   drawDocEditor();
 }
 function drawDocEditor(){
+  stopAppAudio();
   const d=editDoc; const b=DB.business;
   const m=document.getElementById('modal');
   const isNew = !d.id;
   if(d.type==='receipt'&&b.vatStatus!=='non_registered'){
-    m.innerHTML=`<div class="modal-head"><h3>${tr('ก่อนสร้างใบเสร็จ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    m.innerHTML=`<div class="modal-head"><h3>${tr('ก่อนสร้างใบเสร็จ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
       <div class="modal-body"><p>${tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</p><p>${tr('กรุณายืนยันสถานะ VAT ของธุรกิจในตั้งค่าก่อน')}</p></div>
       <div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button>${b.vatStatus==='registered'
         ?`<button class="btn btn-primary" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button>`
@@ -5742,9 +5950,10 @@ function drawDocEditor(){
   m.innerHTML = `
     <div class="modal-head"><h3>${tr(isNew?'สร้าง':'แก้ไข')} ${typeOpts[d.type]}</h3>
       ${d.number?`<span class="muted" style="margin-left:10px;font-size:13px">${escapeHtml(d.number)}</span>`:''}
-      <div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+      <div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       ${issueChecklistHtml()}
+      ${renderAudioGuide('draft-issued')}
       ${pendingEditorDraft?`<div class="banner info"><span class="banner-text">${tr('พบเอกสารที่พิมพ์ค้างไว้เมื่อ {t} — กู้คืนไหม').replace('{t}',escapeHtml(fmtDate(String(pendingEditorDraft.savedAt||'').slice(0,10))))}</span>
         <button class="btn btn-sm" onclick="discardEditorDraft()">${tr('ทิ้ง')}</button><button class="btn btn-sm btn-primary" onclick="restoreEditorDraft()">${tr('กู้คืน')}</button></div>`:''}
       ${d.type==='receipt'?`<div class="hint">${tr('ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น')}</div>`:''}
@@ -5783,7 +5992,7 @@ function drawDocEditor(){
         <thead><tr><th style="width:46%">${tr('รายละเอียด')}</th><th style="width:10%">${tr('จำนวน')}</th><th style="width:12%">${tr('หน่วย')}</th><th style="width:18%">${tr('ราคา/หน่วย')}</th><th style="width:14%;text-align:right">${tr('รวม')}</th><th></th></tr></thead>
         <tbody id="itemsBody"></tbody>
       </table>
-      <button class="btn btn-sm btn-ghost" onclick="addItem()">${tr('+ เพิ่มรายการ')}</button>
+      <button class="btn btn-sm btn-ghost" onclick="addItem()">${ic('plus')} ${tr('เพิ่มรายการ')}</button>
 
       <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-top:18px;align-items:start">
         <div>
@@ -5861,7 +6070,7 @@ function drawItems(){
       <td><input value="${attr(it.unit)}" placeholder="${tr('งาน')}" oninput="updItem(${i},'unit',this.value)"></td>
       <td><input type="number" min="0" step="0.01" value="${attr(it.price)}" oninput="updItem(${i},'price',this.value)" onchange="this.value=priceInput(this.value);updItem(${i},'price',this.value)" style="text-align:right"></td>
       <td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:10px">${money(lineTotal(it))}</td>
-      <td><button class="del" onclick="delItem(${i})">×</button></td>
+      <td><button class="del" onclick="delItem(${i})">${ic('close')}</button></td>
     </tr>`).join('');
 }
 function addItem(){ markDirty(); editDoc.items.push({description:'',qty:1,unit:'',price:0}); drawItems(); drawLadder(); }
@@ -6044,8 +6253,9 @@ async function saveDoc(){
   }
   issuanceBusy=true;
   try{
-    if(!await persistDocumentMutation(d,existing?.id)) return;
-    editDoc=null; clearDraft(); closeModal(); viewDoc(d.id); toast(tr('บันทึกเอกสารแล้ว'),'ok');
+    if(!await persistDocumentMutation(d,existing?.id)){playAppSfx('attention');return;}
+    editDoc=null; clearDraft(); closeModal(); viewDoc(d.id); toast(tr('บันทึกเอกสารแล้ว'),'ok',null,finalize?'issued':'saved');
+    if(finalize) playAppSfx('issued');
   }finally{issuanceBusy=false;}
 }
 async function deleteDoc(id){
@@ -6168,7 +6378,7 @@ function openPaymentDialog(id){
   const inv=DB.documents.find(x=>x.id===id), t=inv&&compute(inv);
   // Show the amount being confirmed so the owner can compare it with the actual transfer.
   const amountLine=t&&reportAmountsValid(t)?`<p>${tr('ยอดที่ควรได้รับ {net}').replace('{net}',fmtMoneyC(t.netPayable,t.currency))}${t.whtAmount?` · ${tr('หลังหัก ณ ที่จ่าย {wht}').replace('{wht}',fmtMoneyC(t.whtAmount,t.currency))}`:''}</p>`:'';
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}${renderAudioGuide('payment')}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
 }
 async function submitPaymentDialog(id){return setStatus(id,'paid',{paidDate:document.getElementById('paymentDate').value,fullPaymentConfirmed:document.getElementById('paymentFull').checked});}
 async function archiveDocument(id,archived){
@@ -6640,7 +6850,7 @@ function exportDocumentArchive(){
     reviewEvents:(DB.reviewEvents||[]).filter(e=>documents.some(d=>d.id===e.documentId)),evidenceWarning:'Evidence binaries require separate evidence bundle backup'},null,2), 'BillNgai-document-archive-'+todayISO()+'.json','application/json');
 }
 function openDocumentArchive(){
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('คลังเอกสาร')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div><div class="modal-body"><div class="banner">${tr('คลังนี้ไม่ใช่เอกสารสำหรับยื่นภาษี')}</div><p>${tr('สำรอง JSON ไม่รวมไฟล์หลักฐาน ต้องสำรองชุดหลักฐานแยก')}</p>`+archivedDocuments().map(d=>`<div class="card-block"><b>${escapeHtml(d.number||d.id)}</b> · ${tr(d.voidedAt?'ยกเลิกแล้ว':d.deletedAt?'เก็บจากการลบเดิม':d.archivedAt?'เก็บเข้าคลังแล้ว':'รอตรวจสอบประวัติ')} <button class="btn btn-sm" onclick="closeModal();viewDoc(${jsArg(d.id)})">${tr('เปิดข้อมูลที่เก็บไว้')}</button></div>`).join('')+(archivedDocuments().length?'':`<p>${tr('ไม่มีเอกสารในคลัง')}</p>`)+`</div><div class="modal-foot"><button class="btn" onclick="exportDocumentArchive()">${tr('ส่งออกคลังเพื่อทบทวน')}</button>${window.billingAPI?.exportEvidenceBundle?`<button class="btn" onclick="evidenceBundle('export')">${tr('ส่งออกชุดหลักฐาน')}</button><button class="btn" onclick="evidenceBundle('import')">${tr('นำเข้าชุดหลักฐาน')}</button>`:''}<button class="btn" onclick="closeModal()">${tr('ปิด')}</button></div>`;
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('คลังเอกสาร')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div><div class="modal-body"><div class="banner">${tr('คลังนี้ไม่ใช่เอกสารสำหรับยื่นภาษี')}</div><p>${tr('สำรอง JSON ไม่รวมไฟล์หลักฐาน ต้องสำรองชุดหลักฐานแยก')}</p>`+archivedDocuments().map(d=>`<div class="card-block"><b>${escapeHtml(d.number||d.id)}</b> · ${tr(d.voidedAt?'ยกเลิกแล้ว':d.deletedAt?'เก็บจากการลบเดิม':d.archivedAt?'เก็บเข้าคลังแล้ว':'รอตรวจสอบประวัติ')} <button class="btn btn-sm" onclick="closeModal();viewDoc(${jsArg(d.id)})">${tr('เปิดข้อมูลที่เก็บไว้')}</button></div>`).join('')+(archivedDocuments().length?'':`<p>${tr('ไม่มีเอกสารในคลัง')}</p>`)+`</div><div class="modal-foot"><button class="btn" onclick="exportDocumentArchive()">${tr('ส่งออกคลังเพื่อทบทวน')}</button>${window.billingAPI?.exportEvidenceBundle?`<button class="btn" onclick="evidenceBundle('export')">${tr('ส่งออกชุดหลักฐาน')}</button><button class="btn" onclick="evidenceBundle('import')">${tr('นำเข้าชุดหลักฐาน')}</button>`:''}<button class="btn" onclick="closeModal()">${tr('ปิด')}</button></div>`;
   openModal();
 }
 
@@ -6654,7 +6864,7 @@ function setBreadcrumb(parts){
   if(!el) return;
   if(!parts||!parts.length){el.innerHTML='';return;}
   el.innerHTML=parts.map((p,i)=>{
-    const sep=i<parts.length-1?' <span style="color:var(--border)">›</span> ':'';
+    const sep=i<parts.length-1?` <span style="color:var(--text-faint)">${ic('chevronRight',12)}</span> `:'';
     return (p.action?`<span style="cursor:pointer;color:var(--text-dim)" onclick="${p.action}">${escapeHtml(p.label)}</span>`:`<span>${escapeHtml(p.label)}</span>`)+sep;
   }).join('');
 }
@@ -6692,6 +6902,7 @@ function renderDocView(c,ta){
   }
 
   c.innerHTML = `
+    ${issued&&!blocked?renderAudioGuide('send-bill'):''}
     <div class="doc-actions">
       <span style="display:flex;align-items:center;margin-right:6px">${statusBadge(st)}</span>
       ${lifecycle}
@@ -6764,8 +6975,8 @@ async function savePDF(){
   try{
     applyPrintZoom();
     const p = await window.billingAPI.exportPDF(name);
-    if(p) toast(tr('บันทึก PDF แล้ว:')+' '+baseName(p),'ok');
-  }catch(e){ toast(tr('บันทึก PDF ไม่สำเร็จ'),'err'); }
+    if(p){toast(tr('บันทึก PDF แล้ว:')+' '+baseName(p),'ok',null,'export');playAppSfx('export');}
+  }catch(e){ toast(tr('บันทึก PDF ไม่สำเร็จ'),'err');playAppSfx('attention'); }
   finally{ clearPrintZoom(); }
 }
 // Ready-to-paste summary for LINE/chat: what, how much, when, where to pay.
@@ -6982,7 +7193,7 @@ async function setStatus(id,st,facts){
     d.paidDate=paidDate; d.fullPaymentConfirmed=true; d.paymentId=d.paymentId||uid();
   }
   d.status=st; issuanceBusy=true;
-  try{if(await persistDocumentMutation(d,id)){closeModal();render();return true;}return false;}finally{issuanceBusy=false;}
+  try{if(await persistDocumentMutation(d,id)){closeModal();render();if(st==='paid'){toast(tr('บันทึกรับเงินแล้ว'),'ok',null,'payment');playAppSfx('payment');}return true;}if(st==='paid')playAppSfx('attention');return false;}finally{issuanceBusy=false;}
 }
 function convertToInvoice(id){
   const q=DB.documents.find(x=>x.id===id);
@@ -7016,8 +7227,8 @@ async function createReceipt(id){
   if(!await askConfirm(tr('ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?'),{confirmLabel:tr('ออกใบเสร็จรับเงิน')}) || issuanceBusy) return;
   issuanceBusy=true;
   try{
-    if(!await persistDocumentMutation(rec,null,inv.issuedSnapshot)) return;
-    viewDoc(rec.id); toast(tr('ออกใบเสร็จแล้ว'),'ok');return rec;
+    if(!await persistDocumentMutation(rec,null,inv.issuedSnapshot)){playAppSfx('attention');return;}
+    viewDoc(rec.id); toast(tr('ออกใบเสร็จแล้ว'),'ok',null,'issued');playAppSfx('issued');return rec;
   }finally{issuanceBusy=false;}
 }
 function duplicateDoc(id){
@@ -7145,7 +7356,7 @@ function drawSplitDialog(){
   }).join('');
   const m=document.getElementById('modal');
   m.innerHTML=`
-    <div class="modal-head"><h3>${tr('แบ่งงวด')} — ${escapeHtml(q.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-head"><h3>${tr('แบ่งงวด')} — ${escapeHtml(q.number)}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       <div class="muted" style="font-size:12px;margin-bottom:10px">${tr('ยอดก่อน VAT {a} — งวดสุดท้ายปรับยอดให้ครบอัตโนมัติ แต่ละงวดจะคิด VAT/หัก ณ ที่จ่าย ของตัวเอง').replace('{a}',cs+money(base))}</div>
       <div class="pill-select" style="margin-bottom:12px">
@@ -7267,6 +7478,7 @@ function focusModal(){
   (first||m).focus({preventScroll:true});
 }
 function openModal(){
+  stopAppAudio();
   const ov=document.getElementById('overlay');
   const wasOpen=!!(ov.classList.contains && ov.classList.contains('open'));
   ov.classList.add('open');
@@ -7275,6 +7487,7 @@ function openModal(){
   focusModal();
 }
 function closeModal(){
+  stopAppAudio();
   const recoverable=editDoc&&editDocDirty?JSON.parse(JSON.stringify(editDoc)):null;
   if(recoverable&&!autoSaveDraft())return false;
   const wasEditor=!!editDoc;editDoc=null;if(wasEditor)clearDraft(!recoverable&&!pendingEditorDraft);
@@ -7311,11 +7524,11 @@ function taxIdFeedback(val,finished){
   // Partial digits stay quiet while typing; letters, or a short number on leaving the field, are flagged.
   const r=!s ? null : s.length===13 ? validateThaiTaxId(s) : (/^\d{1,12}$/.test(s) && !finished ? null : false);
   if(r===null){el.textContent='';el.className='';return;}
-  el.textContent=r?'✓ '+tr('เลขประจำตัวผู้เสียภาษีถูกต้อง'):'✗ '+tr('เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง');
+  el.innerHTML=ic(r?'check':'close',14)+' '+escapeHtml(tr(r?'เลขประจำตัวผู้เสียภาษีถูกต้อง':'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง'));
   el.className=r?'taxid-valid':'taxid-invalid';
 }
 function hintIcon(text){
-  return `<span class="field-hint-icon" tabindex="0" role="img" aria-label="${attr(text)}">?<span class="tip" aria-hidden="true">${escapeHtml(text)}</span></span>`;
+  return `<span class="field-hint-icon" tabindex="0" role="img" aria-label="${attr(text)}">${ic('help',16)}<span class="tip" aria-hidden="true">${escapeHtml(text)}</span></span>`;
 }
 
 /* ---------- Command palette (Cmd+K) + keyboard shortcuts ---------- */
@@ -7422,6 +7635,7 @@ Object.assign(I18N_EN,{
   'ทิ้ง':'Discard',
   'ร่างแก้ไขได้ภายหลัง · เอกสารที่ออกแล้วแก้ไขไม่ได้':'Drafts can be edited later · issued documents cannot',
   'ลบร่าง':'Delete draft',
+  'บันทึกรับเงินแล้ว':'Payment recorded',
   'บันทึกร่าง':'Save draft',
   'ออกเอกสาร':'Issue document',
   'ออก{type}ให้ {client} ยอด {amount}?':'Issue {type} to {client} for {amount}?',

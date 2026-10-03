@@ -3,7 +3,7 @@
 // Synthetic data only; never point this at a real profile.
 const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-prepublish-')),profile=path.join(root,'profile');await fs.mkdir(profile);
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-prepublish-')),profile=path.join(root,'profile');await fs.mkdir(profile);await fs.writeFile(path.join(profile,'config.json'),'{"externalPath":null}');
  const exe=process.argv[2],app=await _electron.launch({executablePath:exe||require('electron'),args:[...(exe?[]:[path.resolve(__dirname,'..')]),'--user-data-dir='+profile]});
  try{
   assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));
@@ -26,7 +26,7 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
   assert.equal(await page.evaluate(()=>DB.business.vatStatus),'unknown');
 
   // 2. First client.
-  await page.getByRole('button',{name:'+ เอกสารใหม่'}).click();
+  await page.getByRole('button',{name:'เอกสารใหม่',exact:true}).click();
   await page.locator('#c_name').fill('Synthetic Client Co.');await page.locator('#c_taxid').fill('abc');await page.locator('#c_taxid').blur();
   assert.equal(await page.locator('#taxIdFeedback').getAttribute('class'),'taxid-invalid');await page.locator('#c_taxid').fill('');
   await page.locator('#modal').getByRole('button',{name:'บันทึก',exact:true}).click();await settle();

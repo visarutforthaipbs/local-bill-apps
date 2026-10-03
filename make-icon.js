@@ -25,7 +25,7 @@ app.whenReady().then(async () => {
   const S=${SIZE}, c=document.getElementById('c'), x=c.getContext('2d');
   const img = new Image();
   img.onload = () => {
-    x.drawImage(img, 0, 0);
+    x.drawImage(img, 0, 0, S, S);
     const imgData = x.getImageData(0, 0, S, S);
     const data = imgData.data;
     

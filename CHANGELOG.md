@@ -3,6 +3,16 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.13] - 2026-10-03
+
+### Changed
+- Refresh the application icon and sidebar mark with the folded-paper lowercase b identity, and replace decorative illustrations with the approved clay artwork. Keep the orange accent and cream background.
+- Use coordinated outline icons and restrained motion with reduced-motion support. Keep familiar labels for financial decisions.
+- Add an optional Sounds settings tab with Thai female voice guides, translated transcripts and device-local task cues. Audio starts only by user choice and never controls financial actions.
+- Retain the verified 2.0.12 Google Drive sync, conflict review, number reservations, ordinary receipt issuance, frozen documents and print layout.
+
+Direct macOS candidate; publication and channel verification are recorded in RELEASE-2.0.13.md. Mobile sync development is excluded. Windows remains separately versioned until its build passes.
+
 ## [2.0.12] - 2026-09-30
 
 macOS release: Google Drive sync for BillNgai Pro. Includes all 2.0.10–2.0.11 fixes. See `INSTALL-2.0.12.md`.

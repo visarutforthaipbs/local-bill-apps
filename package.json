@@ -1,6 +1,6 @@
 {
   "name": "billngai-app",
-  "version": "2.0.12",
+  "version": "2.0.13",
   "description": "Local-first quotation / invoice / receipt tool with Thai tax handling",
   "main": "main.js",
   "scripts": {
@@ -16,7 +16,8 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac",
     "dist:unsigned": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.notarize=false",
-    "dist:mas": "electron-builder --mac mas"
+    "dist:mas": "electron-builder --mac mas",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
   },
   "keywords": [
     "billing",
@@ -47,13 +48,12 @@
       "billing.html",
       "lib/*.cjs",
       "logo.svg",
-      "assets/brand/characters/set-1-01-freelancer-on-laptop.png",
-      "assets/brand/characters/set-1-02-freelancer-holding-invoice.png",
-      "assets/brand/characters/set-1-08-client-reviewing-bill.png",
-      "assets/brand/characters/set-1-10-creator-giving-thumbs-up.png",
-      "assets/brand/objects/set-1-01-laptop.png",
-      "assets/brand/objects/set-1-23-envelope.png",
-      "assets/brand/objects/set-1-24-folder.png",
+      "assets/brand/fintech/invoice-stack.png",
+      "assets/brand/fintech/contact-cards.png",
+      "assets/brand/fintech/freelancer-desk.png",
+      "assets/brand/fintech/certificate-envelope.png",
+      "assets/brand/fintech/document-folder.png",
+      "assets/audio/**/*.mp3",
       "fonts/**/*",
       "secrets/gdrive-oauth.json",
       "package.json"
@@ -91,6 +91,24 @@
       "sign": true,
       "format": "UDZO",
       "internetEnabled": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon_source.png",
+      "artifactName": "BillNgai-${version}-${arch}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false
     }
   }
 }

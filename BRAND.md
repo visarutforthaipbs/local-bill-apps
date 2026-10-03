@@ -87,8 +87,12 @@ with a checkmark and `aria-pressed` selection. The custom picker is a square
 48px control with the input-radius token; the HEX field uses the shared field style.
 Saved seller colors, including the former green default, must survive reload.
 
-The existing orange BillNgai logo remains the product mark; this change does
-not replace installed icons or marketing artwork.
+The owner selected the folded-paper lowercase “b” logo (concept B) on 2026-10-03.
+The primary flat mark is `logo.svg`: ivory paper ribbon on the original orange
+rounded square. The matching matte-clay render is `build/icon_source.png` for
+app icons, with a retained export at `assets/brand/fintech/logo-b-clay.png`.
+Use the same silhouette in small flat and large clay forms; no check or arrow.
+Source updates do not replace installed app icons or publish marketing changes.
 
 ### Typography
 
@@ -125,12 +129,80 @@ which wraps at narrow widths; modal and Settings save actions stay in their foot
 Outline only, stroke 2.5px, rounded caps/joins (the `ic()` / `ICONS` system in
 `billing.html` — add new icons there, same style). No filled icons except the logo.
 
+The owner approved a complete icon refresh on 2026-10-03. Use the bundled
+BillNgai rounded outline family on a 24px grid, with balanced inset geometry
+and the same 2.5px stroke at every size. Navigation, actions, statuses, search,
+close controls, field hints and swatch checks share `ICONS`; no font glyphs or
+raster illustrations for these controls. Selected navigation icons inherit
+`--on-accent` from the existing orange selected row. Keep status labels
+and accessible control names. Fine-pointer hover may lift button/navigation icons
+by 1px over 200ms ease-out; reduced motion disables it. No looping icon motion.
+
+### In-app decorative illustrations — owner revision 2026-10-03
+
+The owner approved a starter set of matte 3D-style objects for the app's empty
+Documents / Dashboard and Clients states, plus the first setup-wizard step.
+Use bundled local PNG renders: invoice stack, contact cards, freelancer desk.
+Keep orange, ivory and charcoal, consistent gentle isometric lighting, and a
+white image background on white surfaces. No embedded labels or financial figures.
+The owner requested complete in-app illustration replacement on 2026-10-03.
+All decorative images now use this family: invoice stack, contact cards,
+freelancer desk, certificate envelope and document folder. Dashboard promotional
+art and income-summary empty states reuse the desk; WHT uses the envelope;
+recurring and historical-review empty states use the folder. The runtime registry
+and packaged file list must contain no former character/object illustration paths.
+Archived source artwork is retained outside the shipped asset list.
+
+The marketing illustration guidance below remains unchanged. The approved logo and printed documents retain their styles; app controls use
+the coordinated outline icon family above.
+
+Decorative art may enter once over 240ms with up to 8px movement, and lift/tilt
+slightly on fine-pointer hover over 200ms. No persistent loops, bounce or spin.
+Disable these animations and transforms under prefers-reduced-motion. This finite
+entrance is an explicit exception to the general ~200ms animation guidance.
+
+### Task and panel motion — owner revision 2026-10-03
+
+Confirmed document saves/issuance, manual payment recording, native PDF exports
+and desktop backups may display a compact paper/check or folder/document/check
+illustration inside the existing status toast. Trigger only after the operation
+confirms success; never on cancellation, failed persistence, startup or automatic
+background work. Payment feedback means the user's record was saved, not bank
+verification. Browser download initiation cannot confirm file completion and gets
+no completion artwork. Preserve message text, live-region semantics and undo actions.
+
+Use the local outline SVG family with 200ms ease-out settling/check movement;
+no loops, bounce, blocking overlays or animated financial amounts. Navigation,
+Settings tabs, wizard steps and optional detail panels may reveal over 200ms with
+up to 4px vertical movement. Preserve focus, controls and layout. Reduced motion
+keeps static outcome artwork and text, and disables these animations/transitions.
+Existing setup clay artwork retains its approved single entrance.
+
 ### Animation
 
 Fast: ~200ms, ease-out. No bounce, no spinning loaders — prefer skeleton loading.
 Use ease-out; avoid bouncing or counting financial amounts through intermediate values.
 
 ---
+
+## In-app audio — owner revision 2026-10-03
+
+Use the approved female Onnie Thai voice only. Six bundled Thai guides provide
+optional, contextual help with visible translated transcripts. English UI labels
+must explicitly say that spoken audio is Thai. Never autoplay a guide. Stop it
+when its section closes, the modal closes, or the screen changes. One clip at a
+time; effects must not interrupt a voice explanation.
+
+Task effects are off by default, with a device-local preference and explicit
+preview controls in Settings → Sounds. Use the approved original
+issued/payment/export cues and a gentle attention cue on explicit failed actions.
+Play completion sounds only after persistence/export confirms success. Manual
+payment recording never means bank verification. Owner-approved tiny taps acknowledge
+intentional button, summary and toggle activation (including keyboard use), using
+the same opt-in switch. Throttle rapid clicks; skip disabled/programmatic clicks,
+audio controls and actions with their own completion cue. Taps never interrupt
+voice or another cue. Keep typing, scrolling, autosave, startup and background sync
+quiet. Playback failure must never change or block financial work. Bundle local files; no runtime ElevenLabs calls.
 
 ## Voice & copy
 
@@ -181,3 +253,26 @@ Whenever generating UI or assets:
 5. If unsure, choose the simplest solution.
 
 Agent behavior rules: see `AGENTS.md`. Architecture & verification: see `CLAUDE.md`.
+
+
+## Native mobile accessibility presentation
+
+The existing orange accent and warm cream background remain unchanged. Native
+text preferences enlarge the readable baseline without changing financial data.
+`--mobile-text-scale` follows iOS body text metrics, with a baseline of 1 and an
+upper defensive limit of 4. `--mobile-inline-font-size` retains authored UI sizes
+before scaling. `--mobile-nav-height` measures the phone bottom bar; it is zero
+for the tablet sidebar. Larger text reflows item cards and allows the whole dialog
+to scroll so fields and actions remain reachable. Reduce Motion suppresses animated
+feedback while retaining its text status. These rules apply to screen presentation
+only. The document preview keeps a fixed A4-width layout with uniform viewport
+scaling; it never becomes item cards or enlarged/wrapped paper type. Native PDFKit
+opens the actual print PDF for zoom/share. Canonical print and frozen snapshots
+retain their approved layout. Navigation labels stay short, with compact text
+scaling; financial/form content follows the full native text preference.
+
+Native mobile omits built-in voice guides and SFX (including audio assets and
+the Sounds settings tab). OS VoiceOver, accessible icon labels and live feedback
+remain supported. Use familiar icons for utility actions, retain visible words
+on Save/Issue/destructive actions, and disclose optional contact/default fields
+without disconnecting them from draft recovery.

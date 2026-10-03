@@ -1,0 +1,43 @@
+{
+  "created": "2026-10-03",
+  "provider": "Meshy",
+  "model": "nano-banana",
+  "total_credits": 15,
+  "assets": [
+    {
+      "file": "invoice-stack.png",
+      "task_id": "01a100ce-a094-7333-a97f-1111a2a3c4b6",
+      "credits": 3
+    },
+    {
+      "file": "contact-cards.png",
+      "task_id": "01a100ce-a3bb-72df-89aa-d3f8fe3a8129",
+      "credits": 3
+    },
+    {
+      "file": "freelancer-desk.png",
+      "task_id": "01a100ce-a6e4-7127-9b08-1fa682690ec0",
+      "credits": 3
+    },
+    {
+      "file": "certificate-envelope.png",
+      "task_id": "01a100ed-4000-730c-8ad0-8f055bbfbe68",
+      "credits": 3
+    },
+    {
+      "file": "document-folder.png",
+      "task_id": "01a100ed-42eb-734c-8525-350ee0af18f9",
+      "credits": 3
+    }
+  ],
+  "use": "Decorative local app illustrations; finite CSS motion. No customer data supplied to generation.",
+  "logo": {
+    "selected": "B",
+    "original_meshy_task": "01a100d8-532d-7224-9d67-c91443401bed",
+    "clay_export": "logo-b-clay.png",
+    "transparent_exterior": "Built-in imagegen edit of selected concept",
+    "flat_companion": "../../logo.svg, manager-authored native vector",
+    "selected_date": "2026-10-03",
+    "additional_meshy_credits": 0
+  }
+}
