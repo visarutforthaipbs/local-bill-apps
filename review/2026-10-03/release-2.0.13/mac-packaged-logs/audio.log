@@ -1,0 +1,2 @@
+PASS: 11 real MP3s decode offline; female guides only; default off and local preference survive reload without billing writes; explicit voice play, section/navigation/modal stop; voice excludes SFX; help preserves payment fields; TH/EN labels and narrow layout; zero page errors.
+SYNTHETIC_PROFILE=/var/folders/tb/619_zw050jd0m07bpqrll38r0000gn/T/billngai-audio-oRGby5/profile

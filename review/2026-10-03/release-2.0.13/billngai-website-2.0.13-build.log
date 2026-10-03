@@ -1,0 +1,23 @@
+
+> promote-billiong@0.0.1 build
+> astro build
+
+23:55:27 [types] Generated 22ms
+23:55:27 [build] output: "static"
+23:55:27 [build] mode: "static"
+23:55:27 [build] directory: /Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/promote-billiong/dist/
+23:55:27 [build] Collecting build info...
+23:55:27 [build] ✓ Completed in 28ms.
+23:55:27 [build] Building static entrypoints...
+23:55:27 [vite] ✓ built in 168ms
+23:55:27 [vite] ✓ built in 88ms
+23:55:27 [build] Rearranging server assets...
+
+ generating static routes 
+23:55:27   ├─ /support/index.html (+7ms) 
+23:55:27   ├─ /index.html (+4ms) 
+23:55:27 ✓ Completed in 17ms.
+
+23:55:27 [build] ✓ Completed in 286ms.
+23:55:27 [build] 2 page(s) built in 323ms
+23:55:27 [build] Complete!

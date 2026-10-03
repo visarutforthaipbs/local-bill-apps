@@ -1,0 +1,5 @@
+
+> billngai-app@2.0.13 release:check
+> node scripts/validate-release-config.cjs
+
+PASS: Google OAuth release configuration is valid.

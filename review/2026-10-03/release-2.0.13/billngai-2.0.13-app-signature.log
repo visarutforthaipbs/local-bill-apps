@@ -1,0 +1,20 @@
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Squirrel.framework/Versions/Current/.
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (Plugin).app
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (Renderer).app
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper.app
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper (GPU).app
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/BillNgai Helper.app
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Mantle.framework/Versions/Current/.
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/ReactiveObjC.framework/Versions/Current/.
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+--prepared:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/Helpers/chrome_crashpad_handler
+--validated:/Users/lighthouse-control/Documents/Personal-Project/บิลงาน-Project/BillNgai-release-2.0.13/dist/2.0.13-staging/mac-universal/BillNgai.app/Contents/Frameworks/Electron Framework.framework/Versions/Current/.
+dist/2.0.13-staging/mac-universal/BillNgai.app: valid on disk
+dist/2.0.13-staging/mac-universal/BillNgai.app: satisfies its Designated Requirement

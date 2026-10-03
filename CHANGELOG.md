@@ -11,7 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Add an optional Sounds settings tab with Thai female voice guides, translated transcripts and device-local task cues. Audio starts only by user choice and never controls financial actions.
 - Retain the verified 2.0.12 Google Drive sync, conflict review, number reservations, ordinary receipt issuance, frozen documents and print layout.
 
-Direct macOS candidate; publication and channel verification are recorded in RELEASE-2.0.13.md. Mobile sync development is excluded. Windows remains separately versioned until its build passes.
+Direct macOS release and Windows x64 unsigned Beta; publication and verification are recorded in RELEASE-2.0.13.md and WINDOWS-2.0.13.md. Mobile and Mac App Store channels are separate.
 
 ## [2.0.12] - 2026-09-30
 
