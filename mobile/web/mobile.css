@@ -1,0 +1,167 @@
+/* Mobile host adds layout only. All colors, type, radius and shadows are desktop tokens. */
+html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+input,select,textarea{font-size:16px!important}
+.mobile-nav{display:none}
+.mobile-nav-brand{display:none}
+.mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:48px;border:0;background:transparent;color:var(--text-dim);border-radius:var(--radius-sm);font:inherit;font-size:12px}
+.mobile-nav button[aria-current="page"]{background:var(--accent-tint);color:var(--accent-ink);font-weight:700}
+.mobile-more{display:grid;gap:16px}
+.mobile-more .btn{justify-content:flex-start;min-height:48px}
+.mobile-stage{color:var(--text-dim);font-size:12px;line-height:1.6}
+.mobile-backup-row{flex-wrap:wrap}
+.mobile-status{display:flex;gap:8px;align-items:center;margin-bottom:16px;font-size:12px;color:var(--text-dim)}
+@media screen{
+ .sidebar{display:none!important}
+ .app{display:block!important}
+ .content{container-type:inline-size}
+ .tabs button{min-height:48px}
+ .overlay{top:var(--mobile-visual-top,0px);bottom:auto;height:var(--mobile-visual-height,100dvh);overflow:hidden;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom))}
+ .modal{display:flex;flex-direction:column;max-height:100%;min-height:0;overflow:hidden}
+ .modal:focus{outline:none}
+ .modal-head,.modal-foot{flex:0 0 auto}
+ .modal-head h3{min-width:0;overflow-wrap:anywhere}
+ .modal-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+ .field{min-width:0}
+ .field input[type="date"]{appearance:none;box-sizing:border-box;min-width:0;max-width:100%;width:100%;min-height:48px}
+ .modal-foot{position:static;flex-wrap:wrap}
+ /* Keep editing actions reachable when a keyboard leaves little vertical space. */
+ .mobile-field-editing .modal-foot .btn-danger{display:none}
+ .btn,.x,.items-table .del,.pill-select button,.doc-more-menu button,.audio-guide button{min-height:48px;min-width:48px}
+ .x,.items-table .del{flex:0 0 48px;display:inline-flex;align-items:center;justify-content:center}
+ .card-block>summary,.tax-details>summary{display:flex;align-items:center;min-height:48px}
+ .mobile-table-scroll{max-width:100%;overflow:auto;overscroll-behavior-x:contain}
+ .mobile-table-scroll>table.mobile-wide-table{min-width:640px}
+ .mobile-table-scroll:focus-visible{outline:2px solid var(--accent-ink);outline-offset:4px}
+ .mobile-paper-preview{container-type:inline-size}
+ .mobile-preview-note{margin:16px 0;color:var(--text-dim);font-size:12px}
+ .doc-list-compact .document-card{grid-template-columns:minmax(0,1fr)}
+ .doc-list-compact .document-main{grid-template-columns:minmax(0,1fr) minmax(0,160px);gap:16px}
+ .doc-list-compact .document-date{grid-column:1 / -1;grid-row:2;flex-direction:row;gap:8px}
+ .doc-list-compact .document-footer{flex-direction:row;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft)}
+ #docTabs{flex-wrap:nowrap;overflow-x:auto;gap:8px}
+ #docTabs button{white-space:nowrap;min-height:48px}
+ #docStatusChips{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:8px}
+ #docStatusChips button{white-space:nowrap;min-height:48px}
+}
+@media screen and (max-width:767px), screen and (max-height:499px){
+ .sidebar{display:none!important}
+ .app{display:block!important;min-height:100dvh}
+ .main{margin-left:0!important;width:100%!important;min-width:0}
+ .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;position:sticky;top:env(safe-area-inset-top);z-index:20;background:var(--bg);gap:8px;padding:16px;min-height:64px;border-bottom:1px solid var(--border-soft)}
+ .topbar .spacer,#proActions:empty{display:none}
+ #topActions{grid-column:2;align-self:center;min-width:0}
+ #breadcrumb:empty{display:none}
+ #breadcrumb:not(:empty){grid-column:1 / -1;overflow-wrap:anywhere}
+ .topbar h2{min-width:0;overflow-wrap:anywhere;font-size:24px}
+ .settings-grid>.tabs{flex-wrap:nowrap;overflow-x:auto}
+ .settings-grid>.tabs button{white-space:nowrap}
+ .content{padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
+ .mobile-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:fixed;bottom:0;left:0;right:0;z-index:50;padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:8px;background:var(--surface);border-top:1px solid var(--border)}
+ .overlay{padding-left:8px;padding-right:8px;align-items:flex-end}
+ .modal{width:100%;margin:0 auto;border-radius:var(--radius-lg)}
+ .modal-head,.modal-body,.modal-foot{padding:16px}
+ .modal-foot{background:var(--surface);gap:8px}
+ .modal-foot .btn{flex:1 1 auto;white-space:normal}
+ .modal-foot .btn-danger{flex-basis:100%;margin-right:0!important}
+ .modal-body [style*="grid-template-columns:1fr 320px"]{grid-template-columns:minmax(0,1fr)!important}
+ .modal-body .grid-auto{grid-template-columns:minmax(0,1fr)}
+ .items-table,.items-table tbody{display:block;width:100%}
+ .items-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .items-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:16px;margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+ .items-table tbody td{display:block;padding:0;border:0;min-width:0}
+ .items-table tbody td:first-child{grid-column:1 / -1}
+ .items-table tbody td::before{content:attr(data-mobile-label);display:block;margin-bottom:8px;text-align:left;font-size:12px;color:var(--text-dim)}
+ .items-table input{width:100%;box-sizing:border-box}
+ .split-rows,.split-rows tbody{display:block;width:100%}
+ .split-rows tr:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .split-rows tr:not(:first-child){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px}
+ .split-rows td{display:block;width:auto!important;padding:0;min-width:0;text-align:left}
+ .split-rows td:empty{display:none}
+ .split-rows td:nth-child(2),.split-rows td:nth-child(5){grid-column:1 / -1}
+ .split-rows td::before{content:attr(data-mobile-label);display:block;font-size:12px;color:var(--text-dim);margin-bottom:8px}
+ .split-rows input{width:100%;min-height:48px;box-sizing:border-box}
+ .asset-grid{grid-template-columns:minmax(0,1fr)}
+ .asset-btns{flex-wrap:wrap}
+ .btn{min-height:48px}
+ .toast{bottom:calc(96px + env(safe-area-inset-bottom));max-width:calc(100% - 32px);width:max-content;box-sizing:border-box}
+ .settings-tabs{overflow-x:auto;flex-wrap:nowrap}
+ .settings-savebar{bottom:calc(96px + env(safe-area-inset-bottom));padding:16px}
+}
+@media screen and (min-width:768px) and (min-height:500px){
+ .main{margin-left:224px;width:calc(100% - 224px)}
+ .mobile-nav{display:flex;flex-direction:column;position:fixed;top:env(safe-area-inset-top);bottom:0;left:env(safe-area-inset-left);width:224px;z-index:50;padding:24px 16px;gap:16px;background:var(--surface);border-right:1px solid var(--border)}
+ .mobile-nav button{flex-direction:row;justify-content:flex-start;padding:16px;font-size:14px;gap:16px}
+ .mobile-nav-brand{display:flex;align-items:center;gap:16px;padding:8px 16px;margin-bottom:24px}
+ .content{min-width:0;padding-bottom:64px}
+ .toolbar{flex-wrap:wrap}
+ .toolbar .search{flex:1 0 100%;min-width:0;max-width:none}
+ .topbar{align-items:center}
+ .topbar .spacer,#proActions:empty{display:none}
+ #breadcrumb:not(:empty){flex:0 0 100%}
+ .topbar h2{flex:1 1 0;min-width:0;overflow-wrap:anywhere}
+ #topActions{margin-left:auto}
+}
+/* Readable phone preview only. A4 printing and its measurement clone stay canonical. */
+@media screen{
+ @container (max-width:700px){
+  .report-grid,.report-cards,.pillars,.filing-grid{grid-template-columns:minmax(0,1fr)}
+  .chart-card,.report-cards .rc,.pillar{min-width:0}
+  .asset-grid{grid-template-columns:minmax(0,1fr)}
+  .asset-btns{flex-wrap:wrap}
+ }
+ @container (max-width:600px){
+ }
+}
+@media print{
+ html,body{background:var(--surface)!important;padding:0!important}
+ html,body,.app,.main,#content{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ .mobile-nav,.mobile-status,.doc-trail,.split-progress{display:none!important}
+ #content:has(> .paper)>:not(.paper),#content:has(> .mobile-paper-preview)>:not(.mobile-paper-preview){display:none!important}
+ .mobile-paper-preview{display:block!important;container-type:normal;overflow:visible!important;width:auto!important;height:auto!important}
+ /* WebKit's PDF writer maps Inter's alternate tabular digits to private-use text. */
+ .paper,.paper *{font-variant-numeric:normal!important;font-feature-settings:normal!important}
+}
+
+/* Native accessibility preferences affect the reading UI only; paper printing is unchanged. */
+@media screen{
+ [data-mobile-inline-font]:not(.paper):not(.paper *){font-size:calc(var(--mobile-inline-font-size) * var(--mobile-text-scale,1))!important}
+ .content{padding-bottom:max(64px,calc(var(--mobile-nav-height,96px) + 16px))}
+ .settings-savebar{bottom:calc(var(--mobile-nav-height,0px) + 16px)}
+ .toast{bottom:calc(var(--mobile-nav-height,0px) + 24px)}
+ .mobile-nav button{min-width:0;overflow-wrap:anywhere;text-align:center}
+ html[data-mobile-large-text="true"] .btn,html[data-mobile-large-text="true"] .tabs button,html[data-mobile-large-text="true"] .pill-select button{white-space:normal;overflow-wrap:anywhere;justify-content:center}
+ html[data-mobile-large-text="true"] .tabs button{flex-shrink:0}
+ html[data-mobile-large-text="true"] .settings-grid>.tabs{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;overflow:visible}
+ html[data-mobile-large-text="true"] .settings-grid>.tabs button{text-align:left;justify-content:flex-start;overflow-wrap:normal}
+ html[data-mobile-large-text="true"] .topbar{display:grid;grid-template-columns:minmax(0,1fr)}
+ html[data-mobile-large-text="true"] #breadcrumb,html[data-mobile-large-text="true"] #topActions{grid-column:1 / -1;min-width:0}
+ html[data-mobile-large-text="true"] #topActions,html[data-mobile-large-text="true"] .toolbar,html[data-mobile-large-text="true"] .settings-savebar{flex-wrap:wrap}
+ html[data-mobile-large-text="true"] .grid-2,html[data-mobile-large-text="true"] .grid-3,html[data-mobile-large-text="true"] .grid-auto,html[data-mobile-large-text="true"] .items-table tbody tr,html[data-mobile-large-text="true"] .split-rows tr:not(:first-child){grid-template-columns:minmax(0,1fr)}
+ html[data-mobile-large-text="true"] .items-table,html[data-mobile-large-text="true"] .items-table tbody,html[data-mobile-large-text="true"] .split-rows,html[data-mobile-large-text="true"] .split-rows tbody{display:block;width:100%}
+ html[data-mobile-large-text="true"] .items-table thead,html[data-mobile-large-text="true"] .split-rows tr:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ html[data-mobile-large-text="true"] .items-table tbody tr,html[data-mobile-large-text="true"] .split-rows tr:not(:first-child){display:grid;gap:16px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px}
+ html[data-mobile-large-text="true"] .items-table tbody td,html[data-mobile-large-text="true"] .split-rows td{display:block;width:auto!important;padding:0;min-width:0;grid-column:1 / -1}
+ html[data-mobile-large-text="true"] .items-table tbody td::before,html[data-mobile-large-text="true"] .split-rows td::before{content:attr(data-mobile-label);display:block;font-size:calc(12px * var(--mobile-text-scale,1));color:var(--text-dim);margin-bottom:8px}
+ html[data-mobile-large-text="true"] .split-rows td:empty{display:none}
+ html[data-mobile-large-text="true"] .items-table input,html[data-mobile-large-text="true"] .split-rows input{width:100%;box-sizing:border-box;min-width:0}
+ /* Balance figures fit their card; native labels/forms retain the full text scale. */
+ html[data-mobile-large-text="true"] #content .pillar .val{font-size:clamp(28px,12cqi,44px)!important;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+ html[data-mobile-large-text="true"] .ladder .row{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ html[data-mobile-large-text="true"] .ladder .amt{overflow-wrap:anywhere;text-align:right;min-width:0}
+ html[data-mobile-large-text="true"] .doc-list-compact .document-main{grid-template-columns:minmax(0,1fr)}
+ html[data-mobile-large-text="true"] .doc-list-compact .document-date{grid-row:auto}
+ html[data-mobile-large-text="true"] .doc-list-compact .document-amount{align-items:flex-start;max-width:100%;overflow-wrap:anywhere}
+ html[data-mobile-large-text="true"] .rmonths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:auto}
+ html[data-mobile-large-text="true"] .rmonth{min-width:0;height:160px}
+ html[data-mobile-large-text="true"] .modal-foot .btn{flex:1 1 100%}
+ /* At accessibility sizes the footer can exceed the keyboard's visible viewport.
+    Scroll the whole dialog so every field and action remains reachable. */
+ html[data-mobile-large-text="true"] .modal{overflow:auto}
+ html[data-mobile-large-text="true"] .modal-body{flex:0 0 auto;overflow:visible}
+ html[data-mobile-large-text="true"] .mobile-nav{overflow-y:auto;overscroll-behavior:contain}
+ html[data-mobile-large-text="true"] .mobile-nav button{flex-shrink:0}
+ html[data-mobile-large-text="true"] .mobile-nav-brand{flex-wrap:wrap;min-width:0;overflow-wrap:anywhere}
+ html[data-mobile-reduce-motion="true"] *,html[data-mobile-reduce-motion="true"] *::before,html[data-mobile-reduce-motion="true"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}

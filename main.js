@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, inAppPurchase } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -6,8 +6,18 @@ const fsp = fs.promises;
 const crypto = require('crypto');
 const http = require('http');
 const { pathToFileURL } = require('url');
+const BillingData=require('./lib/billing-data.cjs');
 
-app.setName('BillNgai');
+/* ---------------- build flavor ----------------
+   IS_MAS = Mac App Store build (sandbox + In-App Purchase, ไม่มี AI/ไฟล์ภายนอก/รหัส Pro แบบวาง)
+   process.mas ถูกตั้งโดย electron-builder เฉพาะ mas target — BILLNGAI_FAKE_MAS=1 ไว้ dev UI เท่านั้น */
+const IS_MAS = process.mas === true || (!app.isPackaged && process.env.BILLNGAI_FAKE_MAS === '1');
+// Main is authoritative; sandboxed preload does not expose process.defaultApp.
+ipcMain.on('app:is-mas', event => { event.returnValue = IS_MAS; });
+
+// dev เท่านั้น: แยกโฟลเดอร์ข้อมูลตอน npm start จาก worktree อื่น — ห้ามให้ pilot แตะข้อมูลจริง
+if (!app.isPackaged && process.env.BILLNGAI_DEV_NAME) app.setName(process.env.BILLNGAI_DEV_NAME);
+else app.setName('BillNgai');
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 
@@ -26,6 +36,7 @@ function handleIPC(channel, handler) {
 const USER_DIR     = app.getPath('userData');
 const CONFIG_PATH  = path.join(USER_DIR, 'config.json');
 const DEFAULT_DATA = path.join(USER_DIR, 'billing.json');
+const SQLITE_DATA = path.join(USER_DIR, 'billing.sqlite');
 const USER_AI_DIR  = path.join(USER_DIR, 'ai');
 const SYSTEM_AI_DIR = process.platform === 'win32'
   ? path.join(process.env.ProgramData || 'C:\\ProgramData', 'BillNgai', 'ai')
@@ -60,7 +71,8 @@ async function readConfig() {
   try {
     const cfg = JSON.parse(await fsp.readFile(CONFIG_PATH, 'utf8'));
     if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg) ||
-        (cfg.externalPath != null && (typeof cfg.externalPath !== 'string' || !path.isAbsolute(cfg.externalPath)))) {
+        (cfg.externalPath != null && (typeof cfg.externalPath !== 'string' || !path.isAbsolute(cfg.externalPath))) ||
+        (cfg.storageFormat!==undefined&&!['json','sqlite'].includes(cfg.storageFormat))) {
       throw new Error('DATA_CONFIG_INVALID');
     }
     return cfg;
@@ -74,27 +86,68 @@ async function writeConfig(cfg) {
 }
 async function activePath() {
   const cfg = await readConfig();
-  return cfg.externalPath || DEFAULT_DATA;
+  return cfg.storageFormat === 'sqlite' ? SQLITE_DATA : cfg.externalPath || DEFAULT_DATA;
+}
+// SQLite is local only. JSON remains a portable backup/import format.
+function openSQLite(file = SQLITE_DATA) {
+  const { SQLiteStore } = require('./lib/sqlite-store.cjs');
+  return new SQLiteStore(file, {validate: validateData});
+}
+async function readStorage(file) {
+  if(file !== SQLITE_DATA) return readDataFile(file);
+  if(fs.existsSync(SQLITE_DATA+'.restore-in-progress'))throw new Error('DATA_RECOVERY_REQUIRED');
+  if(!fs.existsSync(file)) throw new Error('DATA_MISSING');
+  const store=openSQLite(file);
+  try {
+    const origin=store.origin();
+    if(origin){
+      const legacy=await readDataFile(origin.path);
+      if(legacy===null || crypto.createHash('sha256').update(legacy).digest('hex')!==origin.sha256) throw new Error('DATA_LEGACY_FILE_CHANGED');
+    }
+    return store.read().text;
+  } finally {store.close();}
+}
+async function writeStorage(file,text,previous) {
+  if(file !== SQLITE_DATA) return atomicWrite(file,text);
+  if(fs.existsSync(SQLITE_DATA+'.restore-in-progress'))throw new Error('DATA_RECOVERY_REQUIRED');
+  if(!fs.existsSync(file)) throw new Error('DATA_MISSING');
+  const store=openSQLite(file);
+  try {
+    const cfg=await readConfig(),bound=!!JSON.parse(text).syncV3;
+    if(bound&&cfg.syncBound!==true){cfg.syncBound=true;await writeConfig(cfg);}
+    store.write(text,previous===null?'empty':crypto.createHash('sha256').update(previous).digest('hex'));
+    if(!bound&&cfg.syncBound!==false){cfg.syncBound=false;await writeConfig(cfg);}
+  } finally {store.close();}
+}
+async function prepareSQLite(cfg) {
+  if(cfg.storageFormat==='sqlite') return SQLITE_DATA;
+  if(cfg.storageFormat==='json') return cfg.externalPath || DEFAULT_DATA; // Explicit legacy compatibility profile.
+  const originPath=cfg.externalPath || DEFAULT_DATA, text=await readDataFile(originPath);
+  if(text===null && (cfg.externalPath || await hasDataHistory())) throw new Error('DATA_MISSING');
+  if(text!==null){validateData(text);await preserveBefore204(originPath,text);await snapshotText(text,'before-sqlite-migration');}
+  const store=openSQLite();
+  try {
+    if(text!==null) store.migrate(text,{originPath,backup:()=>true});
+    else if(store.read().text!==null) throw new Error('DATA_MIGRATION_SOURCE_MISSING');
+  } finally {store.close();}
+  cfg.sqliteOrigin=text===null?null:{path:originPath,sha256:crypto.createHash('sha256').update(text).digest('hex')};
+  cfg.storageFormat='sqlite';cfg.syncBound=text!==null&&!!JSON.parse(text).syncV3;await writeConfig(cfg);
+  return SQLITE_DATA;
 }
 async function atomicWrite(file, text) {
   await fsp.mkdir(path.dirname(file), { recursive: true });
   const tmp = file + '.' + crypto.randomBytes(8).toString('hex') + '.tmp';
   try {
-    const handle = await fsp.open(tmp, 'wx');
+    const handle = await fsp.open(tmp, 'wx', 0o600);
     try { await handle.writeFile(text, 'utf8'); await handle.sync(); }
     finally { await handle.close(); }
     await fsp.rename(tmp, file);
+    if(process.platform!=='win32'){const directory=await fsp.open(path.dirname(file),'r');try{await directory.sync();}finally{await directory.close();}}
   } finally { await fsp.unlink(tmp).catch(() => {}); }
 }
 
 /* ---------------- offline AI add-on ---------------- */
-function canonicalJson(value) {
-  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
-  if (value && typeof value === 'object') {
-    return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') + '}';
-  }
-  return JSON.stringify(value);
-}
+function canonicalJson(value) { return BillingData.canonical(value); }
 async function sha256File(file) {
   const hash = crypto.createHash('sha256');
   const stream = fs.createReadStream(file);
@@ -218,6 +271,7 @@ function cleanTorText(text) {
     .trim();
 }
 async function extractTorText(filePath) {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const target = filePath ? String(filePath) : null;
   let selected = target;
   if (!selected) {
@@ -372,6 +426,7 @@ function parseTorDraft(stdout) {
   };
 }
 async function runAiInference(input) {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const text = String(input || '').trim();
   if (text.length < 8) throw new Error('Please enter TOR text first');
   if (text.length > 12000) throw new Error('TOR text is too long for this prototype');
@@ -487,7 +542,7 @@ async function snapshotText(text, label) {
 async function labeledSnapshot(label) {
   const src = await activePath();
   let text;
-  try { text = await fsp.readFile(src, 'utf8'); }
+  try { text = await readStorage(src); if(text===null)return null; }
   catch (e) { if (e.code === 'ENOENT') return null; throw e; }
   return snapshotText(text, label);
 }
@@ -507,194 +562,15 @@ function withDataLock(action) {
 // Older sync deletes could retain only identity/timestamps (and migrated currency).
 // Accept that exact deleted shape, never a type-less live/financial document.
 // A receipt reissue is immutable correspondence for an existing payment, not a new ledger entry.
-function validReceiptReissueEvent(e){
-  const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v),str=v=>typeof v==='string'&&!!v.trim();
-  const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
-  const num=v=>(typeof v==='number'||(typeof v==='string'&&!!v.trim()))&&Number.isFinite(Number(v));
-  const party=(p,seller)=>obj(p)&&str(seller?p.businessName:p.name)&&str(p.address)&&(!seller||/^\d{13}$/.test(p.taxId||''));
-  if(!obj(e)||e.type!=='receipt_reissue'||!str(e.id)||!str(e.documentId)||e.purpose!=='document_correction_only'||
-    e.historicalVatConfirmed!==true||e.partyDetailsConfirmed!==true||e.paymentFactsConfirmed!==true||!str(e.note)||e.note.length>4000||
-    typeof e.recordedAt!=='string'||!Number.isFinite(Date.parse(e.recordedAt))||new Date(e.recordedAt).toISOString()!==e.recordedAt)return false;
-  const src=e.sourceRecordAtReview,r=e.receipt,s=r&&r.issuedSnapshot;
-  if(!obj(src)||src.id!==e.documentId||src.type!=='tax_invoice'||src.status!=='issued'||src.deletedAt||src.voidedAt||src.syncConflict||
-    !str(src.number)||![0,'0'].includes(src.vatRate)||src.currency!=='THB'||!date(src.paidDate)||!date(src.issueDate)||
-    !num(src.whtRate)||Number(src.whtRate)<0||Number(src.whtRate)>100||!Array.isArray(src.items)||!src.items.length||
-    src.items.some(i=>!obj(i)||!str(i.description)||!num(i.qty)||Number(i.qty)<=0||!num(i.price)||Number(i.price)<0))return false;
-  if(!obj(r)||r.id!=='reissue:'+e.id||r.type!=='receipt'||r.status!=='issued'||!str(r.number)||r.number===src.number||
-    r.reissueOf!==src.id||r.reissueOfNumber!==src.number||r.reissueOfDate!==src.issueDate||r.clientId!==src.clientId||r.paidDate!==src.paidDate||r.currency!=='THB'||r.vatRate!==0||
-    Number(r.whtRate)!==Number(src.whtRate)||!date(r.issueDate)||r.issueDate<r.paidDate||r.deletedAt||r.voidedAt||r.legacy_review_required||
-    r.paymentId||r.fullPaymentConfirmed||JSON.stringify(r.items)!==JSON.stringify(src.items))return false;
-  if(!obj(s)||s.schemaVersion!==1||!party(s.business,true)||s.business.vatStatus!=='non_registered'||!party(s.buyer,false)||
-    !['th','bilingual'].includes(s.docLang)||!obj(s.document)||!obj(s.amounts)||typeof s.renderedHtml!=='string'||typeof s.shareText!=='string')return false;
-  const plain={...r};delete plain.issuedSnapshot;
-  if(JSON.stringify(plain)!==JSON.stringify(s.document))return false;
-  const round=n=>Math.round((n+Number.EPSILON)*100)/100;
-  const subtotal=round(src.items.reduce((sum,i)=>sum+round(Number(i.qty)*Number(i.price)),0)),wht=round(subtotal*Number(src.whtRate)/100);
-  const expected={subtotal,vatRate:0,whtRate:Number(src.whtRate),vatAmount:0,whtAmount:wht,grandTotal:subtotal,netPayable:round(subtotal-wht),currency:'THB'};
-  return subtotal>0&&subtotal<=Number.MAX_SAFE_INTEGER/100&&expected.netPayable>0&&Object.entries(expected).every(([k,v])=>s.amounts[k]===v);
-}
-function validReceiptReissueSet(data){
-  const sources=new Set(),numbers=new Set((data.documents||[]).map(d=>d.number).filter(Boolean));
-  for(const e of data.reviewEvents||[]){
-    if(e.type!=='receipt_reissue')continue;
-    if(!validReceiptReissueEvent(e)||sources.has(e.documentId)||numbers.has(e.receipt.number))return false;
-    sources.add(e.documentId);numbers.add(e.receipt.number);
-  }
-  return true;
-}
-
-function validCorrectionReviewEvent(event) {
-  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
-  if (!object(event) || typeof event.id !== 'string' || !event.id || event.type !== 'correction_review'
-    || typeof event.documentId !== 'string' || !event.documentId || typeof event.batchId !== 'string' || !event.batchId
-    || !['unknown','not_sent','sent'].includes(event.deliveryStatus) || event.historicalVatConfirmed !== true
-    || event.vatStatus !== 'non_registered' || !['review','prepare_proposal'].includes(event.action)
-    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
-    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
-    || new Date(event.recordedAt).toISOString() !== event.recordedAt) return false;
-  const source = event.sourceRecordAtReview;
-  if (!object(source) || source.id !== event.documentId || source.type !== 'tax_invoice') return false;
-  if (event.action === 'review') return event.proposal === undefined;
-  const numeric = value => (typeof value === 'number' || (typeof value === 'string' && !!value.trim())) && Number.isFinite(Number(value));
-  if (!Array.isArray(source.items) || !source.items.length || source.items.some(item => !object(item)
-    || typeof item.description !== 'string' || !item.description.trim() || !numeric(item.qty) || Number(item.qty) <= 0
-    || !numeric(item.price) || Number(item.price) < 0) || !numeric(source.whtRate) || Number(source.whtRate) < 0 || Number(source.whtRate) > 100) return false;
-  const proposal = event.proposal;
-  return object(proposal) && Object.keys(proposal).length === 3 && proposal.type === 'receipt'
-    && proposal.status === 'review_only' && proposal.sourceDocumentId === event.documentId
-    && !source.deletedAt && !source.voidedAt && source.status !== 'void' && !source.milestone
-    && [0,'0'].includes(source.vatRate) && source.currency === 'THB';
-}
-// Owner's answer for one unresolved historical payment group. Append-only; the latest
-// valid answer whose source records still match the group exactly is the one used.
-function validLegacyGroupReview(event) {
-  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
-  if (!object(event) || event.type !== 'legacy_group_review' || typeof event.id !== 'string' || !event.id
-    || !['same_payment','not_income','needs_accountant'].includes(event.decision) || event.ownerConfirmed !== true
-    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
-    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
-    || new Date(event.recordedAt).toISOString() !== event.recordedAt
-    || typeof event.groupKey !== 'string' || !event.groupKey || event.groupKey.length > 200
-    || !Array.isArray(event.sourceRecords) || !event.sourceRecords.length || event.sourceRecords.length > 50
-    || event.sourceRecords.some(record => !object(record) || typeof record.id !== 'string' || !record.id)) return false;
-  const ids = event.sourceRecords.map(record => record.id);
-  if (new Set(ids).size !== ids.length || !ids.includes(event.documentId)) return false;
-  return event.decision === 'same_payment'
-    ? typeof event.representativeId === 'string' && ids.includes(event.representativeId)
-    : event.representativeId === undefined;
-}
-function isLegacyDeletionMarker(record) {
-  const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
-    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
-  return !!record && typeof record === 'object' && !Array.isArray(record)
-    && typeof record.id === 'string' && !!record.id && !Object.hasOwn(record,'type')
-    && timestamp(record.deletedAt) && timestamp(record.updatedAt)
-    && Object.keys(record).every(key => ['id','deletedAt','updatedAt','currency','archivedAt'].includes(key))
-    && (record.currency === undefined || typeof record.currency === 'string')
-    && (record.archivedAt == null || timestamp(record.archivedAt));
-}
+function validReceiptReissueEvent(e) { return BillingData.validReceiptReissueEvent(e); }
+function validReceiptReissueSet(data) { return BillingData.validReceiptReissueSet(data); }
+function validCorrectionReviewEvent(event) { return BillingData.validCorrectionReviewEvent(event); }
+function validLegacyGroupReview(event) { return BillingData.validLegacyGroupReview(event); }
+function isLegacyDeletionMarker(record) { return BillingData.isLegacyDeletionMarker(record); }
 function validateData(text) {
-  if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > 64 * 1024 * 1024) throw new Error('DATA_INVALID_SIZE');
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('DATA_INVALID_JSON'); }
-  if (!data || typeof data !== 'object' || Array.isArray(data) ||
-      !data.business || typeof data.business !== 'object' || Array.isArray(data.business) ||
-      !Array.isArray(data.documents) || !Array.isArray(data.clients) ||
-      (data.recurring != null && !Array.isArray(data.recurring))) throw new Error('DATA_INVALID_SCHEMA');
-  const object = value => value && typeof value === 'object' && !Array.isArray(value);
-  const invalid = () => { throw new Error('DATA_INVALID_SCHEMA'); };
-  const strings = (record, keys) => keys.forEach(key => {
-    if (record[key] != null && typeof record[key] !== 'string') invalid();
-  });
-  const party = record => {
-    if (!object(record)) invalid();
-    strings(record, ['id','name','businessName','businessNameEn','address','addressEn','taxId','phone','email','contactPerson','notes','docLang','lang','uiLang','yearMode','updatedAt','deletedAt','createdAt']);
-    if ('name' in record && typeof record.name !== 'string') invalid();
-  };
-  const document = record => {
-    if (!object(record)) invalid();
-    strings(record, ['id','type','number','status','clientId','parentId','paymentId','issueDate','dueDate','paidDate','currency','project','notes','docLang','incomeCategory','updatedAt','deletedAt','createdAt','voidedAt','voidReason','whtCertNo','whtCertDate']);
-    for (const key of ['vatRate','whtRate','fxRate']) {
-      if (record[key] != null && !((typeof record[key] === 'number' || typeof record[key] === 'string') && Number.isFinite(Number(record[key])))) invalid();
-    }
-    if (record.items !== undefined) {
-      if (!Array.isArray(record.items)) invalid();
-      record.items.forEach(item => {
-        if (!object(item)) invalid();
-        strings(item, ['description','unit']);
-        for (const key of ['qty','price']) if (item[key] != null &&
-          !((typeof item[key] === 'number' || typeof item[key] === 'string') && Number.isFinite(Number(item[key])))) invalid();
-      });
-    }
-    if (record.milestone != null && !object(record.milestone)) invalid();
-  };
-  party(data.business);
-  if (data.business.numberFormats != null && !object(data.business.numberFormats)) invalid();
-  if (data.business.numberFormats) strings(data.business.numberFormats, ['quotation','invoice','receipt','tax_invoice']);
-  for (const key of ['meta','counters']) if (data[key] !== undefined && !object(data[key])) invalid();
-  for (const key of ['clients','documents','recurring','reviewEvents']) {
-    if (data[key] === undefined) continue;
-    if (!Array.isArray(data[key])) invalid();
-    const ids = new Set();
-    for (const record of data[key]) {
-      if (!object(record) || typeof record.id !== 'string' || !record.id || ids.has(record.id)) invalid();
-      ids.add(record.id);
-      if (key === 'documents' && !['quotation','invoice','receipt','tax_invoice'].includes(record.type) && !isLegacyDeletionMarker(record)) invalid();
-    }
-  }
-  data.clients.forEach(party);
-  for (const record of [...data.documents, ...(data.recurring || [])]) {
-    document(record);
-    const snapshot = record.issuedSnapshot;
-    // Missing historical particulars stay missing; validate structure, never invent them.
-    if (snapshot != null) {
-      if (!object(snapshot)) invalid();
-      if (snapshot.document != null) document(snapshot.document);
-      if (snapshot.business != null) party(snapshot.business);
-      if (snapshot.buyer != null) party(snapshot.buyer);
-      if (snapshot.amounts != null) {
-        if (!object(snapshot.amounts)) invalid();
-        strings(snapshot.amounts, ['currency']);
-        for (const key of ['subtotal','vatRate','whtRate','vatAmount','whtAmount','grandTotal','netPayable'])
-          if (snapshot.amounts[key] != null && (typeof snapshot.amounts[key] !== 'number' || !Number.isFinite(snapshot.amounts[key]))) invalid();
-      }
-    }
-  }
-  for (const event of data.reviewEvents || []) {
-    if (event.type === 'payment_match') {
-      if (event.samePaymentConfirmed !== true || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000 ||
-        typeof event.representativeId !== 'string' || !Array.isArray(event.sourceRecords) || event.sourceRecords.length !== 2 ||
-        event.sourceRecords.some(record => !object(record) || typeof record.id !== 'string' || !record.id) ||
-        new Set(event.sourceRecords.map(record => record.id)).size !== 2 ||
-        !event.sourceRecords.some(record => record.type === 'invoice' && record.id === event.documentId) ||
-        !event.sourceRecords.some(record => ['receipt','tax_invoice'].includes(record.type) && record.id === event.representativeId)) invalid();
-      event.sourceRecords.forEach(document);
-    }
-    if (event.type === 'correction_review' && !validCorrectionReviewEvent(event)) invalid();
-    if (event.type === 'legacy_group_review') {
-      if (!validLegacyGroupReview(event)) invalid();
-      event.sourceRecords.forEach(record => { if (!isLegacyDeletionMarker(record)) document(record); });
-    }
-    strings(event, ['documentId','type','recordedAt','note','paymentId','paidDate','currency','vatStatus']);
-    if (!event.documentId || !event.type || !event.recordedAt) invalid();
-    if (event.evidence !== undefined) {
-      if (!Array.isArray(event.evidence)) invalid();
-      for (const evidence of event.evidence) {
-        if (!object(evidence) || typeof evidence.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sha256)) invalid();
-        strings(evidence, ['fileName','mime','attachedAt']);
-        if (evidence.size != null && (!Number.isInteger(evidence.size) || evidence.size < 1 || evidence.size > 20 * 1024 * 1024)) invalid();
-      }
-    }
-    for (const key of ['issuer','buyer']) if (event[key] !== undefined) party(event[key]);
-    if (event.sourceRecordAtReview !== undefined) document(event.sourceRecordAtReview);
-    if (event.type === 'legacy_payment') {
-      if (!event.paymentId || !event.paidDate || !event.currency || !object(event.issuer) || !object(event.buyer) ||
-          typeof event.fullPaymentConfirmed !== 'boolean' || typeof event.historicalVatConfirmed !== 'boolean' ||
-          !['gross','wht','net'].every(key => typeof event[key] === 'number' && Number.isFinite(event[key]))) invalid();
-    }
-  }
-  if(!validReceiptReissueSet(data)) invalid();
-  return data;
+  if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>64*1024*1024)throw Error('DATA_INVALID_SIZE');
+  let data;try{data=JSON.parse(text);}catch{throw Error('DATA_INVALID_JSON');}
+  return BillingData.validate(data);
 }
 async function preserveBefore204(file, text) {
   const sourceHash = crypto.createHash('sha256').update(file).digest('hex');
@@ -730,8 +606,8 @@ async function markDataInitialized() {
 async function loadData() {
   dataSession = null;
   const cfg = await readConfig();
-  const file = cfg.externalPath || DEFAULT_DATA;
-  const text = await readDataFile(file);
+  const file = await prepareSQLite(cfg);
+  const text = await readStorage(file);
   if (text === null) {
     if (cfg.externalPath || await hasDataHistory()) throw new Error('DATA_MISSING');
   } else {
@@ -745,7 +621,7 @@ async function loadData() {
 async function currentSession() {
   if (!dataSession) throw new Error('DATA_NOT_LOADED');
   const file = await activePath();
-  if (file !== dataSession.file || await readDataFile(file) !== dataSession.text) {
+  if (file !== dataSession.file || await readStorage(file) !== dataSession.text) {
     dataSession = null;
     throw new Error('DATA_CHANGED_ON_DISK');
   }
@@ -760,9 +636,8 @@ async function saveData(text) {
     // Correction receipts already issued by this app remain append-only on normal saves.
     // Explicit backup restoration uses the separate recovery path.
     for (const issued of prev.reviewEvents || []) {
-      if (issued.type !== 'receipt_reissue') continue;
       const retained = (next.reviewEvents || []).find(event => event.id === issued.id);
-      if (!retained || canonicalJson(retained) !== canonicalJson(issued)) throw new Error('RECEIPT_REISSUE_IMMUTABLE');
+      if (!retained || canonicalJson(retained) !== canonicalJson(issued)) throw new Error(issued.type==='receipt_reissue'?'RECEIPT_REISSUE_IMMUTABLE':'DATA_REVIEW_EVENT_IMMUTABLE');
     }
     if (['documents', 'clients', 'recurring'].some(key => (prev[key] || []).length > (next[key] || []).length)) {
       await snapshotText(session.text, 'pre-replace');
@@ -772,7 +647,7 @@ async function saveData(text) {
   } else { await maybeSnapshot(text); }
   await markDataInitialized();
   await currentSession(); // Recheck after backup I/O, before replacing a Drive-managed file.
-  await atomicWrite(session.file, text);
+  await writeStorage(session.file,text,session.text);
   session.text = text;
   return true;
 }
@@ -785,23 +660,74 @@ function withoutSyncBinding(text) {
   return JSON.stringify(data, null, 2);
 }
 async function assertNotSyncBound() {
-  const current = await readDataFile(await activePath());
+  const current = await readStorage(await activePath());
   if (current !== null) { try { if (JSON.parse(current).syncV3) throw new Error('SYNC_DISCONNECT_REQUIRED'); } catch (e) { if (e.message === 'SYNC_DISCONNECT_REQUIRED') throw e; } }
 }
+async function recoverSQLite(text,cfg) {
+  // Explicit recovery is separate from ordinary load/save. Never downgrade a future schema.
+  const suffix=crypto.randomBytes(8).toString('hex'),files=[SQLITE_DATA,SQLITE_DATA+'-journal',SQLITE_DATA+'-wal',SQLITE_DATA+'-shm'],originalFiles=new Map();
+  // Even opening SQLite can recover/delete a hot journal. Preserve raw bytes first.
+  for(const candidate of files)if(fs.existsSync(candidate)){
+    if(!fs.lstatSync(candidate).isFile())throw new Error('DATA_INVALID_FILE');
+    const bytes=await fsp.readFile(candidate);originalFiles.set(candidate,bytes);
+    await atomicWrite(path.join(BACKUP_DIR,'pre-restore-'+suffix+'-'+path.basename(candidate)),bytes);
+  }
+  let previous=null,origin=null,problem=null;
+  if(fs.existsSync(SQLITE_DATA)){
+    let store;
+    try{store=openSQLite();previous=store.read().text;origin=store.origin();}
+    catch(error){if(error.message==='DATA_FUTURE_VERSION')throw error;problem=error;}
+    finally{store?.close();}
+  }else problem=new Error('DATA_MISSING');
+  origin=origin||cfg.sqliteOrigin||null;
+  if(origin&&(!path.isAbsolute(origin.path||'')||!/^[a-f0-9]{64}$/.test(origin.sha256||'')))throw new Error('DATA_CONFIG_INVALID');
+  if(problem?.message==='DATA_INVALID_FILE')throw problem;
+  if(previous!==null&&JSON.parse(previous).syncV3)throw new Error('SYNC_DISCONNECT_REQUIRED');
+  if(problem&&cfg.syncBound!==false)throw new Error(cfg.syncBound?'SYNC_DISCONNECT_REQUIRED':'SYNC_RECOVERY_BINDING_UNKNOWN');
+  if(previous!==null)await snapshotText(previous,'pre-restore');
+  const target=SQLITE_DATA+'.'+suffix+'.restore';
+  const current=fs.existsSync(SQLITE_DATA)?await fsp.readFile(SQLITE_DATA):null;
+  if(origin){
+    const retained=await readDataFile(origin.path);
+    if(retained===null)throw new Error('DATA_LEGACY_FILE_CHANGED');
+    // Preserve the older writer's version before explicitly accepting the selected backup.
+    if(crypto.createHash('sha256').update(retained).digest('hex')!==origin.sha256)await snapshotText(retained,'pre-restore-legacy');
+    origin={path:origin.path,sha256:crypto.createHash('sha256').update(retained).digest('hex')};
+  }
+  const quarantined=[];let swapped=false,replacing=false;
+  try{
+    const store=openSQLite(target);
+    try{store.write(text,'empty',origin);if(store.read().text!==text)throw new Error('DATA_RECOVERY_VERIFY_FAILED');}finally{store.close();}
+    const now=fs.existsSync(SQLITE_DATA)?await fsp.readFile(SQLITE_DATA):null;
+    if((current===null)!==(now===null)||(current&& !current.equals(now)))throw new Error('DATA_CHANGED_ON_DISK');
+    await markDataInitialized();
+    // Sidecars are quarantined before swapping a fully checked database; they must never
+    // replay transactions from the damaged database against the replacement.
+    await atomicWrite(SQLITE_DATA+'.restore-in-progress',suffix);replacing=true;
+    for(const candidate of files.slice(1))if(fs.existsSync(candidate)){const destination=candidate+'.quarantine-'+suffix;await fsp.rename(candidate,destination);quarantined.push([candidate,destination]);}
+    await fsp.rename(target,SQLITE_DATA);swapped=true;
+    cfg.syncBound=false;cfg.sqliteOrigin=origin;await writeConfig(cfg);
+    await fsp.unlink(SQLITE_DATA+'.restore-in-progress');
+    dataSession={file:SQLITE_DATA,text};return text;
+  }catch(error){
+    if(replacing&&!swapped){
+      for(const [original,held] of quarantined.reverse())await fsp.rename(held,original);
+      for(const [original,bytes] of originalFiles){const now=fs.existsSync(original)?await fsp.readFile(original):null;if(!now||!now.equals(bytes))await atomicWrite(original,bytes);}
+      await fsp.unlink(SQLITE_DATA+'.restore-in-progress').catch(()=>{});
+    }
+    throw error;
+  }finally{await fsp.unlink(target).catch(()=>{});}
+}
 async function recoverData(text) {
-  validateData(text); // Validate selected recovery data before touching the current file.
+  validateData(text);
+  const cfg=await readConfig(),file=await activePath();
+  text=withoutSyncBinding(text);
+  if(file===SQLITE_DATA)return recoverSQLite(text,cfg);
   await assertNotSyncBound();
-  text = withoutSyncBinding(text);
-  const cfg = await readConfig();
-  const file = cfg.externalPath || DEFAULT_DATA;
-  // Recovery must not recreate an absent Drive mount as an ordinary local directory.
-  if (cfg.externalPath && !(await fsp.stat(path.dirname(file))).isDirectory()) throw new Error('DATA_MISSING');
-  const previous = await readDataFile(file);
-  if (previous !== null) await snapshotText(previous, 'pre-restore');
-  await markDataInitialized();
-  await atomicWrite(file, text);
-  dataSession = { file, text };
-  return text;
+  if(cfg.externalPath&&!(await fsp.stat(path.dirname(file))).isDirectory())throw new Error('DATA_MISSING');
+  const previous=await readStorage(file);
+  if(previous!==null)await snapshotText(previous,'pre-restore');
+  await markDataInitialized();await writeStorage(file,text,previous);dataSession={file,text};return text;
 }
 handleIPC('data:load', () => withDataLock(loadData));
 handleIPC('data:save', (_e, text) => withDataLock(async () => {
@@ -1023,6 +949,10 @@ function parseLicenseKey(key) {
   } catch (e) { return null; }
 }
 function licenseStatusOf(cfg) {
+  // MAS build: Pro มาจาก In-App Purchase (ผูกกับ Apple ID) — ไม่มีวันหมดอายุ
+  if (IS_MAS) return cfg.masPro
+    ? { valid: true, expired: false, email: '', plan: 'pro-lifetime', validUntil: null, source: 'appstore' }
+    : { valid: false };
   const payload = parseLicenseKey(cfg.licenseKey);
   if (!payload) return { valid: false };
   const today = new Date();
@@ -1032,6 +962,7 @@ function licenseStatusOf(cfg) {
 }
 handleIPC('license:status', async () => licenseStatusOf(await readConfig()));
 handleIPC('license:activate', (_e, key) => withDataLock(async () => {
+  if (IS_MAS) throw new Error('Use App Store purchases in this build');
   if (!parseLicenseKey(key)) throw new Error('invalid license key');
   const cfg = await readConfig();
   cfg.licenseKey = String(key).trim();
@@ -1042,8 +973,86 @@ handleIPC('license:deactivate', () => withDataLock(async () => {
   const cfg = await readConfig();
   delete cfg.licenseKey;
   await writeConfig(cfg);
-  return { valid: false };
+  return licenseStatusOf(cfg);   // MAS: การซื้อผ่าน App Store ยังอยู่ — ลบได้เฉพาะรหัสแบบวาง
 }));
+
+/* ---------------- Mac App Store In-App Purchase (Pro, MAS build เท่านั้น) ----------------
+   ปรัชญาเดิม: ไม่มีเซิร์ฟเวอร์เรา — เชื่อสถานะ transaction จาก StoreKit แล้วเก็บ flag ใน config.json
+   (แนวทางง่ายตาม PLAN-MAC-APP-STORE.md ข้อ 6.4 — อัปเกรดเป็น receipt validation เต็มได้ภายหลัง) */
+const IAP_PRO_ID = 'com.visarut.billngai.pro';
+async function masGrantPro() {
+  return withDataLock(async () => {
+  const cfg = await readConfig();
+  if (!cfg.masPro) {
+    cfg.masPro = { product: IAP_PRO_ID, at: new Date().toISOString() };
+    // Acknowledge StoreKit only after the entitlement is durably saved.
+    // Share the durable write lock with other config changes.
+    await atomicWrite(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  }
+  });
+}
+let iapState = { state: 'idle' };
+function iapNotifyRenderer(state = 'idle', errorCode = null) {
+  iapState = { state, errorCode };
+  if (win && !win.isDestroyed()) win.webContents.send('iap:changed', iapState);
+}
+handleIPC('iap:status', () => iapState);
+let iapTransactions = Promise.resolve();
+if (process.mas) {
+  inAppPurchase.on('transactions-updated', (_event, transactions) => {
+    // Serialize batches so simultaneous purchase/restore events cannot race the write.
+    iapTransactions = iapTransactions.then(async () => {
+      for (const t of (transactions || [])) {
+        if (t.payment?.productIdentifier !== IAP_PRO_ID) continue;
+        const state = t.transactionState;
+        if (state === 'purchased' || state === 'restored') {
+          try {
+            await masGrantPro();
+            inAppPurchase.finishTransactionByDate(t.transactionDate);
+            iapNotifyRenderer(state);
+          } catch (e) {
+            // Leave the transaction unfinished for StoreKit to redeliver.
+            console.error('IAP entitlement save failed', e);
+            iapNotifyRenderer('save-failed');
+          }
+        } else if (state === 'failed') {
+          inAppPurchase.finishTransactionByDate(t.transactionDate);
+          iapNotifyRenderer(t.errorCode === 2 ? 'cancelled' : 'failed', t.errorCode);
+        } else if (state === 'purchasing' || state === 'deferred') {
+          iapNotifyRenderer(state);
+        }
+      }
+    }).catch(e => { console.error('IAP transaction handling failed', e); iapNotifyRenderer('failed'); });
+  });
+}
+handleIPC('iap:products', async () => {
+  if (!process.mas) {
+    return IS_MAS ? [{ id: IAP_PRO_ID, name: 'BillNgai Pro', desc: 'dev preview', price: '฿1,900.00' }] : [];
+  }
+  const ps = await inAppPurchase.getProducts([IAP_PRO_ID]);
+  return ps.filter(p => p.productIdentifier === IAP_PRO_ID)
+    .map(p => ({ id: p.productIdentifier, name: p.localizedTitle, desc: p.localizedDescription, price: p.formattedPrice }));
+});
+handleIPC('iap:buy', async () => {
+  if (['purchasing', 'deferred'].includes(iapState.state)) return false;
+  if (!process.mas) {
+    if (IS_MAS) { await masGrantPro(); setTimeout(() => iapNotifyRenderer('purchased'), 400); return true; }
+    throw new Error('In-App Purchase is only available in the App Store build');
+  }
+  if (!inAppPurchase.canMakePayments()) throw new Error('iap-payments-disabled');
+  iapNotifyRenderer('purchasing');
+  try {
+    const accepted = await inAppPurchase.purchaseProduct(IAP_PRO_ID, { quantity: 1 });
+    if (!accepted) iapNotifyRenderer('unavailable');
+    return accepted;
+  } catch (e) { iapNotifyRenderer('failed'); throw e; }
+});
+handleIPC('iap:restore', async () => {
+  if (!IS_MAS) throw new Error('In-App Purchase is only available in the App Store build');
+  if (process.mas) inAppPurchase.restoreCompletedTransactions();
+  else setTimeout(() => iapNotifyRenderer('idle'), 400);
+  return true;
+});
 
 /* ---------------- Google Drive Workspace Sync (Pro, Phase D) ----------------
    main = transport เท่านั้น (OAuth, อัปโหลด/ดาวน์โหลด) — ตรรกะ merge อยู่ฝั่ง renderer ที่ถือ DB
@@ -1286,7 +1295,14 @@ async function nativeSyncTransport(root, account, counterFloors) {
   if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
   const { createDriveTransport } = require('./lib/sync-v3-drive.cjs');
   return createDriveTransport({ origin: nativeSyncServiceUrl(), root, account, counterFloors,
-    license: (await readConfig()).licenseKey || '', fetchImpl: syncFaultFetch(),
+    license: IS_MAS ? '' : (await readConfig()).licenseKey || '',
+    appStoreReceipt: IS_MAS ? async () => {
+      if (!process.mas) throw new Error('SYNC_APPSTORE_RESTORE_REQUIRED');
+      const receiptPath = inAppPurchase.getReceiptURL();
+      const stat = await fsp.stat(receiptPath).catch(() => null);
+      if (!stat || !stat.isFile() || stat.size > 300000) throw new Error('SYNC_APPSTORE_RESTORE_REQUIRED');
+      return (await fsp.readFile(receiptPath)).toString('base64');
+    } : null, allowProtocolUpgrade:(await readConfig()).protocolUpgradeApproved===true, fetchImpl: syncFaultFetch(),
     accessToken, identityToken: async () => {
       let tokens = await loadTokens();
       if (!tokens || !tokens.id_token) throw new Error('SYNC_RECONNECT_REQUIRED');
@@ -1321,7 +1337,7 @@ async function nativeSyncStatus() {
   const s = db && db.syncV3;
   return { configured: nativeSyncConfigured(), connected: !!s, mode: s?.mode || '',
     conflicts: Object.entries(s?.conflicts || {}).map(([key, value]) => ({ key, ...value })),
-    pending: Object.keys(s?.intents || {}).length, account: s?.account || '' };
+    protocolApproved:(await readConfig()).protocolUpgradeApproved===true, pending: Object.keys(s?.intents || {}).length, account: s?.account || '' };
 }
 handleIPC('syncV3:status', () => nativeSyncStatus());
 // Stop syncing on this Mac. Local data stays; the binding and Google sign-in are removed after a backup.
@@ -1339,14 +1355,18 @@ handleIPC('syncV3:connect', (_event, options) => withDataLock(async () => {
   const replaceLocal = options?.replaceLocal === true;
   if (!nativeSyncConfigured()) throw new Error('SYNC_V3_NOT_CONFIGURED');
   if (!licenseStatusOf(await readConfig()).valid) throw new Error('PRO_REQUIRED');
+  if(options?.approveProtocol===true){const cfg=await readConfig();cfg.protocolUpgradeApproved=true;await writeConfig(cfg);}
+  if((await readConfig()).protocolUpgradeApproved!==true)throw new Error('SYNC_PROTOCOL_CONSENT_REQUIRED');
   if (!safeStorage.isEncryptionAvailable()) throw new Error('SYNC_KEYCHAIN_REQUIRED');
   const db = await nativeSyncDB();
   if (db.syncV3) throw new Error('SYNC_ALREADY_CONNECTED');
-  if ((await readConfig()).externalPath) throw new Error('SYNC_USE_LOCAL_STORAGE');
+  const storageConfig=await readConfig();
+  if(storageConfig.storageFormat!=='sqlite'&&storageConfig.externalPath)throw new Error('SYNC_USE_LOCAL_STORAGE');
   // Validate IDs and capacity before opening OAuth or touching Drive.
   const S = require('./lib/sync-v3.cjs'), B = require('./lib/sync-v3-billing.cjs');
   const records = B.flatten(db);
-  if (Object.keys(records).length > 512) throw new Error('SYNC_BOOTSTRAP_TOO_LARGE');
+  // The same count/byte preflight the first sync applies; throws SYNC_BOOTSTRAP_TOO_LARGE.
+  S.prepare({ ...S.initial('preflight'), mode: 'initializing', root: 'r'.repeat(128), records, counterFloors: B.counterFloors(db) }, B.seal);
   await snapshotText(JSON.stringify(db), 'before-sync-v3');
   await oauthConnect();
   let transport = await nativeSyncTransport('pendingRoot');
@@ -1358,7 +1378,7 @@ handleIPC('syncV3:connect', (_event, options) => withDataLock(async () => {
   if (remote.root && hasLocalData) {
     if (!replaceLocal) throw new Error('SYNC_JOIN_REQUIRES_EMPTY_PROFILE');
     await snapshotText(JSON.stringify(db, null, 2), 'before-sync-replace');
-    Object.assign(db, { clients: [], documents: [], recurring: [], reviewEvents: [], counters: {} });
+    Object.assign(db, { clients: [], documents: [], recurring: [], reviewEvents: [], counters: {}, assets: {} });
     await recoverData(JSON.stringify(db, null, 2));
   }
   let root = remote.root;
@@ -1375,12 +1395,15 @@ handleIPC('syncV3:connect', (_event, options) => withDataLock(async () => {
   await saveData(JSON.stringify(db, null, 2));
   return nativeSyncStatus();
 }));
-handleIPC('syncV3:run', () => withDataLock(async () => {
+handleIPC('syncV3:run', (_event, options) => withDataLock(async () => {
+  if(options?.approveProtocol===true){const cfg=await readConfig();cfg.protocolUpgradeApproved=true;await writeConfig(cfg);}
   const before = await nativeSyncDB();
   const controller = await nativeSyncController();
   if (before.syncV3.mode === 'joining') await controller.session().pull(); else await controller.sync();
   const next = await nativeSyncDB();
-  if (!next.syncV3.pending) { next.syncV3.mode = 'active'; await saveData(JSON.stringify(next, null, 2)); }
+  const remote = await (await nativeSyncTransport(next.syncV3.root, next.syncV3.account)).status();
+  if (remote.root !== next.syncV3.root) throw new Error('SYNC_WORKSPACE_CHANGED');
+  if (!next.syncV3.pending && next.syncV3.cursor === remote.sequence) { next.syncV3.mode = 'active'; await saveData(JSON.stringify(next, null, 2)); }
   return { text: JSON.stringify(next), status: await nativeSyncStatus() };
 }));
 handleIPC('syncV3:reserve', (_event, key, parts) => withDataLock(async () => {
@@ -1524,7 +1547,10 @@ handleIPC('sync:restore', async () => {
 
 handleIPC('ai:status', async () => aiStatus());
 
-handleIPC('ai:infer', async (_e, input) => runAiInference(input));
+handleIPC('ai:infer', async (_e, input) => {
+  if (IS_MAS) throw new Error('not available in the App Store build');   // sandbox spawn llama-cli ไม่ได้
+  return runAiInference(input);
+});
 
 handleIPC('ai:importTor', async (_e, filePath) => extractTorText(filePath));
 
@@ -1537,13 +1563,14 @@ handleIPC('ai:reveal', async () => {
 
 handleIPC('data:where', async () => {
   const cfg = await readConfig();
-  return { mode: cfg.externalPath ? 'external' : 'app', path: cfg.externalPath || DEFAULT_DATA };
+  return {mode:cfg.storageFormat==='sqlite'?'app':cfg.externalPath?'external':'app',storageFormat:cfg.storageFormat||'json',path:await activePath()};
 });
 
 handleIPC('data:reveal', async () => { shell.showItemInFolder(await activePath()); });
 
 // Pick an existing billing.json -> make it the active store, return its contents.
 handleIPC('data:linkExisting', async () => {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const r = await dialog.showOpenDialog(win, {
     title: 'เปิดไฟล์ billing.json', properties: ['openFile'],
     filters: [{ name: 'Billing Data (.json)', extensions: ['json'] }]
@@ -1551,6 +1578,7 @@ handleIPC('data:linkExisting', async () => {
   if (r.canceled || !r.filePaths.length) return null;
   const file = r.filePaths[0];
   return withDataLock(async () => {
+    if((await readConfig()).storageFormat==='sqlite') throw new Error('DATA_SQLITE_IMPORT_REQUIRED');
     const text = await fsp.readFile(file, 'utf8');
     validateData(text); // Never switch the store to an empty/unrelated JSON file.
     await assertNotSyncBound();
@@ -1565,6 +1593,7 @@ handleIPC('data:linkExisting', async () => {
 
 // Create a new external file at a chosen location, seed it with current data, make active.
 handleIPC('data:createExternal', async (_e, text) => {
+  if (IS_MAS) throw new Error('not available in the App Store build');
   const r = await dialog.showSaveDialog(win, {
     title: 'เก็บเป็นไฟล์ (เช่นใน Drive/Dropbox)',
     defaultPath: path.join(app.getPath('documents'), 'billing.json'),
@@ -1576,6 +1605,7 @@ handleIPC('data:createExternal', async (_e, text) => {
 
 // Switch back to the in-app folder; write current data there.
 async function moveDataStore(file, text) {
+  if((await readConfig()).storageFormat==='sqlite') throw new Error('DATA_SQLITE_EXPORT_ONLY');
   validateData(text);
   await currentSession();
   await assertNotSyncBound();
@@ -1592,6 +1622,7 @@ handleIPC('data:useDefault', (_e, text) => withDataLock(() => moveDataStore(DEFA
 
 // Export a backup copy (does NOT change the active store).
 handleIPC('data:export', async (_e, text) => {
+  validateData(text);
   const r = await dialog.showSaveDialog(win, {
     title: 'สำรองข้อมูล',
     defaultPath: path.join(app.getPath('documents'), 'billing-backup-' + new Date().toISOString().slice(0, 10) + '.json'),
@@ -1663,37 +1694,75 @@ function createWindow() {
   win.on('close', event => requestSafeClose(event, 'window'));
 }
 
+// บน macOS แอปยังรันอยู่หลังผู้ใช้ปิดหน้าต่าง — ต้องมีทางกลับเข้าหน้าต่างหลักเสมอ
+// (เมนู Window + คลิกไอคอนใน Dock). มีหน้าต่างอยู่แล้ว = โฟกัสตัวเดิม ไม่เปิดซ้ำ
+// คืน created=true เมื่อเพิ่งสร้างใหม่ — คนเรียกจะได้รู้ว่า renderer ยังโหลดไม่เสร็จ
+function showMainWindow() {
+  const w = (win && !win.isDestroyed()) ? win : null;
+  if (w) {
+    if (w.isMinimized()) w.restore();
+    w.show();
+    w.focus();
+    return { win: w, created: false };
+  }
+  createWindow();
+  return { win, created: true };
+}
+
+/* สั่งงาน renderer จากเมนู — ปิดหน้าต่างแล้วต้องไม่เงียบหาย
+   เดิม: ไม่มีหน้าต่าง = click แล้วไม่เกิดอะไรเลย (dead UI แบบเดียวกับที่ Apple ตีกลับ G4)
+   ตอนนี้: มีหน้าต่างอยู่ = ทำงานตามปกติ · ไม่มีหน้าต่าง = เอาหน้าต่างกลับมา แล้วจบแค่นั้น
+     ทำไมไม่ส่ง IPC ต่อเลยหลังเปิดใหม่: billing.html ผูก onMenuExport/onMenuImport
+     ไว้ท้าย boot() ซึ่งเป็น async (รอ deviceId/load/licenseStatus/where ครบก่อน)
+     พอเปิดรอบสอง ฟอนต์ถูก cache แล้ว did-finish-load จึงมาถึงก่อน boot เสร็จ →
+     ข้อความหายเงียบ = no-op แบบเดิมที่กำลังแก้อยู่ (ทดสอบแล้วตกจริง ไม่ใช่ทฤษฎี)
+     การเอาหน้าต่างกลับมา = คำตอบที่เห็นได้ของคลิกนี้ กด Cmd+E ซ้ำก็ทำงานเต็มรูปแบบ */
+function onMainWindow(fn) {
+  const { win: w, created } = showMainWindow();
+  if (!created) fn(w);
+}
+
 function buildMenu() {
   const isMac = process.platform === 'darwin';
-  // บน macOS แอปอยู่ต่อหลังปิดหน้าต่าง — win กลายเป็น object ที่ destroyed แล้ว (ยัง truthy)
-  const liveWin = () => (win && !win.isDestroyed()) ? win : null;
   const template = [
     ...(isMac ? [{ role: 'appMenu' }] : []),
     {
       label: 'ไฟล์',
       submenu: [
-        { label: 'ส่งออกไฟล์สำรอง (Export)…', accelerator: 'CmdOrCtrl+E', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:export'); } },
-        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => { const w = liveWin(); if (w) w.webContents.send('menu:import'); } },
+        { label: 'ส่งออกไฟล์สำรอง (Export)…', accelerator: 'CmdOrCtrl+E', click: () => onMainWindow(w => w.webContents.send('menu:export')) },
+        { label: 'นำเข้าข้อมูล (Import)…', accelerator: 'CmdOrCtrl+I', click: () => onMainWindow(w => w.webContents.send('menu:import')) },
         { label: 'เปิดที่เก็บไฟล์ข้อมูล', click: async () => shell.showItemInFolder(await activePath()) },
         { label: 'เปิดโฟลเดอร์สำรองอัตโนมัติ', click: async () => { await fsp.mkdir(BACKUP_DIR, { recursive: true }); shell.openPath(BACKUP_DIR); } },
         { type: 'separator' },
-        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => { const w = liveWin(); if (w) printOnWhitePage(w); } },
+        { label: 'พิมพ์ / Print…', accelerator: 'CmdOrCtrl+P', click: () => onMainWindow(w => printOnWhitePage(w)) },
         ...(isMac ? [] : [{ role: 'quit' }])
       ]
     },
     { role: 'editMenu' },   // Cmd+C/V/X/A — required for inputs on macOS
     { role: 'viewMenu' },
-    { role: 'windowMenu' }
+    // คง role 'windowMenu' ไว้ (macOS ผูกเมนูนี้เป็น NSApp.windowsMenu) แต่ใส่ submenu เอง
+    // เพื่อเพิ่มรายการเปิดหน้าต่างหลักกลับมา — role เดิม (Minimize/Zoom/Bring All to Front) ครบเหมือนเดิม
+    {
+      role: 'windowMenu',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [{ role: 'close' }]),
+        { type: 'separator' },
+        // ไม่ผูกคีย์ลัด: Cmd+0 ถูก View → Actual Size (resetZoom) จองไว้แล้ว
+        { label: 'หน้าต่างหลัก BillNgai (Main Window)', click: () => showMainWindow() }
+      ]
+    }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 app.whenReady().then(() => {
   if (!primaryInstance) return;
-  migrateFromBilliong();
+  if (!IS_MAS) migrateFromBilliong();   // sandbox อ่านโฟลเดอร์เก่านอก container ไม่ได้อยู่แล้ว
   buildMenu();
   createWindow();
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  app.on('activate', () => showMainWindow());   // คลิกไอคอน Dock — ทางกลับเส้นที่สอง (เมนู Window คือเส้นแรก)
 });
 app.on('second-instance', () => {
   if (!win || win.isDestroyed()) createWindow();

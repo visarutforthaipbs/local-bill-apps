@@ -9,7 +9,7 @@ function setup(){
   const elements=new Map();
   const element=()=>({innerHTML:'',textContent:'',value:'',checked:false,addEventListener(){},focus(){},
     querySelector(){return null;},classList:{add(){},remove(){},toggle(){}},style:{setProperty(){},removeProperty(){}}});
-  const ctx=vm.createContext({
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),
     window:{addEventListener(){},matchMedia(){return {matches:false};}},
     document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},
       querySelectorAll(){return [];},querySelector(){return null;},addEventListener(){},

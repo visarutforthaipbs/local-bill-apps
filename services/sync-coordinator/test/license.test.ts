@@ -18,8 +18,8 @@ beforeAll(async()=>{
  licensePem='-----BEGIN PUBLIC KEY-----\n'+b64(await crypto.subtle.exportKey('spki',licenseKey.publicKey) as ArrayBuffer)+'\n-----END PUBLIC KEY-----';
 });
 afterAll(()=>vi.restoreAllMocks());
-const configured=(extra:Record<string,string>={})=>({...env,GOOGLE_CLIENT_ID:'synthetic-client',ALLOWED_SUBJECTS:'',LICENSE_PUBLIC_KEY:licensePem,MAX_ACCOUNTS_PER_LICENSE:'2',...extra});
-const token=(subject:string)=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'synthetic-key'}).setSubject(subject).setIssuer('https://accounts.google.com').setAudience('synthetic-client').setIssuedAt().setExpirationTime('1h').sign(googleKey);
+const configured=(extra:Record<string,string>={})=>({...env,GOOGLE_CLIENT_ID:'synthetic-client.apps.googleusercontent.com',ALLOWED_SUBJECTS:'',LICENSE_PUBLIC_KEY:licensePem,MAX_ACCOUNTS_PER_LICENSE:'2',...extra});
+const token=(subject:string)=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'synthetic-key'}).setSubject(subject).setIssuer('https://accounts.google.com').setAudience('synthetic-client.apps.googleusercontent.com').setIssuedAt().setExpirationTime('1h').sign(googleKey);
 async function license(payload:Record<string,unknown>,signer=licenseKey.privateKey){
  const body=new TextEncoder().encode(canonical(payload));
  return b64(new TextEncoder().encode(JSON.stringify(payload)))+'.'+b64(await crypto.subtle.sign({name:'Ed25519'},signer,body));
@@ -55,6 +55,6 @@ it('keeps the explicit allow-list for staff/test accounts, and a Pro key cannot 
  expect((await worker.fetch(req,configured())).status).toBe(403);
 });
 it('without a licence key configured, the service stays allow-list only',async()=>{
- const res=await status('anyone',await license(pro),configured({LICENSE_PUBLIC_KEY:'',ALLOWED_SUBJECTS:'staff-account'}));
+ const res=await status('anyone',await license(pro),configured({LICENSE_PUBLIC_KEY:'',APPSTORE_BUNDLE_ID:'',APPSTORE_PRODUCT_ID:'',ALLOWED_SUBJECTS:'staff-account'}));
  expect(res.status).toBe(403);expect(res.body.error).toBe('ACCOUNT_NOT_ENABLED');
 });

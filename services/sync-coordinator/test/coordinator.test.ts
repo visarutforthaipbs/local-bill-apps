@@ -71,3 +71,20 @@ it('preserves consumed counter gaps and sequence across format changes',async()=
  const a=await s.reserve({operation:'reserveA',key:'document:a',prefix:'RC-69-',suffix:'',width:3,series:'receipt-2026'});expect(a.number).toBe('RC-69-015');
  const b=await s.reserve({operation:'reserveB',key:'document:b',prefix:'RECEIPT-26-',suffix:'',width:3,series:'receipt-2026'});expect(b.number).toBe('RECEIPT-26-016');
 });
+
+it('upgrades atomically and blocks old clients from interpreting or changing causal decisions',async()=>{
+ const s=await ready();
+ expect((await s.stub.request('status',null,3)).status).toBe(200);
+ const upgraded=await s.stub.request('upgradeProtocol',{protocol:4},4);
+ expect(upgraded.status).toBe(200);expect(upgraded.data).toMatchObject({capability:4,minProtocol:4});
+ for(const action of ['status','pull','commit','reserve','initialize']){
+  expect(await s.stub.request(action,null,3)).toEqual({status:409,data:{error:'SYNC_CLIENT_UPGRADE_REQUIRED'}});
+ }
+ expect((await s.stub.request('status',null,4)).status).toBe(200);
+ expect(await s.stub.request('upgradeProtocol',{protocol:4},4)).toEqual(upgraded);
+});
+it('rejects unsupported capabilities without upgrading the workspace',async()=>{
+ const s=await ready();
+ expect((await s.stub.request('upgradeProtocol',{protocol:5},4)).status).toBe(409);
+ expect((await s.stub.request('status',null,3)).status).toBe(200);
+});

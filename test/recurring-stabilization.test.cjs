@@ -2,7 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const test=require('node:test'),assert=require('node:assert/strict');
 const script=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8').match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function setup(){
-  const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false}}},document:{getElementById(){return {addEventListener(){},classList:{add(){},remove(){}}}},querySelectorAll(){return []},addEventListener(){}},navigator:{platform:'Test'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null},setItem(){}},confirm(){return true}});
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false}}},document:{getElementById(){return {addEventListener(){},classList:{add(){},remove(){}}}},querySelectorAll(){return []},addEventListener(){}},navigator:{platform:'Test'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null},setItem(){}},confirm(){return true}});
   vm.runInContext(script,ctx);
   vm.runInContext(`DB=blankDB();DEVICE_ID='test';DB.clients=[{id:'buyer',name:'Buyer'}];DB.recurring=[{id:'r',clientId:'buyer',nextDate:'2026-01-31',frequency:'monthly',items:[{description:'Retainer',qty:1,price:1000}],vatRate:0,whtRate:0}];persist=async()=>true;toast=()=>{};viewDoc=()=>{};render=()=>{};closeModal=()=>{};setView=()=>{};`,ctx);
   return code=>vm.runInContext(code,ctx);

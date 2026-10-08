@@ -12,7 +12,7 @@ function setup() {
   const element = () => ({innerHTML:'', textContent:'', value:'', checked:false,
     addEventListener(){}, focus(){}, querySelector(){return null;},
     classList:{add(){},remove(){},toggle(){}}, style:{setProperty(){},removeProperty(){}}});
-  const ctx = vm.createContext({
+  const ctx = vm.createContext({BillingData:require('../lib/billing-data.cjs'),
     window:{addEventListener(){},matchMedia(){return {matches:false};},billingAPI:{isElectron:true,
       async evidenceInfo(sha256){return sha256==='a'.repeat(64)
         ?{sha256,size:100,mime:'application/pdf',available:true}:{sha256,available:false};}}},

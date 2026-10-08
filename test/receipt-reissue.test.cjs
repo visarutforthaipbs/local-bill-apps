@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const {mainHarness}=require('./helpers/main-harness.cjs');
 const html=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8'),script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function setup(){
- const context=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(){return {innerHTML:'',addEventListener(){},classList:{add(){},remove(){}}};},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Synthetic'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}}});
+ const context=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(){return {innerHTML:'',addEventListener(){},classList:{add(){},remove(){}}};},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Synthetic'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}}});
  vm.runInContext(script,context);
  const run=code=>vm.runInContext(code,context);
  run(`DB=blankDB();DB.business={...DB.business,businessName:'Synthetic seller',address:'Synthetic address',taxId:'1234567890123',vatStatus:'non_registered'};DB.clients=[{id:'buyer',name:'Synthetic buyer',address:'Synthetic address',taxId:'1234567890123'}];

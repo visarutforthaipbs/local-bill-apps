@@ -276,3 +276,8 @@ the Sounds settings tab). OS VoiceOver, accessible icon labels and live feedback
 remain supported. Use familiar icons for utility actions, retain visible words
 on Save/Issue/destructive actions, and disclose optional contact/default fields
 without disconnecting them from draft recovery.
+
+At native accessibility text sizes, dashboard balance figures retain the existing
+28–44px container-responsive range so the complete amount fits its card. Labels
+and forms still follow the full native preference; very long figures wrap instead
+of being cropped. This exception affects screen figures only, never print/PDF.

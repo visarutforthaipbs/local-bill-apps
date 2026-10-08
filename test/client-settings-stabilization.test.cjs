@@ -11,12 +11,14 @@ function setup(){
   const elements=new Map(),created=[],readers=[];
   const element=()=>({value:'',checked:false,innerHTML:'',textContent:'',files:[],style:{setProperty(){},removeProperty(){}},
     classList:{add(){},remove(){},toggle(){}},addEventListener(){},click(){this.clicked=true;}});
-  const ctx=vm.createContext({
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),
     window:{addEventListener(){},matchMedia(){return {matches:false};}},
     document:{getElementById(id){if(!elements.has(id)&&bootstrapping)elements.set(id,element());return elements.get(id)||null;},
       createElement(){const el=element();created.push(el);return el;},querySelectorAll(){return [];},querySelector(){return null;},addEventListener(){},
       body:{classList:{add(){},remove(){},toggle(){}},setAttribute(){}},documentElement:element()},
     FileReader:class{constructor(){readers.push(this);}readAsDataURL(file){this.file=file;}},
+    // A small image: fitBusinessImage keeps it unchanged, as the real loader does below its size limits.
+    Image:class{set src(value){this.naturalWidth=10;this.naturalHeight=10;queueMicrotask(()=>this.onload());}},
     navigator:{platform:'SyntheticSettings'},console,TextEncoder,TextDecoder,
     setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},
     localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;},prompt(){throw Error('Native prompt unsupported');}

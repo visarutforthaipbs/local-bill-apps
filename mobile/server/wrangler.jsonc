@@ -1,0 +1,8 @@
+{
+  "name":"billngai-mobile-verification-local-only",
+  "main":"src/runtime-probe.ts",
+  "compatibility_date":"2026-10-03",
+  "compatibility_flags":["nodejs_compat"],
+  "rules":[{"type":"Data","globs":["**/*.cer","**/*.der"],"fallthrough":true}],
+  "workers_dev":false
+}

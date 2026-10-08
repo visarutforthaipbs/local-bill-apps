@@ -7,7 +7,7 @@ const script = fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8').ma
 function setup(){
   const classes=new Set(), events={}, elements=new Map();
   const element=()=>({innerHTML:'',textContent:'',value:'',addEventListener(){},classList:{add(){},remove(){},toggle(){}},style:{setProperty(){},removeProperty(){}}});
-  const ctx=vm.createContext({
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),
     window:{addEventListener(n,f){events[n]=f;},matchMedia(){return {matches:false};},print(){},billingAPI:{exportPDF(){throw new Error('Forbidden PDF call');}}},
     document:{getElementById(id){if(!elements.has(id)) elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},querySelector(){return null;},addEventListener(){},
       body:{classList:{add(n){classes.add(n);},remove(n){classes.delete(n);},toggle(n,v){v?classes.add(n):classes.delete(n);}},setAttribute(){}},documentElement:element()},

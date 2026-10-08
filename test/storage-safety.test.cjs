@@ -23,7 +23,7 @@ test('Drive file missing at launch stays locked even when Drive brings the real 
   const h = await fixture(t);
   const external = path.join(h.root, 'Drive', 'billing.json');
   await fsp.mkdir(path.dirname(external));
-  await fsp.writeFile(path.join(h.root, 'config.json'), JSON.stringify({ externalPath: external }));
+  await fsp.writeFile(path.join(h.root, 'config.json'), JSON.stringify({ externalPath: external, storageFormat:'json' }));
   await assert.rejects(h.call('data:load'), /DATA_MISSING/);
   await assert.rejects(h.call('data:save', data(0)), /DATA_NOT_LOADED/);
   assert.equal(fs.existsSync(external), false);
@@ -194,7 +194,7 @@ test('failed atomic rename keeps original bytes and cleans the unique temp file'
 test('recovery refuses to recreate an unavailable Drive directory', async t => {
   const h = await fixture(t);
   const external = path.join(h.root, 'offline-Drive', 'billing.json');
-  await fsp.writeFile(path.join(h.root, 'config.json'), JSON.stringify({ externalPath: external }));
+  await fsp.writeFile(path.join(h.root, 'config.json'), JSON.stringify({ externalPath: external, storageFormat:'json' }));
   await assert.rejects(h.call('data:recover', data()));
   assert.equal(fs.existsSync(path.dirname(external)), false);
 });

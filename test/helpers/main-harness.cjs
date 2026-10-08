@@ -4,7 +4,13 @@ const vm = require('node:vm');
 
 // Runs the real main-process handlers with only Electron UI/transport mocked.
 // The caller must supply an isolated temp directory; never use real app data.
-function mainHarness(root, source = path.resolve(__dirname, '../../main.js'), customFs = fs) {
+function mainHarness(root, source = path.resolve(__dirname, '../../main.js'), customFs = fs, {sqlite = false} = {}) {
+  if(!sqlite){
+    fs.mkdirSync(root,{recursive:true});
+    const config=path.join(root,'config.json');
+    let cfg;try{cfg=fs.existsSync(config)?JSON.parse(fs.readFileSync(config,'utf8')):{};}catch{}
+    if(cfg&&typeof cfg==='object'&&!Array.isArray(cfg)&&!cfg.storageFormat)fs.writeFileSync(config,JSON.stringify({...cfg,storageFormat:'json'}));
+  }
   const handlers = new Map();
   const events = new Map(), listeners = new Map(), sent = [], messages = [];
   let quits = 0;

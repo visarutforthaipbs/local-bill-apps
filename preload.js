@@ -3,6 +3,13 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 // Single, safe bridge for the renderer (billing.html).
 contextBridge.exposeInMainWorld('billingAPI', {
   isElectron: true,
+  // Mac App Store build: sandbox + In-App Purchase — renderer ใช้ flag เดียวนี้ gate ทุกอย่าง
+  isMas: ipcRenderer.sendSync('app:is-mas') === true,
+  iapStatus:      ()       => ipcRenderer.invoke('iap:status'),
+  iapProducts:    ()       => ipcRenderer.invoke('iap:products'),
+  iapBuy:         ()       => ipcRenderer.invoke('iap:buy'),
+  iapRestore:     ()       => ipcRenderer.invoke('iap:restore'),
+  onIapChanged:   (cb)     => ipcRenderer.on('iap:changed', (_event, status) => cb(status)),
   load:           ()       => ipcRenderer.invoke('data:load'),
   save:           (text)   => ipcRenderer.invoke('data:save', text),
   recoverData:    (text)   => ipcRenderer.invoke('data:recover', text),
@@ -32,7 +39,7 @@ contextBridge.exposeInMainWorld('billingAPI', {
   syncV3Status:   () => ipcRenderer.invoke('syncV3:status'),
   syncV3Connect:  (options) => ipcRenderer.invoke('syncV3:connect', options),
   syncV3Disconnect: () => ipcRenderer.invoke('syncV3:disconnect'),
-  syncV3Run:      () => ipcRenderer.invoke('syncV3:run'),
+  syncV3Run:      (options) => ipcRenderer.invoke('syncV3:run',options),
   syncV3Reserve:  (key, parts) => ipcRenderer.invoke('syncV3:reserve', key, parts),
   syncV3Resolve:  (key, choice) => ipcRenderer.invoke('syncV3:resolve', key, choice),
   syncStatus:     ()       => ipcRenderer.invoke('sync:status'),

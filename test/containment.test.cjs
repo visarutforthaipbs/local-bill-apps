@@ -11,7 +11,7 @@ const script = source.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace
 test('inline renderer syntax remains valid', () => { new vm.Script(script); });
 test('all cloud mutation/read/ack IPC entries fail before touching data', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'billngai-containment-'));
-  const harness = mainHarness(root);
+  const harness = mainHarness(root,undefined,fs,{sqlite:true});
   for(const channel of ['sync:connect','sync:push','sync:pull','sync:commitPull','sync:snapshot','sync:restore']) {
     await assert.rejects(harness.call(channel, '{}'), /CLOUD_SYNC_PAUSED_2_0_3/);
   }
@@ -19,7 +19,7 @@ test('all cloud mutation/read/ack IPC entries fail before touching data', async 
 });
 test('renderer sync/connect/restore and e-Tax entry points are contained', async () => {
   const messages=[];
-  const ctx = vm.createContext({ CLOUD_SYNC_PAUSED:true, syncV3Info:{connected:false}, tr:s=>s, toast:s=>messages.push(s) });
+  const ctx = vm.createContext({BillingData:require('../lib/billing-data.cjs'), CLOUD_SYNC_PAUSED:true, syncV3Info:{connected:false}, tr:s=>s, toast:s=>messages.push(s) });
   for(const [start,end] of [
     ['async function syncNow(', 'async function connectDrive('],
     ['async function connectDrive(', 'async function disconnectDrive('],
@@ -32,7 +32,7 @@ test('renderer sync/connect/restore and e-Tax entry points are contained', async
   assert.equal(messages.length,4);
 });
 test('fresh profile never assumes VAT registration or a 3 percent withholding rule', () => {
-  const ctx=vm.createContext({});
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),});
   vm.runInContext(source.slice(source.indexOf('function blankDB('),source.indexOf('/* ---------- persistence')),ctx);
   const b=ctx.blankDB().business;
   assert.equal(b.isVatRegistered,false); assert.equal(b.vatStatus,'unknown'); assert.equal(b.defaultWhtRate,0);
@@ -40,7 +40,7 @@ test('fresh profile never assumes VAT registration or a 3 percent withholding ru
 
 function renderer(){
   const elements=new Map();
-  const context=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};}},
+  const context=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},
     document:{getElementById(id){if(!elements.has(id))elements.set(id,{innerHTML:'',addEventListener(){},classList:{add(){},remove(){}}});return elements.get(id);},querySelectorAll(){return [];},addEventListener(){}},
     navigator:{platform:'Synthetic'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},
     localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;}});

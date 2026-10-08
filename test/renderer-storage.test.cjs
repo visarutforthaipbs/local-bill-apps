@@ -31,7 +31,7 @@ test('backup dates use local timezone including date rollover, old/new names and
 
 function renderer(save, failed = false) {
   const messages = [], actions = [];
-  const context = vm.createContext({ IS_ELECTRON: true, DB: { documents: [] }, loadFailed: failed,
+  const context = vm.createContext({ pendingDataUpgrade:null, IS_ELECTRON: true, DB: { documents: [] }, loadFailed: failed,
     syncV3Info: {connected:false}, dirty: false, syncTimer: null, tr: s => s, toast: (s, kind) => messages.push({ s, kind }),
     clearTimeout() {}, render: () => actions.push('render'), updateFileStatus() {},
     appendJournal: () => actions.push('journal'), scheduleSync: () => actions.push('sync'),

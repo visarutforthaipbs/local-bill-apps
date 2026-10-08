@@ -12,7 +12,7 @@ function context(){
   const element=id=>elements[id]||(elements[id]={id,value:'',innerHTML:'',textContent:'',className:'',attrs:{},
     addEventListener(){},classList:{add(){},remove(){},contains(){return false;}},
     setAttribute(k,v){this.attrs[k]=v;},removeAttribute(k){delete this.attrs[k];},scrollIntoView(){},focus(){},closest(){return null;},querySelector(){return null;}});
-  const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};}},
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},
     document:{getElementById:element,querySelector(){return null;},querySelectorAll(){return [];},addEventListener(){}},
     navigator:{platform:'Test'},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},
     localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;},prompt(){return '2026-01-10';}});

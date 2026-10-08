@@ -1,0 +1,14 @@
+{
+  "appId": "com.visarut.billngai",
+  "appName": "BillNgai",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "preferredContentMode": "mobile"
+  },
+  "server": {
+    "hostname": "localhost",
+    "iosScheme": "capacitor"
+  },
+  "loggingBehavior": "none"
+}

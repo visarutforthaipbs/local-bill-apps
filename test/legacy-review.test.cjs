@@ -4,7 +4,7 @@ const html=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8');
 const script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function setup(backup=async()=>'synthetic-backup.json'){
   const element=()=>({innerHTML:'',textContent:'',value:'',checked:false,style:{},addEventListener(){},classList:{add(){},remove(){},toggle(){}}});
-  const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};},billingAPI:{snapshotBackup:(...a)=>backup(...a)}},
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};},billingAPI:{snapshotBackup:(...a)=>backup(...a)}},
     document:{getElementById:element,querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Synthetic'},console,
     TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;}});
   vm.runInContext(script,ctx);

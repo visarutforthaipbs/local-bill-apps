@@ -3,6 +3,25 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [2.0.14] - Unreleased candidate
+
+### Added
+- Atomic SQLite storage on desktop and iOS, with verified backups, guarded recovery and older-writer protection.
+- Explicit backed-up approval for historical payment interpretation; stable confirmation matching and visible conflicting review decisions.
+- Business logo, signature and stamp are stored once per workspace; newly issued documents refer to them instead of embedding copies, and large images are scaled down when chosen. Already issued documents are unchanged.
+- Native iPhone/iPad host using the existing Apple app and Pro product, recoverable client/recurring drafts and an A4 document preview with native zoom.
+- Google Drive workspace access across desktop and mobile with native Google authorization and server-verified Pro access.
+
+### Fixed
+- Preserve both concurrent payment-review answers until an explicit successor resolves them; keep unresolved amounts separate from received income.
+- Retain correct receipt titles, immutable originals and separate installments during historical corrections.
+- Improve phone form containment and maximum accessibility text without squeezing the printed document layout; remove desktop audio from iPhone.
+- Listen immediately for StoreKit transaction delivery and retain verified ownership when an optional proof cache fails.
+- Connect workspaces with more than 512 records in one atomic first upload, send larger change sets in whole linked groups, transfer several files at a time and save far less often while syncing.
+- Show "Archive" instead of Thai text in the English document menu.
+
+Candidate only. Live Apple server verification, remaining physical-device checks and final distribution/release gates are recorded in docs/INTEGRATED-DATA-ACCEPTANCE-2026-10-04.md. This entry does not claim publication or App Store approval.
+
 ## [2.0.13] - 2026-10-03
 
 ### Changed

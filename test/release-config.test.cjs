@@ -1,3 +1,4 @@
+const {finished}=require('node:stream/promises');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
@@ -29,11 +30,11 @@ test('packaging rejects missing/malformed embedded configuration even when the s
     const context={electronPlatformName:'darwin',appOutDir:path.join(root,'out'),packager:{appInfo:{productFilename:'BillNgai'}}};
     await assert.rejects(afterPack(context), /missing or unreadable/);
     await fs.writeFile(path.join(source,'secrets/gdrive-oauth.json'),'hey'+fixture);
-    await asar.createPackage(source,path.join(resources,'app.asar'));
+    await finished(await asar.createPackage(source,path.join(resources,'app.asar')));
     await assert.rejects(afterPack(context), /valid JSON/);
     await fs.writeFile(path.join(source,'secrets/gdrive-oauth.json'),fixture);
     asar.uncacheAll();
-    await asar.createPackage(source,path.join(resources,'app.asar'));
+    await finished(await asar.createPackage(source,path.join(resources,'app.asar')));
     asar.uncacheAll();
     await afterPack(context);
   } finally { await fs.rm(root,{recursive:true,force:true}); }

@@ -6,7 +6,7 @@ async function fixture(t){
  const state=S.initial('synthetic');state.root='driveRoot';state.mode='active';state.records=B.flatten(db);state.heads={'business:main':{revision:1,hash:S.digest(db.business)}};state.cursor=1;db.syncV3=state;
  const file=path.join(root,'billing.json');await fs.writeFile(file,JSON.stringify(db));const h=mainHarness(root);await h.call('data:load');
  const files={business:db.business};const log=[{sequence:1,operation:'init',changes:[{key:'business:main',base:0,revision:1,hash:S.digest(db.business),file:'business'}]}];let fail=false;
- const operations={};h.context.testTransport={reserve:async r=>({number:'INV-69-001',reservation:r.operation}),upload:async record=>{const id='file'+Object.keys(files).length;files[id]=record;return id;},download:async id=>files[id],pull:async cursor=>({transactions:log.slice(cursor),cursor:log.length}),commit:async r=>{
+ const operations={};h.context.testTransport={status:async()=>({root:'driveRoot',sequence:log.length}),reserve:async r=>({number:'INV-69-001',reservation:r.operation}),upload:async record=>{const id='file'+Object.keys(files).length;files[id]=record;return id;},download:async id=>files[id],pull:async cursor=>({transactions:log.slice(cursor),cursor:log.length}),commit:async r=>{
   if(!operations[r.operation]){const changes=r.changes.map(c=>({...c,revision:c.base+1}));log.push({sequence:log.length+1,operation:r.operation,changes});operations[r.operation]={ok:true,changes};}
   if(fail){fail=false;throw Error('NETWORK');}return operations[r.operation];
  }};

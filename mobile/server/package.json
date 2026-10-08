@@ -1,0 +1,1 @@
+{"name":"billngai-mobile-entitlement-proposal","private":true,"type":"module","scripts":{"test":"tsx --test test/*.test.ts","check":"tsc --noEmit","dry-run":"wrangler deploy --dry-run"},"dependencies":{"@apple/app-store-server-library":"3.1.0","jose":"6.2.12"},"devDependencies":{"@types/node":"latest","tsx":"latest","typescript":"latest","wrangler":"4.147.0"}}

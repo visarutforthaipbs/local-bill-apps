@@ -12,7 +12,7 @@ export function need(condition: unknown, code: string, status = 400): asserts co
   if (!condition) throw new ProtocolError(code, status);
 }
 export const identifier = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
-export const recordKey = (value: unknown): value is string => typeof value === 'string' && /^(document|client|recurring|reviewEvent|business):[A-Za-z0-9_-]{1,128}$/.test(value);
+export const recordKey = (value: unknown): value is string => typeof value === 'string' && /^(document|client|recurring|reviewEvent|business|asset):[A-Za-z0-9_-]{1,128}$/.test(value);
 export const hash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 export const number = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= 96 && !/[\x00-\x1f]/.test(value);
 export function canonical(value: unknown): string {
@@ -20,11 +20,11 @@ export function canonical(value: unknown): string {
   if (value !== null && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical((value as Record<string, unknown>)[k])).join(',') + '}';
   return JSON.stringify(value);
 }
-export function validateCommit(value: unknown): asserts value is Commit {
+export function validateCommit(value: unknown, max = 512): asserts value is Commit {
   need(value && typeof value === 'object', 'INVALID_COMMIT');
   const c = value as Commit;
   need(Object.keys(c).every(k=>['operation','changes'].includes(k)),'UNKNOWN_COMMIT_FIELD');
-  need(identifier(c.operation) && Array.isArray(c.changes) && c.changes.length > 0 && c.changes.length <= 512, 'INVALID_COMMIT');
+  need(identifier(c.operation) && Array.isArray(c.changes) && c.changes.length > 0 && c.changes.length <= max, 'INVALID_COMMIT');
   const keys = new Set<string>();
   for (const v of c.changes) {
     need(v && typeof v==='object' && Object.keys(v).every(k=>['key','base','hash','file','sealedHash','number','reservation','claims'].includes(k)),'UNKNOWN_CHANGE_FIELD');

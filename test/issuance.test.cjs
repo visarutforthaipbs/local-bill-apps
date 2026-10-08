@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const html=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8');
 const script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function context(){
-  const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};}},
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},
     document:{getElementById(){return {addEventListener(){},classList:{add(){},remove(){}}};},querySelectorAll(){return [];},addEventListener(){}},
     navigator:{platform:'Test'},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},
     localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;},prompt(){return '2026-01-10';}});

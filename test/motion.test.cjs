@@ -13,7 +13,7 @@ function harness(){
   addEventListener(k,fn){this.listeners[k]=fn;}
   removeEventListener(k,fn){if(this.listeners[k]===fn)delete this.listeners[k];}
  }
- const ctx=vm.createContext({Audio:Clip,window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Test'},confirm(){return true;},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},localStorage:{getItem(k){return store.get(k)||null;},setItem(k,v){store.set(k,v);}}});
+ const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),Audio:Clip,window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Test'},confirm(){return true;},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},localStorage:{getItem(k){return store.get(k)||null;},setItem(k,v){store.set(k,v);}}});
  vm.runInContext(script,ctx);vm.runInContext(`DB=blankDB();toast=(msg,kind,action,outcome)=>messages.push({msg,kind,outcome});`,Object.assign(ctx,{messages}));
  return {ctx,run:s=>vm.runInContext(s,ctx),clips,store,messages,element};
 }

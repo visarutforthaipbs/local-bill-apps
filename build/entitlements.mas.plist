@@ -4,15 +4,26 @@
   <dict>
     <key>com.apple.security.app-sandbox</key>
     <true/>
+    <!-- Electron/Chromium ใช้ Mach port ชื่อ TEAMID.bundleid.MachPortRendezvousServer
+         คุยระหว่าง process — sandbox อนุญาตเฉพาะเมื่อประกาศ application-group นี้
+         (ไม่มี = renderer ต่อไม่ได้ = หน้าต่างว่างเปล่าใน TestFlight build 2.0.3) -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+      <string>79QFYKTJMN.com.visarut.billngai</string>
+    </array>
     <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Google Drive sync: OAuth loopback server บน 127.0.0.1 (รับ code หลังล็อกอิน) -->
+    <key>com.apple.security.network.server</key>
     <true/>
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+    <!-- V8/Electron ต้องการสองตัวนี้แม้ใน MAS — ถอดออกแล้วแอป crash ตอนเปิด
+         (EXC_BREAKPOINT ใน v8::Isolate::Initialize — จอง JIT memory ไม่ได้) -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
-    <key>com.apple.security.cs.allow-dyld-shared-cache</key>
-    <true/>
+    <!-- ห้ามใส่ com.apple.security.cs.allow-dyld-shared-cache — Apple ปัดตก ITMS-90285 -->
   </dict>
 </plist>

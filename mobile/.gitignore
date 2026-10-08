@@ -1,0 +1,6 @@
+node_modules/
+www/
+.build*/
+review/
+ios/App/App/public/
+ios/App/App/capacitor.config.json

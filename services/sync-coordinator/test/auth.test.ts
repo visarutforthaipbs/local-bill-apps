@@ -4,7 +4,7 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import worker from '../src/index';
 declare module 'cloudflare:test' { interface ProvidedEnv extends Env {} }
 let privateKey:CryptoKey;
-const configured=()=>({...env,GOOGLE_CLIENT_ID:'synthetic-client',ALLOWED_SUBJECTS:'synthetic-account'});
+const configured=()=>({...env,GOOGLE_CLIENT_ID:'synthetic-client.apps.googleusercontent.com',ALLOWED_SUBJECTS:'synthetic-account'});
 beforeAll(async()=>{
  const pair=await generateKeyPair('RS256');privateKey=pair.privateKey;
  const jwk=await exportJWK(pair.publicKey);Object.assign(jwk,{kid:'synthetic-key',alg:'RS256',use:'sig'});
@@ -15,7 +15,7 @@ beforeAll(async()=>{
 });
 afterAll(()=>vi.restoreAllMocks());
 async function token(options:{audience?:string;subject?:string;expiry?:string;issuer?:string}={}){
- return new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'synthetic-key'}).setSubject(options.subject||'synthetic-account').setIssuer(options.issuer||'https://accounts.google.com').setAudience(options.audience||'synthetic-client').setIssuedAt().setExpirationTime(options.expiry||'5m').sign(privateKey);
+ return new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'synthetic-key'}).setSubject(options.subject||'synthetic-account').setIssuer(options.issuer||'https://accounts.google.com').setAudience(options.audience||'synthetic-client.apps.googleusercontent.com').setIssuedAt().setExpirationTime(options.expiry||'5m').sign(privateKey);
 }
 async function call(jwt:string,path='/v3/status',body?:string){return worker.fetch(new Request('https://test.invalid'+path,{method:body===undefined?'GET':'POST',headers:{authorization:'Bearer '+jwt,'content-type':'application/json'},...(body===undefined?{}:{body})}),configured());}
 it('accepts correctly signed audience/issuer/subject and isolates via verified identity',async()=>{expect((await call(await token())).status).toBe(200);});

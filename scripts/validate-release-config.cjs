@@ -28,12 +28,33 @@ function validatePackaged(archive) {
   validateOAuth(text);
 }
 
-async function beforePack(context) { validateSource(context.packager.info.appDir); }
+async function beforePack(context) {
+  const appDir = context.packager.info.appDir;
+  validateSource(appDir);
+  // Builder normalizes the root whitelist into a filter object. A separate
+  // negative-only MAS matcher would include every other source/build file.
+  const matcher = context.packager.config?.files?.find(entry =>
+    entry.filter?.some(pattern => pattern === 'billing.html' || pattern === '!billing.html'));
+  if (matcher) matcher.filter = matcher.filter.map(pattern =>
+    pattern === 'billing.html' || pattern === '!billing.html'
+      ? (context.electronPlatformName === 'mas' ? '!billing.html' : 'billing.html') : pattern);
+  if (context.electronPlatformName === 'mas') {
+    if (!matcher) throw Error('Release blocked: review the normalized renderer file selection.');
+    const renderer = require('./channel-renderer.cjs').appleRenderer(fs.readFileSync(path.join(appDir, 'billing.html'), 'utf8'));
+    fs.mkdirSync(path.join(appDir, 'build/mas-renderer'), {recursive:true});
+    fs.writeFileSync(path.join(appDir, 'build/mas-renderer/billing.html'), renderer);
+  }
+}
 async function afterPack(context) {
   const resources = ['darwin', 'mas'].includes(context.electronPlatformName)
     ? path.join(context.appOutDir, context.packager.appInfo.productFilename + '.app', 'Contents', 'Resources')
     : path.join(context.appOutDir, 'resources');
   validatePackaged(path.join(resources, 'app.asar'));
+  if (context.electronPlatformName === 'mas') {
+    const renderer = require('@electron/asar').extractFile(path.join(resources, 'app.asar'), 'billing.html').toString('utf8');
+    if (require('./channel-renderer.cjs').appleRenderer(renderer) !== renderer)
+      throw Error('Release blocked: MAS renderer contains the direct purchase modal.');
+  }
 }
 
 module.exports = { validateOAuth, validateSource, validatePackaged, beforePack, afterPack };

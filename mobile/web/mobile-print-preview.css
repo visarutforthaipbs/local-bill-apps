@@ -1,0 +1,12 @@
+/* Preserve page proportions; only the viewport scale changes on a phone. */
+@media screen{
+ .mobile-print-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;color:var(--text-dim);font-size:13px}
+ .mobile-print-toolbar button{min-width:48px;min-height:48px}
+ .mobile-a4-canvas{position:relative;overflow:hidden;width:100%;background:white;border:1px solid var(--border)}
+ .mobile-a4-canvas>.paper{width:820px;min-height:1160px;max-width:none;box-sizing:border-box;transform-origin:top left;animation:none;border:0;border-radius:0;margin:0}
+}
+@media print{
+ .mobile-print-toolbar{display:none!important}
+ .mobile-a4-canvas{height:auto!important;overflow:visible!important;border:0!important}
+ .mobile-a4-canvas>.paper{transform:none!important;width:auto!important;min-height:0!important}
+}

@@ -3,7 +3,7 @@ const html=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8');
 const script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function setup(){
   const elements=new Map(),element=()=>({innerHTML:'',textContent:'',value:'',checked:false,style:{},addEventListener(){},classList:{add(){},remove(){},toggle(){}}});
-  const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};},billingAPI:{async snapshotBackup(){return 'synthetic-backup.json';}}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){},body:{classList:{add(){},remove(){}}}},navigator:{platform:'Synthetic'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;}});
+  const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};},billingAPI:{async snapshotBackup(){return 'synthetic-backup.json';}}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){},body:{classList:{add(){},remove(){}}}},navigator:{platform:'Synthetic'},console,TextEncoder,TextDecoder,setTimeout(){},clearTimeout(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}},confirm(){return true;}});
   vm.runInContext(script,ctx);
   vm.runInContext(`DB=blankDB();DB.business.uiLang='en';DEVICE_ID='synthetic';
     DB.clients=[{id:'buyer',name:'Current buyer reference'}];

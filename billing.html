@@ -908,6 +908,7 @@
       <div id="breadcrumb" style="font-size:12px;color:var(--text-faint);margin-bottom:2px"></div>
       <h2 id="pageTitle">แดชบอร์ด</h2>
       <div class="spacer"></div>
+      <div id="proActions"></div>
       <div id="topActions"></div>
     </header>
     <div class="content" id="content"></div>
@@ -943,6 +944,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" onclick="if(this.classList.contains('err'))hideToast()"></div>
 
+<script src="lib/billing-data.cjs"></script>
 <script>
 /* ============================================================
    STATE & STORAGE
@@ -954,13 +956,17 @@ let pendingHandle = null;   // a saved handle that needs a click to re-grant per
 let dirty = false;          // unsaved changes vs file
 let storageOK = true;       // is localStorage usable on this origin?
 let DB = null;              // the whole database object
-let loadFailed = false;     // data file existed but couldn't be parsed — block saves so we never overwrite it
+let loadFailed = false; // Block saves until explicit recovery after a failed load.
+let loadErrorCode='';
 
 const supportsFSA = 'showOpenFilePicker' in window && 'showSaveFilePicker' in window;
 
 /* When running inside the packaged desktop app, storage goes through the
    native bridge (window.billingAPI) instead of the browser File System APIs. */
 const IS_ELECTRON = !!(window.billingAPI && window.billingAPI.isElectron);
+/* Mac App Store build: Pro ผ่าน In-App Purchase เท่านั้น (ห้ามลิงก์ซื้อภายนอก/ช่องวางรหัส — กติกา 3.1.1)
+   ไม่มี AI (sandbox ห้าม spawn) และไม่มีไฟล์ข้อมูลภายนอก (รอ security-scoped bookmarks) */
+const IS_MAS = !!(window.billingAPI && window.billingAPI.isMas);
 let dataLoc = { mode:'app', path:'' };            // Electron: 'app' folder vs 'external' file
 const baseName = p => String(p||'').split(/[\\/]/).pop();
 
@@ -980,7 +986,7 @@ async function rememberHandle(h){ try{ await idbSet(HANDLE_KEY,h); }catch(e){} }
 
 function blankDB(){
   return {
-    version: 2,   // v2 = sync-ready: updatedAt/deletedAt ทุก record, id มี device prefix
+    version: 3,   // v3 = canonical review matching and explicit decision ancestry
     business: {
       businessName: '',
       businessNameEn: '',
@@ -1023,9 +1029,10 @@ function blankDB(){
     documents: [],
     syncV3: null, // Native pilot metadata; atomically persisted with billing records.
     reviewEvents: [], // Append-only evidence and separately reviewed payment facts; never an original reconstruction.
+    assets: {},       // Business images kept once, by SHA-256; new issued originals refer to them as "asset:<hash>".
     recurring: [],  // recurring invoice templates
     counters: {},   // { "quotation-68": 3, ... }
-    meta: { lastBackupAt: '', setupDone: false, demo: false }   // lastBackupAt: last manual export · setupDone: first-run wizard finished/skipped · demo: sample data loaded
+    meta: { lastBackupAt: '', setupDone: false, demo: false, reviewSemanticsVersion:3 }   // lastBackupAt: last manual export · setupDone: first-run wizard finished/skipped · demo: sample data loaded
   };
 }
 
@@ -1045,7 +1052,7 @@ function loadLocal(){
 async function loadFromHandle(){
   const file = await fileHandle.getFile();
   const text = await file.text();
-  if(text.trim()) DB = migrate(JSON.parse(text));
+  if(text.trim()) adoptDatabase(JSON.parse(text));
   saveLocal();
   dirty = false;
 }
@@ -1281,7 +1288,13 @@ async function connectDrive(){
     // เครื่องเปล่า (เครื่องใหม่/ลงใหม่) → เข้าโฟลว์กู้คืนก่อนเลย — ห้าม sync ก่อน ไม่งั้นจะดันสถานะว่างขึ้นไป
     if(!activeDocs().length && !activeClients().length) restoreFromCloudFlow();
     else syncNow(true);
-  }catch(e){ toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+(e.message||e),'err'); }
+  }catch(e){
+    const msg = String((e&&e.message)||e);
+    // main ปฏิเสธเพราะผู้ใช้ไม่ติ๊กช่องสิทธิ์ Drive ในหน้า Google — บอกวิธีแก้ตรง ๆ ดีกว่าโชว์ error ดิบ
+    if(msg.includes('drive-scope-not-granted'))
+      toast(tr('Google ยังไม่ได้ให้สิทธิ์ Google Drive แก่แอป — กด "เชื่อมต่อ Google Drive" อีกครั้ง แล้วติ๊กช่องอนุญาต Google Drive ในหน้าของ Google'),'err');
+    else toast(tr('เชื่อมต่อไม่สำเร็จ:')+' '+msg,'err');
+  }
 }
 async function disconnectDrive(){
   if(!await askConfirm(tr('ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ'),{confirmLabel:tr('ยกเลิกการเชื่อมต่อ')})) return;
@@ -1324,10 +1337,15 @@ async function assignSyncNumber(d,key){
 }
 // Plain-language reasons for sync errors raised by the main process or the service.
 const SYNC_ERROR_TEXT={
+  SYNC_APPSTORE_RESTORE_REQUIRED:'กรุณากู้คืนการซื้อผ่าน App Store ก่อนเชื่อมต่อ Google Drive',
+  APPSTORE_RECEIPT_INVALID:'ตรวจสอบการซื้อไม่สำเร็จ กรุณากู้คืนการซื้อผ่าน App Store',
+  APPSTORE_PRO_REQUIRED:'ไม่พบสิทธิ์ Pro กรุณากู้คืนการซื้อผ่าน App Store',
+  APPSTORE_VERIFICATION_UNAVAILABLE:'ตรวจสอบการซื้อไม่ได้ในตอนนี้ ลองอีกครั้ง',
+  APPSTORE_SANDBOX_NOT_ENABLED:'บัญชี Google นี้ยังไม่ได้เปิดทดสอบการซื้อผ่าน App Store',
   PRO_REQUIRED:'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้',
   LICENSE_ACCOUNT_LIMIT:'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ',
   SYNC_DRIVE_PERMISSION_REQUIRED:'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้',
-  SYNC_BOOTSTRAP_TOO_LARGE:'ข้อมูลมากกว่า 512 รายการ รุ่นนี้ยังเชื่อมต่อได้ไม่ครบ ติดต่อฝ่ายช่วยเหลือ',
+  SYNC_BOOTSTRAP_TOO_LARGE:'ข้อมูลมีมากเกินกว่าที่รุ่นนี้เชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ',
   SYNC_USE_LOCAL_STORAGE:'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive',
   SYNC_KEYCHAIN_REQUIRED:'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้',
   SYNC_FINALIZATION_PENDING:'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน',
@@ -1340,17 +1358,21 @@ function syncErrorText(e){
   const code=Object.keys(SYNC_ERROR_TEXT).find(k=>msg.includes(k));
   return code?tr(SYNC_ERROR_TEXT[code]):tr('เชื่อมต่อไม่สำเร็จ:')+' '+msg.replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
 }
+async function approveSyncProtocol(){
+  return askConfirm(DB.business.uiLang==='en'?'Update syncing for all devices?':'อัปเกรดซิงก์ทุกเครื่อง?',{detail:DB.business.uiLang==='en'?'This permanently raises the workspace minimum client version. Older Mac, PC and iPhone apps will stop syncing, including reading. Update every device first. Local documents and backups remain available.':'การดำเนินการนี้เพิ่มรุ่นขั้นต่ำของเวิร์กสเปซถาวร แอป Mac, PC และ iPhone รุ่นเก่าจะซิงก์ไม่ได้ รวมถึงอ่านข้อมูล อัปเดตทุกเครื่องก่อน เอกสารและข้อมูลสำรองในเครื่องยังอยู่',confirmLabel:DB.business.uiLang==='en'?'All devices updated — continue':'อัปเดตทุกเครื่องแล้ว — ดำเนินการ'});
+}
 async function connectSyncV3(){
   if(!isPro()){openUpgradeModal();return;}
   if(!await askConfirm(tr('เชื่อมต่อ Google Drive?'),{detail:tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ ทุกเครื่องที่ใช้บัญชีเดียวกันจะเห็นข้อมูลชุดเดียวกัน เครื่องนี้จะสำรองข้อมูลไว้ก่อนเชื่อมต่อ'),confirmLabel:tr('เชื่อมต่อ Google Drive')}))return;
+  if(!await approveSyncProtocol())return;
   // Upload the same normalized records this app will keep saving, not an older on-disk shape.
   if(!await persist(true))return;
-  try{syncV3Info=await window.billingAPI.syncV3Connect();}
+  try{syncV3Info=await window.billingAPI.syncV3Connect({approveProtocol:true});}
   catch(e){
     if(!String(e.message).includes('SYNC_JOIN_REQUIRES_EMPTY_PROFILE')){toast(syncErrorText(e),'err');return;}
     // This Google Drive already holds a BillNgai workspace and this Mac has its own data.
     if(!await askConfirm(tr('Google Drive นี้มีข้อมูล BillNgai อยู่แล้ว ใช้ข้อมูลจาก Drive แทนข้อมูลในเครื่องนี้ไหม?'),{detail:tr('ข้อมูลในเครื่องนี้จะถูกสำรองไว้ก่อน แล้วแทนที่ด้วยข้อมูลจาก Google Drive ไม่มีการรวมข้อมูลสองชุดเข้าด้วยกัน'),confirmLabel:tr('ใช้ข้อมูลจาก Drive'),danger:true}))return;
-    try{syncV3Info=await window.billingAPI.syncV3Connect({replaceLocal:true});}catch(e2){toast(syncErrorText(e2),'err');return;}
+    try{syncV3Info=await window.billingAPI.syncV3Connect({replaceLocal:true,approveProtocol:true});}catch(e2){toast(syncErrorText(e2),'err');return;}
   }
   await runSyncV3(false);
 }
@@ -1362,15 +1384,17 @@ async function disconnectSyncV3(){
 }
 let syncV3Waiting=false,syncV3RetryTimer=null;
 async function runSyncV3(silent){
-  if(syncBusy||loadFailed||pendingPersist)return;
+  if(syncBusy||loadFailed||pendingPersist||pendingDataUpgrade)return;
   if(editDoc||settingsDirty||document.getElementById('overlay').classList.contains('open')||issuanceBusy){
     // Don't pull over open work; say so and try again shortly instead of skipping silently.
     syncV3Waiting=true;updateFileStatus();if(!silent)toast(tr('บันทึกงานที่เปิดอยู่ก่อนซิงก์'),'err');
     clearTimeout(syncV3RetryTimer);syncV3RetryTimer=setTimeout(()=>runSyncV3(true),15000);return;
   }
+  let approveProtocol=false;
+  if(!syncV3Info.protocolApproved){if(silent)return;if(!await approveSyncProtocol())return;approveProtocol=true;}
   syncV3Waiting=false;clearTimeout(syncV3RetryTimer);
   syncBusy=true;syncErr='';updateFileStatus();
-  try{const result=await window.billingAPI.syncV3Run();DB=migrate(JSON.parse(result.text));syncV3Info=result.status;buildJournalIndex();if(!editDoc&&!settingsDirty&&!document.getElementById('overlay').classList.contains('open'))render();if(!silent)toast(tr('ซิงก์แล้ว'),'ok');}
+  try{const result=await window.billingAPI.syncV3Run({approveProtocol});adoptDatabase(JSON.parse(result.text));syncV3Info=result.status;buildJournalIndex();if(!editDoc&&!settingsDirty&&!document.getElementById('overlay').classList.contains('open'))render();if(!silent)toast(tr('ซิงก์แล้ว'),'ok');}
   catch(e){syncErr=e.message;await refreshSyncInfo();if(!silent)toast(syncErrorText(e),'err');}
   finally{syncBusy=false;updateFileStatus();}
 }
@@ -1451,8 +1475,142 @@ function resolveConflict(i, useRemote){
   else { closeModal(); render(); toast(tr('บันทึกการตัดสินแล้ว — จะซิงก์ให้ทุกเครื่องตามนี้'),'ok'); }
 }
 
-/* ---------- Pro upgrade & license (Phase E) ---------- */
-function openUpgradeModal(){
+/* ---------- Channel-specific Pro purchase paths ---------- */
+function openUpgradeModal(){ return IS_MAS ? openMasUpgradeModal() : openDirectUpgradeModal(); }
+/* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
+   รายการขายไม่มี AI (sandbox ห้าม spawn llama-cli) — อย่าเพิ่มกลับโดยไม่แก้ข้อจำกัดนั้นก่อน */
+let iapBusy=false;
+let iapProduct=null;
+let iapCurrentState='idle';
+let iapPriceRequest=0;
+let iapLastMessage='';
+function openMasUpgradeModal(){
+  const m = document.getElementById('modal');
+  const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
+  m.innerHTML = `
+    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
+    <div class="modal-body">
+      <div class="grid-2" style="align-items:start">
+        <div class="card-block" style="margin-bottom:0">
+          <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
+          <div class="desc">${tr('ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
+          ${li(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'))}
+          ${li(tr('สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี'))}
+          ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
+          ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
+        </div>
+        <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
+          <h4>BillNgai Pro</h4>
+          <div class="desc">${tr('ซิงก์ Google Drive ของคุณ ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง')}</div>
+          ${li(tr('ทุกอย่างที่มีใน Local'))}
+          ${li(tr('ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน'))}
+          ${li(tr('สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม'))}
+          ${li(tr('ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท'))}
+          ${li(tr('ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง'))}
+          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)" id="iapPrice">${tr('กำลังโหลดราคาจาก App Store…')}</div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn-primary" id="iapBuyBtn" disabled onclick="iapBuyPro()">${ic('sparkles')} ${tr('ซื้อผ่าน App Store')}</button>
+            <button class="btn" id="iapRestoreBtn" onclick="iapRestorePro()">${tr('กู้คืนการซื้อ')}</button>
+            <button class="btn btn-ghost" id="iapRetryBtn" onclick="loadIapPrice()">${tr('ลองใหม่')}</button>
+          </div>
+          <div class="hint" id="iapStatus" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="banner" style="margin:16px 0 0">${ic('sparkles')} ${tr('จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น')}</div>
+    </div>`;
+  openModal();
+  if(iapLastMessage) iapMessage(iapLastMessage);
+  loadIapPrice();
+}
+function updateIapControls(){
+  const btn=document.getElementById('iapBuyBtn');
+  if(btn){
+    btn.disabled=iapBusy || !iapProduct || isPro() || iapCurrentState==='deferred';
+    btn.textContent=tr(isPro()?'ซื้อผ่าน App Store แล้ว':'ซื้อผ่าน App Store');
+  }
+  const restore=document.getElementById('iapRestoreBtn');
+  if(restore) restore.disabled=iapBusy;
+}
+function iapMessage(key){
+  iapLastMessage=key;
+  const el=document.getElementById('iapStatus');
+  if(el) el.textContent=tr(key);
+}
+async function loadIapPrice(){
+  const request=++iapPriceRequest;
+  iapProduct=null; updateIapControls();
+  const el=document.getElementById('iapPrice');
+  if(el) el.textContent=tr('กำลังโหลดราคาจาก App Store…');
+  try{
+    const ps=await window.billingAPI.iapProducts();
+    if(request!==iapPriceRequest) return;
+    iapProduct=(ps||[]).find(p=>p.id==='com.visarut.billngai.pro' && p.price) || null;
+  }catch(e){ if(request!==iapPriceRequest) return; }
+  if(el && el===document.getElementById('iapPrice')) el.textContent=iapProduct
+    ? tr('จ่ายครั้งเดียว {p} — ไม่มีค่ารายเดือน').replace('{p}',iapProduct.price)
+    : tr('โหลดสินค้าไม่ได้ — ตรวจสอบอินเทอร์เน็ตแล้วกดลองใหม่');
+  updateIapControls();
+}
+async function iapBuyPro(){
+  if(iapBusy || !iapProduct || isPro() || iapCurrentState==='deferred') return;
+  iapBusy=true; updateIapControls();
+  iapMessage('รอยืนยันการซื้อจาก App Store');
+  try{
+    const accepted=await window.billingAPI.iapBuy();
+    if(!accepted){
+      iapBusy=false;
+      iapMessage('App Store ยังเริ่มการซื้อไม่ได้ — ลองโหลดสินค้าใหม่');
+    }
+    // A queued request is not a completed purchase. Wait for StoreKit's event.
+  }catch(e){
+    iapBusy=false;
+    iapMessage(String(e.message||e).includes('iap-payments-disabled')
+      ? 'การซื้อถูกปิดไว้ — ตรวจสอบ Screen Time หรือการจัดการเครื่อง'
+      : 'ซื้อไม่สำเร็จ — ลองใหม่อีกครั้ง');
+  }
+  updateIapControls();
+}
+let iapRestoreTimer = null;
+async function iapRestorePro(){
+  if(iapBusy) return;
+  iapBusy=true; updateIapControls();
+  iapMessage('กำลังกู้คืนการซื้อจาก App Store…');
+  try{
+    await window.billingAPI.iapRestore();
+    if(iapRestoreTimer) clearTimeout(iapRestoreTimer);
+    // Electron does not expose restore-completed/restore-failed callbacks.
+    // A timeout cannot prove that this Apple account has never purchased Pro.
+    if(iapBusy) iapRestoreTimer=setTimeout(()=>{
+      iapRestoreTimer=null; iapBusy=false; updateIapControls();
+      iapMessage('ยังไม่ได้รับผลกู้คืน — ตรวจสอบบัญชี App Store แล้วลองอีกครั้ง');
+    },30000);
+  }catch(e){ iapBusy=false; updateIapControls(); iapMessage('กู้คืนการซื้อไม่สำเร็จ'); }
+}
+async function handleIapChanged(status={state:'idle'}){
+  if(iapRestoreTimer){ clearTimeout(iapRestoreTimer); iapRestoreTimer=null; }
+  iapCurrentState=status.state;
+  iapBusy=status.state==='purchasing';
+  const messages={
+    purchasing:'รอยืนยันการซื้อจาก App Store',
+    deferred:'การซื้อกำลังรออนุมัติจาก App Store',
+    cancelled:'ยกเลิกการซื้อแล้ว',
+    failed:'ซื้อไม่สำเร็จ — ลองใหม่อีกครั้ง',
+    unavailable:'App Store ยังเริ่มการซื้อไม่ได้ — ลองโหลดสินค้าใหม่',
+    'save-failed':'บันทึกสิทธิ์ไม่สำเร็จ — เปิดแอปใหม่แล้วกู้คืนการซื้อ',
+    restored:'กู้คืนการซื้อแล้ว',
+    purchased:'ซื้อผ่าน App Store แล้ว'
+  };
+  if(status.state==='purchased' || status.state==='restored'){
+    try{ PRO=await window.billingAPI.licenseStatus(); }catch(e){}
+    await refreshSyncInfo(); render();
+    if(isPro()) toast(tr(messages[status.state]),'ok');
+  }
+  if(messages[status.state]) iapMessage(messages[status.state]);
+  updateIapControls();
+}
+
+function openDirectUpgradeModal(){
+  if(IS_MAS) return openMasUpgradeModal();
   const m = document.getElementById('modal');
   const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
   m.innerHTML = `
@@ -1491,6 +1649,7 @@ function openUpgradeModal(){
   openModal();
 }
 async function activateLicense(){
+  if(IS_MAS) return;
   const key = (document.getElementById('lic_key')||{value:''}).value.trim();
   if(!key) return;
   try{
@@ -1514,6 +1673,7 @@ async function persist(silent){
   try{return await persistNow(silent);}finally{pendingPersist--;}
 }
 async function persistNow(silent){
+  if(pendingDataUpgrade){toast(tr('ตรวจการอัปเกรดข้อมูลก่อน'),'err');return false;}
   if(loadFailed){
     toast(tr('ไฟล์ข้อมูลเดิมอ่านไม่ได้ — ระงับการบันทึกไว้ก่อนเพื่อไม่ให้ทับข้อมูลเดิม (กู้จากโฟลเดอร์สำรองหรือนำเข้าไฟล์ก่อน)'),'err');
     return false;
@@ -1548,7 +1708,7 @@ async function persistNow(silent){
 async function elRefreshLoc(){ try{ dataLoc = await window.billingAPI.where(); }catch(e){} updateFileStatus(); }
 async function elLink(){
   try{ const r = await window.billingAPI.linkExisting();
-    if(r){ DB = migrate(JSON.parse(r.text)); loadFailed=false; await elRefreshLoc(); render(); toast(tr('เปิดไฟล์ {f} แล้ว').replace('{f}',baseName(r.path)),'ok'); }
+    if(r){ adoptDatabase(JSON.parse(r.text)); loadFailed=false; await elRefreshLoc(); render(); toast(tr('เปิดไฟล์ {f} แล้ว').replace('{f}',baseName(r.path)),'ok'); }
   }catch(e){ toast(tr('เปิดไฟล์ไม่สำเร็จ'),'err'); }
 }
 async function elCreate(){
@@ -1572,7 +1732,8 @@ async function elImport(){
     const recovered = migrate(parsed);
     // Main validates the original schema; an unrelated JSON file must not become blankDB().
     await window.billingAPI.recoverData(t);
-    DB = recovered; loadFailed=false;
+    adoptDatabase(parsed); loadFailed=false;
+    if(pendingDataUpgrade){render();return;}
     if(!await persist(true)) return;
     render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
   }catch(e){ toast(String(e.message).includes('SYNC_DISCONNECT_REQUIRED')?tr('เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้'):tr('ไฟล์ไม่ถูกต้อง'),'err'); }
@@ -1625,7 +1786,7 @@ async function newFile(){
 }
 
 // Backups carry billing data only, never this device's sync binding or Google account ID.
-function exportableDB(){ const copy={...DB}; delete copy.syncV3; return copy; }
+function exportableDB(){ const copy={...DB,meta:{...DB.meta}}; delete copy.syncV3;delete copy.meta.protocolUpgradeApproved; return copy; }
 function exportJSON(){
   markBackup();
   const blob = new Blob([JSON.stringify(exportableDB(),null,2)],{type:'application/json'});
@@ -1766,7 +1927,7 @@ function importJSON(){
     const f = inp.files[0]; if(!f) return;
     try{
       const parsed=JSON.parse(await f.text()); delete parsed.syncV3;
-      DB = migrate(parsed);
+      adoptDatabase(parsed);
       saveLocal(); render();
       toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
       if(fileHandle){ dirty=true; persist(); }
@@ -1778,113 +1939,17 @@ function importJSON(){
 // Older sync deletes could retain only identity/timestamps (and migrated currency).
 // Accept that exact deleted shape, never a type-less live/financial document.
 // A receipt reissue is immutable correspondence for an existing payment, not a new ledger entry.
-function validReceiptReissueEvent(e){
-  const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v),str=v=>typeof v==='string'&&!!v.trim();
-  const date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
-  const num=v=>(typeof v==='number'||(typeof v==='string'&&!!v.trim()))&&Number.isFinite(Number(v));
-  const party=(p,seller)=>obj(p)&&str(seller?p.businessName:p.name)&&str(p.address)&&(!seller||/^\d{13}$/.test(p.taxId||''));
-  if(!obj(e)||e.type!=='receipt_reissue'||!str(e.id)||!str(e.documentId)||e.purpose!=='document_correction_only'||
-    e.historicalVatConfirmed!==true||e.partyDetailsConfirmed!==true||e.paymentFactsConfirmed!==true||!str(e.note)||e.note.length>4000||
-    typeof e.recordedAt!=='string'||!Number.isFinite(Date.parse(e.recordedAt))||new Date(e.recordedAt).toISOString()!==e.recordedAt)return false;
-  const src=e.sourceRecordAtReview,r=e.receipt,s=r&&r.issuedSnapshot;
-  if(!obj(src)||src.id!==e.documentId||src.type!=='tax_invoice'||src.status!=='issued'||src.deletedAt||src.voidedAt||src.syncConflict||
-    !str(src.number)||![0,'0'].includes(src.vatRate)||src.currency!=='THB'||!date(src.paidDate)||!date(src.issueDate)||
-    !num(src.whtRate)||Number(src.whtRate)<0||Number(src.whtRate)>100||!Array.isArray(src.items)||!src.items.length||
-    src.items.some(i=>!obj(i)||!str(i.description)||!num(i.qty)||Number(i.qty)<=0||!num(i.price)||Number(i.price)<0))return false;
-  if(!obj(r)||r.id!=='reissue:'+e.id||r.type!=='receipt'||r.status!=='issued'||!str(r.number)||r.number===src.number||
-    r.reissueOf!==src.id||r.reissueOfNumber!==src.number||r.reissueOfDate!==src.issueDate||r.clientId!==src.clientId||r.paidDate!==src.paidDate||r.currency!=='THB'||r.vatRate!==0||
-    Number(r.whtRate)!==Number(src.whtRate)||!date(r.issueDate)||r.issueDate<r.paidDate||r.deletedAt||r.voidedAt||r.legacy_review_required||
-    r.paymentId||r.fullPaymentConfirmed||JSON.stringify(r.items)!==JSON.stringify(src.items))return false;
-  if(!obj(s)||s.schemaVersion!==1||!party(s.business,true)||s.business.vatStatus!=='non_registered'||!party(s.buyer,false)||
-    !['th','bilingual'].includes(s.docLang)||!obj(s.document)||!obj(s.amounts)||typeof s.renderedHtml!=='string'||typeof s.shareText!=='string')return false;
-  const plain={...r};delete plain.issuedSnapshot;
-  if(JSON.stringify(plain)!==JSON.stringify(s.document))return false;
-  const round=n=>Math.round((n+Number.EPSILON)*100)/100;
-  const subtotal=round(src.items.reduce((sum,i)=>sum+round(Number(i.qty)*Number(i.price)),0)),wht=round(subtotal*Number(src.whtRate)/100);
-  const expected={subtotal,vatRate:0,whtRate:Number(src.whtRate),vatAmount:0,whtAmount:wht,grandTotal:subtotal,netPayable:round(subtotal-wht),currency:'THB'};
-  return subtotal>0&&subtotal<=Number.MAX_SAFE_INTEGER/100&&expected.netPayable>0&&Object.entries(expected).every(([k,v])=>s.amounts[k]===v);
-}
-function validReceiptReissueSet(data){
-  const sources=new Set(),numbers=new Set((data.documents||[]).map(d=>d.number).filter(Boolean));
-  for(const e of data.reviewEvents||[]){
-    if(e.type!=='receipt_reissue')continue;
-    if(!validReceiptReissueEvent(e)||sources.has(e.documentId)||numbers.has(e.receipt.number))return false;
-    sources.add(e.documentId);numbers.add(e.receipt.number);
-  }
-  return true;
-}
-
-function validCorrectionReviewEvent(event) {
-  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
-  if (!object(event) || typeof event.id !== 'string' || !event.id || event.type !== 'correction_review'
-    || typeof event.documentId !== 'string' || !event.documentId || typeof event.batchId !== 'string' || !event.batchId
-    || !['unknown','not_sent','sent'].includes(event.deliveryStatus) || event.historicalVatConfirmed !== true
-    || event.vatStatus !== 'non_registered' || !['review','prepare_proposal'].includes(event.action)
-    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
-    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
-    || new Date(event.recordedAt).toISOString() !== event.recordedAt) return false;
-  const source = event.sourceRecordAtReview;
-  if (!object(source) || source.id !== event.documentId || source.type !== 'tax_invoice') return false;
-  if (event.action === 'review') return event.proposal === undefined;
-  const numeric = value => (typeof value === 'number' || (typeof value === 'string' && !!value.trim())) && Number.isFinite(Number(value));
-  if (!Array.isArray(source.items) || !source.items.length || source.items.some(item => !object(item)
-    || typeof item.description !== 'string' || !item.description.trim() || !numeric(item.qty) || Number(item.qty) <= 0
-    || !numeric(item.price) || Number(item.price) < 0) || !numeric(source.whtRate) || Number(source.whtRate) < 0 || Number(source.whtRate) > 100) return false;
-  const proposal = event.proposal;
-  return object(proposal) && Object.keys(proposal).length === 3 && proposal.type === 'receipt'
-    && proposal.status === 'review_only' && proposal.sourceDocumentId === event.documentId
-    && !source.deletedAt && !source.voidedAt && source.status !== 'void' && !source.milestone
-    && [0,'0'].includes(source.vatRate) && source.currency === 'THB';
-}
-// Owner's answer for one unresolved historical payment group. Append-only; the latest
-// valid answer whose source records still match the group exactly is the one used.
-function validLegacyGroupReview(event) {
-  const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
-  if (!object(event) || event.type !== 'legacy_group_review' || typeof event.id !== 'string' || !event.id
-    || !['same_payment','not_income','needs_accountant'].includes(event.decision) || event.ownerConfirmed !== true
-    || typeof event.note !== 'string' || !event.note.trim() || event.note.length > 4000
-    || typeof event.recordedAt !== 'string' || !Number.isFinite(Date.parse(event.recordedAt))
-    || new Date(event.recordedAt).toISOString() !== event.recordedAt
-    || typeof event.groupKey !== 'string' || !event.groupKey || event.groupKey.length > 200
-    || !Array.isArray(event.sourceRecords) || !event.sourceRecords.length || event.sourceRecords.length > 50
-    || event.sourceRecords.some(record => !object(record) || typeof record.id !== 'string' || !record.id)) return false;
-  const ids = event.sourceRecords.map(record => record.id);
-  if (new Set(ids).size !== ids.length || !ids.includes(event.documentId)) return false;
-  return event.decision === 'same_payment'
-    ? typeof event.representativeId === 'string' && ids.includes(event.representativeId)
-    : event.representativeId === undefined;
-}
-function isLegacyDeletionMarker(record) {
-  const timestamp = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
-    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().replace('.000Z','Z') === value.replace('.000Z','Z');
-  return !!record && typeof record === 'object' && !Array.isArray(record)
-    && typeof record.id === 'string' && !!record.id && !Object.hasOwn(record,'type')
-    && timestamp(record.deletedAt) && timestamp(record.updatedAt)
-    && Object.keys(record).every(key => ['id','deletedAt','updatedAt','currency','archivedAt'].includes(key))
-    && (record.currency === undefined || typeof record.currency === 'string')
-    && (record.archivedAt == null || timestamp(record.archivedAt));
-}
+function validReceiptReissueEvent(e) { return BillingData.validReceiptReissueEvent(e); }
+function validReceiptReissueSet(data) { return BillingData.validReceiptReissueSet(data); }
+function validCorrectionReviewEvent(event) { return BillingData.validCorrectionReviewEvent(event); }
+function validLegacyGroupReview(event) { return BillingData.validLegacyGroupReview(event); }
+function isLegacyDeletionMarker(record) { return BillingData.isLegacyDeletionMarker(record); }
 function validateRendererData(data){
-  const object=v=>v && typeof v==='object' && !Array.isArray(v);
-  if(!object(data)||!object(data.business)) throw Error('DATA_SCHEMA_INVALID');
-  for(const key of ['clients','documents','recurring','reviewEvents']){
-    if(data[key]===undefined)continue;
-    if(!Array.isArray(data[key]))throw Error('DATA_SCHEMA_INVALID');
-    const ids=new Set();
-    for(const r of data[key]){
-      if(!object(r)||typeof r.id!=='string'||!r.id||ids.has(r.id))throw Error('DATA_SCHEMA_INVALID');
-      ids.add(r.id);
-      if(key==='reviewEvents'&&r.type==='correction_review'&&!validCorrectionReviewEvent(r))throw Error('DATA_SCHEMA_INVALID');
-      if(key==='reviewEvents'&&r.type==='legacy_group_review'&&!validLegacyGroupReview(r))throw Error('DATA_SCHEMA_INVALID');
-      if(r.items!==undefined && (!Array.isArray(r.items)||r.items.some(i=>!object(i))))throw Error('DATA_SCHEMA_INVALID');
-      if(key==='documents' && !['quotation','invoice','receipt','tax_invoice'].includes(r.type) && !isLegacyDeletionMarker(r))throw Error('DATA_SCHEMA_INVALID');
-    }
-  }
-  if(data.counters!==undefined&&!object(data.counters))throw Error('DATA_SCHEMA_INVALID');
-  if(!validReceiptReissueSet(data))throw Error('DATA_SCHEMA_INVALID');
+  try{BillingData.validate(data);}catch(error){if(error.message==='DATA_INVALID_SCHEMA')throw Error('DATA_SCHEMA_INVALID');throw error;}
 }
 function migrate(data){
   validateRendererData(data);
+  data=JSON.parse(JSON.stringify(data)); // Never mutate the imported source or its evidence.
   const base = blankDB();
   const merged = {...base, ...data};
   merged.business = {...base.business, ...(data.business||{})};
@@ -1894,6 +1959,7 @@ function migrate(data){
   merged.recurring = data.recurring||[];
   merged.counters = data.counters||{};
   merged.meta = {...base.meta, ...(data.meta||{})};
+  if(!Object.hasOwn(data.meta||{},'reviewSemanticsVersion'))delete merged.meta.reviewSemanticsVersion;
   // counter เคยใช้ปีตาม yearMode — โหมด พ.ศ. ได้ key อย่าง "invoice-2568" ย้ายเป็นปี ค.ศ. (max-merge กันเลขถอยหลัง)
   for(const k of Object.keys(merged.counters)){
     const m = k.match(/^(.*)-(\d{4})$/);
@@ -1914,17 +1980,9 @@ function migrate(data){
   });
   // Preserve explicit seller colors, including the former green default.
   // New profiles receive DEFAULT_BRAND from blankDB; color alone cannot prove user intent.
-  // v2 (sync-ready): ประทับ updatedAt/deletedAt ให้ทุก record ที่มาจากไฟล์เก่า
-  const bootNow = new Date().toISOString();
-  const stampV2 = r=>{ if(!r.updatedAt) r.updatedAt = r.createdAt || bootNow; if(r.deletedAt===undefined) r.deletedAt = null; };
-  merged.clients.forEach(stampV2); merged.documents.forEach(stampV2); merged.recurring.forEach(stampV2);
-  if(!merged.business.updatedAt) merged.business.updatedAt = bootNow;
-  // ล้าง tombstone ที่เก่ากว่า 180 วัน — เหตุการณ์ลบถูกบันทึกใน journal ไปแล้ว
-  const keepTomb = r=> !r.deletedAt || (Date.now() - new Date(r.deletedAt).getTime()) < 180*86400000;
-  if(!merged.syncV3) merged.clients = merged.clients.filter(r=>keepTomb(r)||merged.documents.some(d=>d.clientId===r.id));
-  // Financial records, including old deletion markers, never expire automatically.
-  if(!merged.syncV3) merged.recurring = merged.recurring.filter(keepTomb);
-  merged.version = 2;
+  // Missing historical timestamps stay missing. Migration must be repeatable and
+  // cannot expire tombstones or invent financial particulars from today's clock.
+  merged.version = 3;
   return merged;
 }
 
@@ -2051,6 +2109,13 @@ function applyUiLang(){
 }
 
 const I18N_EN = {
+ 'กรุณากู้คืนการซื้อผ่าน App Store ก่อนเชื่อมต่อ Google Drive':'Restore your App Store purchase before connecting Google Drive',
+ 'ตรวจสอบการซื้อไม่สำเร็จ กรุณากู้คืนการซื้อผ่าน App Store':'Purchase verification failed; restore your App Store purchase',
+ 'ไม่พบสิทธิ์ Pro กรุณากู้คืนการซื้อผ่าน App Store':'Pro purchase not found; restore your App Store purchase',
+ 'ตรวจสอบการซื้อไม่ได้ในตอนนี้ ลองอีกครั้ง':'Purchase verification is unavailable; try again',
+ 'บัญชี Google นี้ยังไม่ได้เปิดทดสอบการซื้อผ่าน App Store':'App Store purchase testing is not enabled for this Google account',
+
+ 'ซิงก์ Google Drive ของคุณ ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง':'Sync your Google Drive across devices',
  'ร่างงานออฟไลน์ได้ เชื่อมต่อก่อนออกเอกสาร':'Draft offline; connect before issuing documents',
  'รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น':'Private pilot: use a separate test account and test data only',
  'รอยืนยันการออกเอกสาร':'Document issuance awaiting confirmation',
@@ -2067,6 +2132,17 @@ const I18N_EN = {
  'รอปิดหน้าต่างที่เปิดอยู่ แล้วจะซิงก์ต่อ':'Waiting for the open window to close, then syncing',
  'อีกเครื่องบันทึกการรับเงินนี้ไว้แล้ว เลือก “ใช้ชุดข้อมูลจากอีกเครื่อง” เพื่อไม่ให้นับรายรับซ้ำ':'The other Mac already recorded this payment. Choose “Use the records from the other device” so the income is not counted twice.',
  'เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้':'This Mac is connected to Google Drive, so importing or restoring data is not available yet',
+  "โหลดสินค้าไม่ได้ — ตรวจสอบอินเทอร์เน็ตแล้วกดลองใหม่":"Unable to load product — check your connection and retry",
+  "รอยืนยันการซื้อจาก App Store":"Waiting for purchase confirmation from the App Store",
+  "App Store ยังเริ่มการซื้อไม่ได้ — ลองโหลดสินค้าใหม่":"The App Store could not start the purchase — reload the product",
+  "การซื้อถูกปิดไว้ — ตรวจสอบ Screen Time หรือการจัดการเครื่อง":"Purchases are disabled — check Screen Time or device management",
+  "ซื้อไม่สำเร็จ — ลองใหม่อีกครั้ง":"Purchase failed — please try again",
+  "ยังไม่ได้รับผลกู้คืน — ตรวจสอบบัญชี App Store แล้วลองอีกครั้ง":"Restore has not been confirmed — check your App Store account and try again",
+  "การซื้อกำลังรออนุมัติจาก App Store":"Purchase is awaiting approval from the App Store",
+  "ยกเลิกการซื้อแล้ว":"Purchase cancelled",
+  "บันทึกสิทธิ์ไม่สำเร็จ — เปิดแอปใหม่แล้วกู้คืนการซื้อ":"Unable to save purchase — reopen the app and restore purchases",
+  "กู้คืนการซื้อแล้ว":"Purchases restored",
+  "ลองใหม่":"Retry",
 
   // --- nav & page titles ---
   'ระบบออกเอกสาร':'Invoicing',
@@ -2685,6 +2761,7 @@ const I18N_EN = {
   'เปิดหน้าล็อกอิน Google ในเบราว์เซอร์แล้ว — ล็อกอินเสร็จแล้วกลับมาที่แอป':'Google sign-in opened in your browser — come back to the app when done',
   'เชื่อมต่อ Google Drive แล้ว':'Google Drive connected',
   'เชื่อมต่อไม่สำเร็จ:':'Could not connect:',
+  'Google ยังไม่ได้ให้สิทธิ์ Google Drive แก่แอป — กด "เชื่อมต่อ Google Drive" อีกครั้ง แล้วติ๊กช่องอนุญาต Google Drive ในหน้าของ Google':'Google did not grant this app access to Google Drive — click "Connect Google Drive" again and tick the Google Drive checkbox on Google\'s consent page',
   'ยกเลิกการเชื่อมต่อ Google Drive? ข้อมูลในเครื่องยังอยู่ครบ และไฟล์ใน Drive ของคุณไม่ถูกลบ':'Disconnect Google Drive? Your local data stays intact and nothing in your Drive is deleted',
   'ยกเลิกการเชื่อมต่อแล้ว':'Disconnected',
   'ยกเลิกไม่สำเร็จ':'Could not disconnect',
@@ -2708,7 +2785,6 @@ const I18N_EN = {
   // --- Pro packaging (Phase E) ---
   'อัปเกรดเป็น BillNgai Pro':'Upgrade to BillNgai Pro',
   'BillNgai Local — ของคุณตลอดไป':'BillNgai Local — yours forever',
-  'ซื้อครั้งเดียว ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Buy once, issue documents forever, data stays on your machine',
   'ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน':'Every document type, unlimited',
   'ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94':'Full Thai tax handling: VAT · withholding · PND 90/94',
   'ข้อมูลอยู่ในเครื่องคุณ 100%':'Your data stays 100% on your machine',
@@ -2720,14 +2796,7 @@ const I18N_EN = {
   'สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม':'Automatic cloud backup + restore on a new computer',
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
-  'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your machine',
-  'จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน':'One-time — Early Bird ฿599 (full price ฿1,900), no monthly fees',
   'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
-  'BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'BillNgai never stores client documents on our servers — data syncs only through your own Google Drive',
-  'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
-  'เปิดใช้งานรหัส':'Activate',
-  'ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย':'Buy Pro: pay via PromptPay, send the slip on LINE — your key comes right back in chat',
-  'ทักทาง LINE':'Chat on LINE',
   'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
   'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
@@ -2946,7 +3015,22 @@ const I18N_EN = {
   'PDF':'PDF',
   'มีการแก้ไขที่ยังไม่ได้บันทึก — ปิดโดยไม่บันทึก?':'You have unsaved changes — close without saving?',
   'เลขประจำตัวผู้เสียภาษีถูกต้อง':'Tax ID is valid',
-  'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง':'Tax ID is invalid'
+  'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง':'Tax ID is invalid',
+// --- Mac App Store build (In-App Purchase) ---
+  'ฟรี — ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Free — create documents forever; your data stays on your Mac',
+  'กำลังโหลดราคาจาก App Store…':'Loading price from the App Store…',
+  'จ่ายครั้งเดียว {p} — ไม่มีค่ารายเดือน':'One-time {p} — no subscription',
+  'เชื่อมต่อ App Store ไม่ได้ — ลองใหม่อีกครั้ง':'Could not reach the App Store — please try again',
+  'ซื้อผ่าน App Store':'Buy via the App Store',
+  'กู้คืนการซื้อ':'Restore Purchases',
+  'เริ่มการซื้อแล้ว — ยืนยันกับ App Store ต่อได้เลย':'Purchase started — confirm with the App Store to finish',
+  'ซื้อไม่สำเร็จ:':'Purchase failed:',
+  'กำลังกู้คืนการซื้อจาก App Store…':'Restoring purchases from the App Store…',
+  'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
+  'ไม่พบการซื้อ Pro ก่อนหน้านี้ในบัญชี Apple นี้':'No previous Pro purchase found on this Apple ID',
+  'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
+  'ซื้อผ่าน App Store แล้ว':'Purchased via the App Store',
+  'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)'
 };
 
 /* ---------- BillNgai rounded outline icons — bundled, works offline ---------- */
@@ -3136,10 +3220,11 @@ function markBackup(){ DB.meta = DB.meta || {}; DB.meta.lastBackupAt = new Date(
 function backupVerb(){ return IS_ELECTRON ? 'elExport()' : 'exportJSON()'; }
 // Shown when the data file exists but couldn't be read — saving is blocked
 // until the user recovers from a snapshot or imports a backup.
+Object.assign(I18N_EN,{'ข้อมูลนี้มาจากแอปรุ่นใหม่กว่า — อัปเดตแอปก่อนเปิด':'This data requires a newer app. Update BillNgai before opening it.','แอปรุ่นเดิมแก้ไฟล์ JSON หลังย้ายข้อมูล — ตรวจทั้งสองสำเนาก่อนนำเข้า':'An older app changed the JSON after migration. Review both copies before importing.'});
 function loadFailBanner(){
   if(!loadFailed) return '';
   return `<div class="banner danger" role="alert">
-    ${ic('alert')} <span class="banner-text"><b>${tr('อ่านไฟล์ข้อมูลเดิมไม่ได้')}</b> ${tr(dataLoc.mode==='external'?'หยุดบันทึกเพื่อป้องกันข้อมูลเดิม ตรวจไฟล์ที่เชื่อมไว้ หรือกู้จากสำรอง':'หยุดบันทึกเพื่อป้องกันข้อมูลเดิม กู้ข้อมูลจากสำรองหรือนำเข้าไฟล์สำรอง')}</span>
+    ${ic('alert')} <span class="banner-text"><b>${tr('อ่านไฟล์ข้อมูลเดิมไม่ได้')}</b> ${tr(loadErrorCode==='DATA_FUTURE_VERSION'?'ข้อมูลนี้มาจากแอปรุ่นใหม่กว่า — อัปเดตแอปก่อนเปิด':loadErrorCode==='DATA_LEGACY_FILE_CHANGED'?'แอปรุ่นเดิมแก้ไฟล์ JSON หลังย้ายข้อมูล — ตรวจทั้งสองสำเนาก่อนนำเข้า':dataLoc.mode==='external'?'หยุดบันทึกเพื่อป้องกันข้อมูลเดิม ตรวจไฟล์ที่เชื่อมไว้ หรือกู้จากสำรอง':'หยุดบันทึกเพื่อป้องกันข้อมูลเดิม กู้ข้อมูลจากสำรองหรือนำเข้าไฟล์สำรอง')}</span>
     ${IS_ELECTRON?`<button class="btn btn-sm" onclick="setView('settings');setSettingsTab('data')">${ic('clock')} ${tr('สำรองและกู้คืน')}</button>
     <button class="btn btn-sm btn-primary" onclick="elImport()">${ic('upload')} ${tr('นำเข้าข้อมูล')}</button>`:''}
   </div>`;
@@ -3555,6 +3640,8 @@ function render(){ stopAppAudio(); setBreadcrumb(null);
   const c = document.getElementById('content');
   const ta = document.getElementById('topActions');
   ta.innerHTML='';
+  document.getElementById('proActions').innerHTML = IS_MAS
+    ? `<button class="btn btn-sm" onclick="openUpgradeModal()">${ic('sparkles',14)} ${tr(isPro()?'สถานะ Pro':'อัปเกรดเป็น BillNgai Pro')}</button>` : '';
   const dc = activeDocs().length;
   const nb = document.getElementById('navDocCount');
   nb.style.display = dc? 'inline-block':'none'; nb.textContent = dc;
@@ -3565,6 +3652,7 @@ function render(){ stopAppAudio(); setBreadcrumb(null);
   const wb = document.getElementById('navWhtCount');
   wb.style.display = pendingCerts? 'inline-block':'none'; wb.textContent = pendingCerts;
 
+  if(pendingDataUpgrade){renderDataUpgrade(c);updateFileStatus();return;}
   if(currentView==='dashboard'){ renderDashboard(c,ta); }
   else if(currentView==='documents'){ renderDocuments(c,ta); }
   else if(currentView==='corrections'){ renderCorrections(c,ta); }
@@ -3655,7 +3743,7 @@ let aiAddonStatus = null;
 let aiAddonRequest = null;
 function updateAiNavigation(){
   const nav = document.getElementById('addonNav');
-  if(nav) nav.style.display = IS_ELECTRON && isPro() && aiAddonStatus?.valid ? '' : 'none';
+  if(nav) nav.style.display = !IS_MAS && IS_ELECTRON && isPro() && aiAddonStatus?.valid ? '' : 'none';
 }
 async function openAiSettings(){
   if(!await saveSettings(true)) return;
@@ -3979,6 +4067,7 @@ function renderDashboard(c,ta){
     </section>`:''}
 
     ${pendingPayments.eligible.length?renderPendingPayments(pendingPayments):''}
+    ${renderUnresolvedReceiptSummary({...paymentSummary,unallocatedGroups:paymentSummary.unallocatedGroups.filter(group=>!pendingPayments.eligible.includes(group))})}
 
     ${foreignKeys.length?`<div class="fx-row">
       ${foreignKeys.map(cur=>`<div class="fx-chip"><span class="fx-cur">${escapeHtml(cur)}</span>
@@ -4586,13 +4675,13 @@ function taxYearOf(d){ const ds=docTaxDate(d); return ds ? parseDate(ds).getFull
 const reviewedPaymentProjectionData=new WeakMap();
 function isReviewedPaymentDocument(d){return !!d&&reviewedPaymentProjectionData.has(d);}
 function reviewedPaymentAmounts(d){const data=d&&reviewedPaymentProjectionData.get(d);return data?{...data.amounts}:null;}
-function reviewedPaymentDocuments(){
-  return (DB.reviewEvents||[]).filter(e=>e.type==='legacy_payment').flatMap(event=>{
-    const source=DB.documents.find(d=>d.id===event.documentId);
+function reviewedPaymentDocuments(db=DB){
+  return (db.reviewEvents||[]).filter(e=>e.type==='legacy_payment').flatMap(event=>{
+    const source=db.documents.find(d=>d.id===event.documentId);
     if(!source||source.type!=='invoice'||!event.id||!event.paymentId) return [];
     // Retained issued receipts, including void/deletion markers, remain payment evidence.
     // A draft does not replace a recorded payment or erase its income projection.
-    if(DB.documents.some(d=>(d.type==='receipt'||d.type==='tax_invoice')&&isIssuedDocument(d)&&
+    if(db.documents.some(d=>(d.type==='receipt'||d.type==='tax_invoice')&&isIssuedDocument(d)&&
       (d.paymentId===event.paymentId||d.parentId===event.documentId))) return [];
     const clone=value=>JSON.parse(JSON.stringify(value));
     const record=event.sourceRecordAtReview;
@@ -4611,9 +4700,9 @@ function reviewedPaymentDocuments(){
     return [projected];
   });
 }
-function paymentReview(){
+function paymentReview(db=DB,{legacyPreview=false}={}){
   // Payment evidence survives document voiding/deletion. Never infer a refund from a void.
-  const candidates=DB.documents.concat(reviewedPaymentDocuments()).filter(d=>d.status!=='draft' &&
+  const candidates=db.documents.concat(reviewedPaymentDocuments(db)).filter(d=>d.status!=='draft' &&
     ((d.type==='receipt'||d.type==='tax_invoice') || (d.type==='invoice'&&(d.status==='paid'||d.paidDate))));
   const identity=d=>typeof d.paymentId==='string'&&d.paymentId.trim()?d.paymentId.trim():'';
   const parent=d=>d.type==='invoice'?d.id:d.parentId;
@@ -4630,18 +4719,20 @@ function paymentReview(){
   });
   let duplicateCount=0,legacyCount=0,ambiguousCount=0,notIncomeCount=0,accountantCount=0;
   const excludedIncome=new Set();
-  const docs=[],unallocatedDocs=[],unallocatedGroups=[],legacyGroups=[];
+  const docs=[],unallocatedDocs=[],unallocatedGroups=[],legacyGroups=[],groupOutcomes=[];
   [...groups.entries()].forEach(([groupKey,group])=>{
     const receipts=group.filter(d=>d.type!=='invoice');
     const signature=d=>JSON.stringify([docCurrency(d),docTaxDate(d),compute(d).subtotal,compute(d).vatAmount,compute(d).whtAmount,compute(d).netPayable]);
     const ambiguous=group.some(d=>ambiguousLegacyParents.has(parent(d))) || (identity(group[0])?new Set(group.map(signature)).size>1:
       group.length>1||explicitParents.has(parent(group[0])));
     if(ambiguous){
-      const match=(DB.reviewEvents||[]).find(e=>validPaymentMatch(e,group));
-      if(match){docs.push(group.find(d=>d.id===match.representativeId));duplicateCount+=group.length-1;legacyCount++;return;}
+      const hasGroupAnswers=!legacyPreview&&(db.reviewEvents||[]).some(e=>e.type==='legacy_group_review'&&e.groupKey===groupKey);
+      const match=!hasGroupAnswers&&(db.reviewEvents||[]).find(e=>validPaymentMatch(e,group,legacyPreview));
+      if(match){groupOutcomes.push({key:groupKey,group,answer:{...match,decision:'same_payment'},resolution:{status:'resolved'}});docs.push(group.find(d=>d.id===match.representativeId));duplicateCount+=group.length-1;legacyCount++;return;}
       // The owner's recorded answer resolves the group; unanswered or deferred groups stay unallocated.
-      const answer=legacyGroupAnswer(groupKey,group);
-      legacyGroups.push({key:groupKey,group,answer});
+      const resolution=legacyPreview?legacyArrayResolution(db.reviewEvents||[],groupKey,group):legacyGroupResolution(groupKey,group,db.reviewEvents||[]);
+      const answer=resolution.answer;
+      legacyGroups.push({key:groupKey,group,answer,resolution});groupOutcomes.push({key:groupKey,group,answer,resolution});
       const representative=answer&&answer.decision==='same_payment'&&group.find(d=>d.id===answer.representativeId);
       if(representative){docs.push(representative);duplicateCount+=group.length-1;legacyCount++;return;}
       if(answer&&answer.decision==='not_income'){notIncomeCount++;group.forEach(d=>excludedIncome.add(d));return;}
@@ -4660,26 +4751,26 @@ function paymentReview(){
   const missingDate=includedOrUnresolved.filter(d=>!docTaxDate(d)).length;
   const unknownCurrency=includedOrUnresolved.filter(d=>!docCurrency(d)).length;
   const unansweredGroups=legacyGroups.filter(item=>!item.answer).map(item=>item.group);
-  return {docs,unallocatedDocs,unallocatedGroups,unansweredGroups,legacyGroups,duplicateCount,legacyCount,missingDate,ambiguousCount,
+  return {docs,unallocatedDocs,unallocatedGroups,unansweredGroups,legacyGroups,groupOutcomes,duplicateCount,legacyCount,missingDate,ambiguousCount,
     notIncomeCount,accountantCount,unknownCurrency};
 }
 // Keep immutable source snapshots intact; certificate tracking is not a change to payment facts.
-function paymentFactsJSON(record){
-  const facts={...record};
-  for(const key of ['whtCertReceived','whtCertNo','whtCertNumber','whtCertDate','updatedAt']) delete facts[key];
-  return JSON.stringify(facts);
-}
+function paymentFactsJSON(record){return BillingData.canonical(BillingData.paymentFacts(record));}
 function legacyGroupMatches(event,groupKey,group){
   return validLegacyGroupReview(event)&&event.groupKey===groupKey&&event.sourceRecords.length===group.length&&
     event.sourceRecords.every(record=>group.some(d=>d.id===record.id&&paymentFactsJSON(d)===paymentFactsJSON(record)));
 }
-function legacyGroupAnswer(groupKey,group){
-  const answers=(DB.reviewEvents||[]).filter(e=>e&&e.type==='legacy_group_review'&&e.groupKey===groupKey);
-  const latest=answers[answers.length-1];
-  if(!latest||!legacyGroupMatches(latest,groupKey,group)) return null;
-  if(latest.decision==='same_payment'&&!legacyRepresentatives(group).some(d=>d.id===latest.representativeId)) return null;
-  return latest;
+Object.assign(I18N_EN,{'คำตอบจากหลายเครื่องขัดกัน — ตรวจคำตอบเดิมแล้วเลือกใหม่ ยอดนี้ยังไม่รวมในรับแล้ว':'Devices recorded conflicting answers. Review the earlier answers and choose again. This amount is still excluded from received income.'});
+Object.assign(I18N_EN,{'ที่เก็บข้อมูลในเครื่อง':'Local storage','เก็บข้อมูลในเครื่องด้วย SQLite — ใช้ Google Drive เพื่อซิงก์ และใช้ JSON เพื่อสำรองหรือนำเข้า':'Stored locally in SQLite. Use Google Drive for sync and JSON for backup or import.'});
+function reviewSourceJSON(group){
+  return BillingData.canonical(group.map(record=>BillingData.paymentFacts(record)).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0));
 }
+function reviewSourceMatches(group,saved){try{return reviewSourceJSON(group)===reviewSourceJSON(JSON.parse(saved));}catch{return false;}}
+function legacyGroupResolution(groupKey,group,events=DB.reviewEvents||[]){
+  return BillingData.resolveReviews(events,groupKey,group,legacyRepresentatives(group).map(d=>d.id));
+}
+function legacyGroupAnswer(groupKey,group){ return legacyGroupResolution(groupKey,group).answer; }
+
 Object.assign(I18N_EN,{
   'ยอดยังไม่ครบ':'Total incomplete',
   'ยอดที่รวมได้ตอนนี้':'Currently included total',
@@ -4710,16 +4801,101 @@ function paymentPairEligible(group){
   const signature=d=>JSON.stringify([docTaxDate(d),compute(d).subtotal,compute(d).vatAmount,compute(d).whtAmount,compute(d).netPayable]);
   return signature(group[0])===signature(group[1]);
 }
-function validPaymentMatch(event,group){
+function validPaymentMatch(event,group,legacyPreview=false){
   return !!event&&event.type==='payment_match'&&event.samePaymentConfirmed===true&&typeof event.note==='string'&&!!event.note.trim()&&event.note.length<=4000&&
     typeof event.recordedAt==='string'&&Number.isFinite(Date.parse(event.recordedAt))&&Array.isArray(event.sourceRecords)&&event.sourceRecords.length===2&&
     paymentPairEligible(group)&&event.documentId===group.find(d=>d.type==='invoice').id&&event.representativeId===group.find(d=>d.type!=='invoice').id&&
-    new Set(event.sourceRecords.map(d=>d?.id)).size===2&&event.sourceRecords.every(d=>group.some(g=>g.id===d?.id&&paymentFactsJSON(g)===paymentFactsJSON(d)));
+    new Set(event.sourceRecords.map(d=>d?.id)).size===2&&event.sourceRecords.every(d=>group.some(g=>g.id===d?.id&&(legacyPreview?JSON.stringify(legacyPaymentFacts(g))===JSON.stringify(legacyPaymentFacts(d)):paymentFactsJSON(g)===paymentFactsJSON(d))));
+}
+// Only the upgrade preview uses the previous array-order/JSON-order interpretation.
+function legacyPaymentFacts(record){
+  const copy=JSON.parse(JSON.stringify(record));for(const key of ['whtCertReceived','whtCertNo','whtCertNumber','whtCertDate','updatedAt'])delete copy[key];return copy;
+}
+function legacyArrayResolution(events,key,group){
+  const candidates=events.filter(e=>validLegacyGroupReview(e)&&e.groupKey===key&&e.sourceRecords.length===group.length&&
+    e.sourceRecords.every(r=>group.some(d=>d.id===r.id&&JSON.stringify(legacyPaymentFacts(d))===JSON.stringify(legacyPaymentFacts(r)))));
+  const answer=candidates[candidates.length-1]||null;return {status:answer?'resolved':'empty',answer,heads:answer?[answer.id]:[]};
+}
+function dataUpgradePreview(db){
+  const before=paymentReview(db,{legacyPreview:true}),after=paymentReview(db);
+  const totals=review=>{
+    const result={received:{},pending:{},conflicted:{}};
+    const add=(field,d)=>{const c=docCurrency(d),a=compute(d);if(c&&reportAmountsValid(a))result[field][c]=round2((result[field][c]||0)+a.netPayable);};
+    review.docs.forEach(d=>add('received',d));
+    const seen=new Set();for(const g of review.unallocatedGroups)for(const d of g){
+      if(!['receipt','tax_invoice'].includes(d.type)||d.deletedAt||d.voidedAt||d.demo||seen.has(d.id))continue;
+      seen.add(d.id);add('pending',d);
+      if(review.legacyGroups.some(x=>x.key&&x.group.includes(d)&&x.resolution.status==='conflict'))add('conflicted',d);
+    }
+    return result;
+  };
+  const old=new Map(before.groupOutcomes.map(g=>[g.key,g]));
+  const affected=after.groupOutcomes.filter(g=>{const o=old.get(g.key);return BillingData.canonical([o?.answer?.decision||null,o?.answer?.representativeId||null,o?.resolution.status])!==BillingData.canonical([g.answer?.decision||null,g.answer?.representativeId||null,g.resolution.status]);})
+    .map(g=>({key:g.key,status:g.resolution.status,documents:g.group.map(d=>({id:d.id,number:d.number||d.id,client:(db.clients.find(c=>c.id===d.clientId)||{}).name||''}))}));
+  return {before:totals(before),after:totals(after),affected};
+}
+Object.assign(I18N_EN,{"ตรวจการอัปเกรดข้อมูลก่อน": "Review the data upgrade first", "ตรวจการอัปเกรดข้อมูล": "Review the data upgrade", "ยอดใบเสร็จรอตรวจ": "Receipts awaiting review", "คำตอบขัดกัน (รวมอยู่ในรอตรวจสอบ)": "Conflicted (included in awaiting review)", "ตรวจยอดก่อนใช้กติกาใหม่ ใบเดิมและคำตอบเดิมยังอยู่ครบ ไม่มีการอนุมานเงินรับใหม่": "Review how income will be counted before activating the new rules. Original documents and review answers are preserved. No new payment is inferred.", "ก่อน": "Before", "หลัง": "After", "กลุ่มที่การนับเปลี่ยน": "Groups whose interpretation changes", "สำรองข้อมูลก่อนเปิดใช้ กลุ่มที่คำตอบขัดกันยังรอตรวจ ต้องอัปเดตทุกเครื่อง แอปรุ่นเก่าอ่านฐาน SQLite ใหม่นี้ไม่ได้": "A backup will be created before activation. Conflicting groups remain pending until reviewed. Keep all devices updated; older apps cannot read the new local SQLite store.", "สำรองและเปิดใช้": "Back up and activate", "ยังไม่มีคำตอบ": "No answer yet", "คำตอบไม่สมบูรณ์": "Invalid answer history", "ข้อมูลเปลี่ยน ต้องตรวจใหม่": "Facts changed; review again", "คำตอบขัดกัน": "Conflicting answers", "ยืนยันแล้ว": "Confirmed"});
+let pendingDataUpgrade=null;
+function adoptDatabase(data){
+  DB=migrate(data);
+  pendingDataUpgrade=(data.documents?.length&&data.meta?.reviewSemanticsVersion!==3)?{source:JSON.stringify(data),preview:dataUpgradePreview(data)}:null;
+}
+function renderDataUpgrade(c){
+  const p=pendingDataUpgrade.preview;
+  const label=['รับแล้ว','ยอดใบเสร็จรอตรวจ','คำตอบขัดกัน (รวมอยู่ในรอตรวจสอบ)'].map(tr);
+  const amounts=value=>Object.entries(value).map(([currency,n])=>fmtMoneyC(n,currency)).join(' · ')||'—';
+  c.innerHTML=`<div class="card-block"><h3>${tr('ตรวจการอัปเกรดข้อมูล')}</h3><p>${tr('ตรวจยอดก่อนใช้กติกาใหม่ ใบเดิมและคำตอบเดิมยังอยู่ครบ ไม่มีการอนุมานเงินรับใหม่')}</p><table class="table"><thead><tr><th></th><th>${tr('ก่อน')}</th><th>${tr('หลัง')}</th></tr></thead><tbody>${['received','pending','conflicted'].map((key,i)=>`<tr><th>${label[i]}</th><td>${amounts(p.before[key])}</td><td>${amounts(p.after[key])}</td></tr>`).join('')}</tbody></table><p>${tr('กลุ่มที่การนับเปลี่ยน')}: ${p.affected.length}</p>${p.affected.map(g=>`<div class="card-block"><strong>${escapeHtml(g.documents.map(d=>d.number).join(' / '))}</strong><p>${escapeHtml(g.documents.map(d=>d.client).filter(Boolean).join(' · '))}</p><span>${tr({empty:'ยังไม่มีคำตอบ',invalid:'คำตอบไม่สมบูรณ์',stale:'ข้อมูลเปลี่ยน ต้องตรวจใหม่',conflict:'คำตอบขัดกัน',resolved:'ยืนยันแล้ว'}[g.status]||'ยังไม่มีคำตอบ')}</span></div>`).join('')}<p>${tr('สำรองข้อมูลก่อนเปิดใช้ กลุ่มที่คำตอบขัดกันยังรอตรวจ ต้องอัปเดตทุกเครื่อง แอปรุ่นเก่าอ่านฐาน SQLite ใหม่นี้ไม่ได้')}</p><button class="btn btn-primary" onclick="approveDataUpgrade()">${tr('สำรองและเปิดใช้')}</button></div>`;
+}
+async function approveDataUpgrade(){
+  if(!pendingDataUpgrade)return false;
+  const pending=pendingDataUpgrade,before=JSON.stringify(DB);
+  try{
+    if(IS_ELECTRON){if(!await window.billingAPI.snapshotBackup('before-domain-v3'))throw Error('DATA_BACKUP_FAILED');}
+    else localStorage.setItem(LS_KEY+'_before_domain_v3',pending.source);
+    if(pending!==pendingDataUpgrade||before!==JSON.stringify(DB))throw Error('DATA_CHANGED_ON_DISK');
+    DB.meta.reviewSemanticsVersion=3;pendingDataUpgrade=null;
+    if(!await persist(true)){delete DB.meta.reviewSemanticsVersion;pendingDataUpgrade=pending;return false;}
+    render();return true;
+  }catch(e){toast(e.message,'err');return false;}
 }
 function pendingPaymentSummary(summary=paymentReview()){
   const groups=summary.unansweredGroups||summary.unallocatedGroups||[],eligible=groups.filter(paymentPairEligible);
   return {groups,eligible,net:round2(eligible.reduce((sum,g)=>sum+compute(g.find(d=>d.type!=='invoice')).netPayable,0)),excluded:groups.length-eligible.length};
 }
+// A display-only sum of unresolved receipt records, never a confirmed-payment total.
+function unresolvedReceiptSummary(summary=paymentReview(),year=null){
+  const originals=new Set(DB.documents),seen=new Set();
+  const groups=(summary.unallocatedGroups||[]).filter(group=>year==null||group.some(d=>!docTaxDate(d)||taxYearOf(d)===year));
+  let receiptCount=0,net=0,unquantifiedCount=0;
+  for(const group of groups)for(const d of group){
+    if(!originals.has(d)||!['receipt','tax_invoice'].includes(d.type)||d.status==='draft'||d.deletedAt||d.voidedAt||d.demo===true||seen.has(d.id))continue;
+    seen.add(d.id);
+    if(year!=null&&docTaxDate(d)&&taxYearOf(d)!==year)continue;
+    const t=compute(d);
+    if(!docTaxDate(d)||docCurrency(d)!=='THB'||!reportAmountsValid(t)||t.netPayable<=0){unquantifiedCount++;continue;}
+    receiptCount++;net=round2(net+t.netPayable);
+  }
+  return {groupCount:groups.length,receiptCount,net:Number.isFinite(net)?net:null,unquantifiedCount};
+}
+Object.assign(I18N_EN,{
+  'ข้อมูลเดิมรอตรวจ {n} กลุ่ม':'{n} old record group(s) awaiting review',
+  'ยอดตามใบเสร็จที่รอตรวจ {n} ใบ':'Document total of {n} receipt(s) awaiting review',
+  'ยังไม่รวมในรับแล้ว และอาจมีเอกสารซ้ำ':'Excluded from Received; records may overlap',
+  'ยังรวมยอดไม่ได้ {n} ใบ — ตรวจวันรับเงิน สกุลเงิน และยอด':'{n} receipt(s) cannot be totalled — check payment dates, currency and amounts',
+  'ยอดรวมเกินขอบเขตที่แสดงได้ — ตรวจยอดแต่ละใบ':'The total exceeds the displayable range — review individual receipt amounts',
+  'ไม่มีใบเสร็จที่นำมารวมยอดรอตรวจในปีนี้ จึงไม่เพิ่มยอดรับแล้ว':'No receipts contribute to the pending total for this year; Received is unchanged',
+  'มีเฉพาะใบแจ้งหนี้ หรือใบเสร็จที่ลบ ยกเลิก หรือตัวอย่าง จึงไม่เพิ่มยอดรับแล้ว':'Only invoices or deleted, voided or demo receipts remain; Received is unchanged'
+});
+function renderUnresolvedReceiptSummary(summary=paymentReview(),year=null){
+  const p=unresolvedReceiptSummary(summary,year);if(!p.groupCount)return '';
+  const amount=p.receiptCount&&p.net!==null
+    ? `<br><strong>${tr('ยอดตามใบเสร็จที่รอตรวจ {n} ใบ').replace('{n}',p.receiptCount)}: ${escapeHtml(fmtMoneyC(p.net,'THB'))}</strong><br>${tr('ยังไม่รวมในรับแล้ว และอาจมีเอกสารซ้ำ')}`:'';
+  const unknown=p.unquantifiedCount?`<br>${tr('ยังรวมยอดไม่ได้ {n} ใบ — ตรวจวันรับเงิน สกุลเงิน และยอด').replace('{n}',p.unquantifiedCount)}`:'';
+  const overflow=p.net===null?`<br>${tr('ยอดรวมเกินขอบเขตที่แสดงได้ — ตรวจยอดแต่ละใบ')}`:'';
+  const retained=!p.receiptCount&&!p.unquantifiedCount?`<br>${year==null?tr('มีเฉพาะใบแจ้งหนี้ หรือใบเสร็จที่ลบ ยกเลิก หรือตัวอย่าง จึงไม่เพิ่มยอดรับแล้ว'):tr('ไม่มีใบเสร็จที่นำมารวมยอดรอตรวจในปีนี้ จึงไม่เพิ่มยอดรับแล้ว')}`:'';
+  return `<section class="banner" id="unresolvedReceipts"><span class="banner-text">${tr('ข้อมูลเดิมรอตรวจ {n} กลุ่ม').replace('{n}',p.groupCount)}${amount}${unknown}${overflow}${retained}</span><button class="btn btn-sm" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')}</button></section>`;
+}
+
 function renderPendingPayments(summary){
   return `<section class="card-block" id="pendingPayments"><h3>${tr('รายรับเดิมรอยืนยัน')}</h3><h2>${summary.eligible.length?fmtMoneyC(summary.net,'THB'):tr('ไม่มีคู่ที่รวมยอดเบื้องต้นได้')}</h2><p>${tr('ยอดเบื้องต้นจากคู่เอกสารที่ตรงกัน ยังไม่รวมในยอดรับแล้ว')}</p><p>${tr('คู่ที่ยอดตรงกัน {n} คู่').replace('{n}',summary.eligible.length)} · ${tr('กลุ่มที่ต้องตรวจแยก {n} กลุ่ม').replace('{n}',summary.excluded)}</p><p>${tr('เอกสารที่ลบ ยกเลิก หรือยอดต่างกัน ยังไม่รวมในยอดเบื้องต้น')}</p><button class="btn btn-primary" onclick="openPaymentMatches()">${tr('ดูและยืนยันคู่รับเงิน')}</button></section>`;
 }
@@ -4799,7 +4975,7 @@ function captureLegacyDraft(){
   const entries=legacyRendered.map((item,i)=>{
     const selected=document.querySelector(`input[name="legacy-${i}"]:checked`);
     const representativeId=document.getElementById('legacy-rep-'+i)?.value||item.reps[0];
-    return selected?{key:item.key,sourceJSON:item.sourceJSON,eventId:item.eventId,decision:selected.value,representativeId}:null;
+    return selected?{key:item.key,sourceJSON:item.sourceJSON,eventId:item.eventId,heads:item.heads,decision:selected.value,representativeId}:null;
   }).filter(Boolean);
   try{ localStorage.setItem(legacyDraftKey(),JSON.stringify({entries,sourceSet:legacyRendered.map(item=>[item.key,item.sourceJSON]),note:document.getElementById('legacyNote').value}));return true; }
   catch(e){toast(tr('เก็บงานที่ยังไม่บันทึกไม่สำเร็จ กรุณาบันทึกก่อนออกจากหน้านี้'),'err');return false;}
@@ -4824,19 +5000,21 @@ function renderLegacyReview(c,ta){
   const summary=paymentReview(),pairs=pendingPaymentSummary(summary);
   const draft=loadLegacyDraft();
   const drafts=new Map((draft?.entries||[]).filter(saved=>summary.legacyGroups.some(item=>
-    item.key===saved.key && draftSourceMatches(item.group,saved.sourceJSON) && (item.answer?.id||null)===(saved.eventId||null))).map(saved=>[saved.key,saved]));
+    item.key===saved.key && reviewSourceMatches(item.group,saved.sourceJSON) && (item.answer?.id||null)===(saved.eventId||null) && BillingData.canonical(item.resolution.heads)===BillingData.canonical(saved.heads||[]))).map(saved=>[saved.key,saved]));
   const staleDraft=(draft?.entries||[]).some(saved=>!drafts.has(saved.key));
-  const draftNoteValid=Array.isArray(draft?.sourceSet)&&draft.sourceSet.every(([key,source])=>summary.legacyGroups.some(item=>item.key===key&&draftSourceMatches(item.group,source)));
+  const draftNoteValid=Array.isArray(draft?.sourceSet)&&draft.sourceSet.every(([key,source])=>summary.legacyGroups.some(item=>item.key===key&&reviewSourceMatches(item.group,source)));
   for(const key of drafts.keys()) legacyEditKeys.add(key);
   ta.innerHTML=`<button class="btn" onclick="setView('documents')">${ic('arrowLeft')} ${tr('เอกสาร')}</button>`;
   const editing=summary.legacyGroups.filter(item=>!item.answer||legacyEditKeys.has(item.key));
   const answered=summary.legacyGroups.filter(item=>item.answer&&!legacyEditKeys.has(item.key));
-  legacyRendered=editing.map(item=>({key:item.key,sourceJSON:JSON.stringify(item.group),reps:legacyRepresentatives(item.group).map(d=>d.id),eventId:item.answer?.id||null}));
+  legacyRendered=editing.map(item=>({key:item.key,sourceJSON:reviewSourceJSON(item.group),heads:item.resolution.heads,reps:legacyRepresentatives(item.group).map(d=>d.id),eventId:item.answer?.id||null}));
   const groupCard=(item,i)=>{
     const reps=legacyRepresentatives(item.group), saved=drafts.get(item.key), current=saved?.decision||item.answer?.decision;
     const radio=(value,disabled)=>`<label class="legacy-choice"><input type="radio" name="legacy-${i}" value="${value}" ${current===value?'checked':''} ${disabled?'disabled':''}> ${tr(LEGACY_DECISIONS[value])}</label>`;
     return `<div class="card-block legacy-group" data-legacy-index="${i}">
       ${item.group.map(legacyRecordLine).join('')}
+      ${['conflict','invalid'].includes(item.resolution.status)?`<div class="banner"><span>${tr('คำตอบจากหลายเครื่องขัดกัน — ตรวจคำตอบเดิมแล้วเลือกใหม่ ยอดนี้ยังไม่รวมในรับแล้ว')}</span></div>
+        <ul>${(DB.reviewEvents||[]).filter(e=>item.resolution.heads.includes(e.id)).map(e=>`<li>${escapeHtml(tr(LEGACY_DECISIONS[e.decision]||'ต้องตรวจแยก'))}${e.representativeId?' · '+escapeHtml(item.group.find(d=>d.id===e.representativeId)?.number||e.representativeId):''} · ${escapeHtml(e.note)}</li>`).join('')}</ul>`:''}
       <div class="legacy-choices">
         ${radio('same_payment',!reps.length)}
         ${reps.length>1?`<div class="field legacy-rep"><label>${tr('นับยอดจากเอกสาร')}</label><select id="legacy-rep-${i}">${reps.map(d=>`<option value="${attr(d.id)}" ${(saved?.representativeId||item.answer?.representativeId)===d.id?'selected':''}>${escapeHtml(d.number||d.id)} · ${escapeHtml(fmtMoneyC(compute(d).netPayable,'THB'))}</option>`).join('')}</select></div>`:''}
@@ -4846,6 +5024,7 @@ function renderLegacyReview(c,ta){
       </div></div>`;
   };
   c.innerHTML=`<div class="banner info"><span class="banner-text">${tr('ตอบทีละกลุ่มว่าเงินก้อนนี้คืออะไร ใบเดิมไม่ถูกแก้ และเปลี่ยนคำตอบได้ภายหลัง')}</span></div>
+    ${renderUnresolvedReceiptSummary(summary)}
     ${staleDraft?`<div class="banner">${tr('ข้อมูลเดิมเปลี่ยนแล้ว คำตอบที่ค้างไว้บางกลุ่มต้องตรวจใหม่')}</div>`:''}
     ${pairs.eligible.length?renderPendingPayments(pairs):''}
     ${editing.length?`<div class="section-title">${tr('รอคำตอบ')} (${editing.length})</div>
@@ -4869,7 +5048,7 @@ async function submitLegacyAnswers(){
   const answers=legacyRendered.map((item,i)=>{
     const chosen=document.querySelector(`input[name="legacy-${i}"]:checked`); if(!chosen) return null;
     const rep=chosen.value==='same_payment'?(document.getElementById('legacy-rep-'+i)?.value||item.reps[0]):undefined;
-    return {key:item.key,sourceJSON:item.sourceJSON,decision:chosen.value,representativeId:rep};
+    return {key:item.key,sourceJSON:item.sourceJSON,heads:item.heads,decision:chosen.value,representativeId:rep};
   }).filter(Boolean);
   return saveLegacyAnswers(answers,document.getElementById('legacyConfirmed').checked,document.getElementById('legacyNote').value);
 }
@@ -4880,13 +5059,15 @@ async function saveLegacyAnswers(answers,confirmed,note){
     toast(tr('เลือกคำตอบอย่างน้อยหนึ่งกลุ่ม ยืนยัน และใส่บันทึก'),'err'); return false;
   }
   if(!window.billingAPI?.snapshotBackup){ toast(tr('ต้องใช้แอปเดสก์ท็อปเพื่อสำรองก่อนบันทึก'),'err'); return false; }
+  if(new Set(answers.map(a=>a.key)).size!==answers.length)return false;
+  const observed=new Map(answers.map(a=>[a.key,a.heads||legacyGroupResolution(a.key,paymentReview().legacyGroups.find(g=>g.key===a.key)?.group||[]).heads]));
   issuanceBusy=true; const previous=DB.reviewEvents||[]; let saved=false;
   try{
     const check=()=>{
       const current=new Map(paymentReview().legacyGroups.map(item=>[item.key,item.group]));
       return answers.map(a=>{
         const group=current.get(a.key);
-        if(!group||JSON.stringify(group)!==a.sourceJSON) throw Error(tr('ข้อมูลเดิมเปลี่ยนแล้ว กรุณาตรวจใหม่'));
+        if(!group||!reviewSourceMatches(group,a.sourceJSON)||BillingData.canonical(legacyGroupResolution(a.key,group).heads)!==BillingData.canonical(observed.get(a.key))) throw Error(tr('ข้อมูลเดิมเปลี่ยนแล้ว กรุณาตรวจใหม่'));
         if(a.decision==='same_payment'&&!legacyRepresentatives(group).some(d=>d.id===a.representativeId)) throw Error(tr('ข้อมูลเดิมเปลี่ยนแล้ว กรุณาตรวจใหม่'));
         return {a,group};
       });
@@ -4894,7 +5075,7 @@ async function saveLegacyAnswers(answers,confirmed,note){
     check();
     if(!await window.billingAPI.snapshotBackup('before-legacy-review')) throw Error(tr('สำรองหรือบันทึกไม่สำเร็จ ยังไม่เก็บผลตรวจ'));
     const fresh=check(), recordedAt=new Date().toISOString();
-    const events=fresh.map(({a,group})=>({id:uid(),type:'legacy_group_review',documentId:legacyAnchor(group),groupKey:a.key,decision:a.decision,
+    const events=fresh.map(({a,group})=>({id:uid(),type:'legacy_group_review',documentId:legacyAnchor(group),groupKey:a.key,decision:a.decision,supersedes:observed.get(a.key),
       ...(a.decision==='same_payment'?{representativeId:a.representativeId}:{}),sourceRecords:JSON.parse(JSON.stringify(group)),
       ownerConfirmed:true,note:note.trim(),recordedAt,evidence:[]}));
     if(events.some(e=>!validLegacyGroupReview(e))) throw Error('DATA_SCHEMA_INVALID');
@@ -4998,6 +5179,7 @@ function renderReport(c,ta){
     </div>
 
     ${reportReviewBanner(summary)}
+    ${renderUnresolvedReceiptSummary(summary,reportYear)}
     ${!docs.length ? brandEmpty('assetDesk', tr('ยังไม่มีรายรับที่บันทึกในปี {y}').replace('{y}',displayYear(reportYear)), tr('รับเงินที่บันทึกไว้ รวมบิลชำระแล้วและใบเสร็จ โดยตัดรายการซ้ำ')) : `
     <div class="report-cards">
       <div class="rc net"><div class="rl">${tr('ยอดรับสุทธิตามเอกสาร')}</div><div class="rv">${fmtMoneyC(agg.net,'THB')}</div><div class="rs">${tr('หลังหักภาษี ณ ที่จ่าย')}</div></div>
@@ -5342,7 +5524,10 @@ function renderSettings(c,ta){
       <div class="hint" style="margin-top:12px">${ic('check')} ${tr('แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 30 ชุดล่าสุด)')} · ${lastBackupLine()}</div>
     </div>
 
-    <details class="card-block">
+    ${dataLoc.storageFormat==='sqlite'?`<details class="card-block"><summary>${tr('ที่เก็บข้อมูลในเครื่อง')}</summary>
+      <p class="desc">${tr('เก็บข้อมูลในเครื่องด้วย SQLite — ใช้ Google Drive เพื่อซิงก์ และใช้ JSON เพื่อสำรองหรือนำเข้า')}</p>
+      <button class="btn" onclick="elReveal()">${ic('folderOpen')} ${tr('เปิดที่เก็บไฟล์')}</button>
+    </details>`:!IS_MAS?`    <details class="card-block">
       <summary>${tr('เปลี่ยนที่เก็บข้อมูล (ไม่บังคับ)')}</summary>
       <div class="desc">
         ${dataLoc.mode==='external'
@@ -5356,7 +5541,8 @@ function renderSettings(c,ta){
              <button class="btn" onclick="elLink()">${tr('เปิดไฟล์ billing.json ที่มีอยู่…')}</button>`}
         <button class="btn" onclick="elReveal()">${ic('folderOpen')} ${tr('เปิดที่เก็บไฟล์')}</button>
       </div>
-    </details>
+    </details>`:''}
+
 
     ${(()=>{const r=paymentReview(),open=(r.unansweredGroups||[]).length,done=r.legacyGroups.length-open;
       return r.legacyGroups.length||correctionRecords().length?`<div class="card-block">
@@ -5375,16 +5561,16 @@ function renderSettings(c,ta){
 
     ${isPro()?`<div class="card-block">
       <h4>${tr('สถานะ Pro')}</h4>
-      <p>${escapeHtml(PRO.email||'')} — ${PRO.validUntil?tr('ใช้ได้ถึง {d}').replace('{d}',escapeHtml(fmtDate(PRO.validUntil))):tr('ตลอดชีพ')}</p>
-      <button class="btn btn-sm" onclick="deactivateLicense()">${tr('ปิดการใช้งานรหัสนี้')}</button>
+      <p>${PRO.source==='appstore'?tr('ซื้อผ่าน App Store แล้ว'):escapeHtml(PRO.email||'')} — ${PRO.validUntil?tr('ใช้ได้ถึง {d}').replace('{d}',escapeHtml(fmtDate(PRO.validUntil))):tr('ตลอดชีพ')}</p>
+      ${!IS_MAS?`<button class="btn btn-sm" onclick="deactivateLicense()">${tr('ปิดการใช้งานรหัสนี้')}</button>`:''}
     </div>`:`<div class="card-block">
       <h4>${tr('สถานะ Pro')}</h4>
       <button class="btn btn-sm" onclick="openUpgradeModal()">${tr('ดูแพ็กเกจ Pro')}</button>
     </div>`}
-    <details class="card-block">
+    ${!IS_MAS?`<details class="card-block">
       <summary>${tr('ส่วนเสริม (ไม่บังคับ)')}</summary>
       <p><button class="btn btn-sm" onclick="openAiSettings()">${tr('จัดการ AI Add-on')}</button></p>
-    </details>` : `
+    </details>`:''}` : `
     <div class="card-block">
       <h4>${ic('folder')} ${tr('ไฟล์ข้อมูล')}</h4>
       <div class="desc">
@@ -5475,8 +5661,9 @@ async function restoreBackupFile(name){
   if(!await askConfirm(tr('กู้คืนข้อมูลจากไฟล์สำรองนี้?'),{detail:tr('ข้อมูลปัจจุบันจะถูกสำรองไว้ให้ก่อนโดยอัตโนมัติ'),confirmLabel:tr('กู้คืน')})) return;
   try{
     const text = await window.billingAPI.restoreBackup(name);   // main สำรองของปัจจุบันก่อนแล้วค่อยสลับไฟล์
-    DB = migrate(JSON.parse(text));
+    adoptDatabase(JSON.parse(text));
     loadFailed = false;
+    if(pendingDataUpgrade){render();return;}
     if(!await persist(true)) return;   // normalize เป็น v2 + journal บันทึกความต่างจากการกู้คืน
     render();
     toast(tr('กู้คืนข้อมูลแล้ว'),'ok');
@@ -5538,8 +5725,27 @@ function rgbToHex(s){
 Object.assign(I18N_EN,{
   'บันทึกการเปลี่ยนแปลงไม่สำเร็จ':'Could not save the change',
   'ข้อมูลเปลี่ยนระหว่างเลือกไฟล์ กรุณาเลือกใหม่':'Data changed while choosing the file. Please choose it again.',
-  'อ่านไฟล์รูปภาพไม่สำเร็จ':'Could not read the image file'
+  'อ่านไฟล์รูปภาพไม่สำเร็จ':'Could not read the image file',
+  'รูปภาพใหญ่เกินไป กรุณาใช้ไฟล์ที่เล็กลง':'This image is too large. Please use a smaller file.'
 });
+// A large photo is scaled down before it is kept; the result is never larger than the original.
+function fitBusinessImage(dataUrl){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onerror=()=>reject(Error('IMAGE_UNREADABLE'));
+    img.onload=()=>{
+      const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight,1));
+      if(scale===1&&dataUrl.length<=512*1024){resolve(dataUrl);return;}
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      // JPEG stays JPEG; everything else becomes PNG so transparent signatures and stamps keep their background.
+      const fitted=canvas.toDataURL(/^data:image\/jpe?g/i.test(dataUrl)?'image/jpeg':'image/png',0.9);
+      resolve(fitted.length<dataUrl.length?fitted:dataUrl);
+    };
+    img.src=dataUrl;
+  });
+}
 async function saveBusinessAsset(key,value,expectedBusiness=DB.business){
   if(!['logo','signature','stamp'].includes(key))return false;
   if(issuanceBusy||appClosing||DB.business!==expectedBusiness){toast(tr('ข้อมูลเปลี่ยนระหว่างเลือกไฟล์ กรุณาเลือกใหม่'),'err');return false;}
@@ -5556,7 +5762,11 @@ function pickAsset(key){
   const original=DB.business;
   const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
   inp.onchange=()=>{ const f=inp.files[0]; if(!f) return;
-    const r=new FileReader();r.onload=()=>saveBusinessAsset(key,r.result,original);
+    const r=new FileReader();r.onload=async()=>{
+      let value;try{value=await fitBusinessImage(r.result);}catch(e){toast(tr('อ่านไฟล์รูปภาพไม่สำเร็จ'),'err');return;}
+      if(value.length>BillingData.ASSET_MAX){toast(tr('รูปภาพใหญ่เกินไป กรุณาใช้ไฟล์ที่เล็กลง'),'err');return;}
+      saveBusinessAsset(key,value,original);
+    };
     r.onerror=()=>toast(tr('อ่านไฟล์รูปภาพไม่สำเร็จ'),'err');
     try{r.readAsDataURL(f);}catch(e){toast(tr('อ่านไฟล์รูปภาพไม่สำเร็จ'),'err');}
   }; inp.click();
@@ -5779,7 +5989,7 @@ async function persistDocumentMutation(candidate,replaceId,issuanceContext){
     const validation=issuanceError(candidate,isIssuedDocument(candidate),issuanceContext||candidate.issuedSnapshot);
     if(validation) throw new Error(validation);
     if(!await assignSyncNumber(candidate)) throw new Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
-    if(isIssuedDocument(candidate) && !candidate.issuedSnapshot) freezeIssuedDocument(candidate,issuanceContext);
+    if(isIssuedDocument(candidate) && !candidate.issuedSnapshot) internSnapshotImages(freezeIssuedDocument(candidate,issuanceContext));
     touch(candidate);
     const idx=replaceId?DB.documents.findIndex(x=>x.id===replaceId):-1;
     if(idx>=0) DB.documents[idx]=candidate; else DB.documents.push(candidate);
@@ -6142,19 +6352,19 @@ Object.assign(I18N_EN,{
   'ข้อมูลในเครื่องนี้ยังอยู่ครบ แต่จะไม่ซิงก์กับเครื่องอื่นอีก เครื่องนี้จะสำรองข้อมูลไว้ก่อน ข้อมูลใน Google Drive ไม่ถูกลบ':'All data stays on this Mac but no longer syncs with other Macs. This Mac makes a backup first; nothing in Google Drive is deleted.',
   'หยุดซิงก์':'Stop syncing','หยุดซิงก์แล้ว':'Sync stopped on this Mac','หยุดซิงก์เครื่องนี้':'Stop syncing this Mac',
   'ซิงก์ Google Drive':'Google Drive sync',
-  'ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ':'Use the same data on several Macs. Drafts work offline; issuing a document needs internet so numbers never repeat.',
-  'ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก':'Documents are stored in your own Google Drive · attached evidence files are exported separately · if two Macs change the same record, both versions are kept for you to choose',
+  'ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ':'Use the same data across your devices. Drafts work offline; issuing a document needs internet so numbers never repeat.',
+  'ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก':'Documents are stored in your own Google Drive · attached evidence files are exported separately · if two devices change the same record, both versions are kept for you to choose',
   'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้':'Google Drive sync needs an active BillNgai Pro licence',
   'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ':'This Pro key is already used with the maximum number of Google accounts. Please contact support.',
   'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้':'Google Drive access was not granted — try again and tick the Google Drive box on the sign-in page',
-  'ข้อมูลมากกว่า 512 รายการ รุ่นนี้ยังเชื่อมต่อได้ไม่ครบ ติดต่อฝ่ายช่วยเหลือ':'More than 512 records: this version cannot connect them all yet. Please contact support.',
+  'ข้อมูลมีมากเกินกว่าที่รุ่นนี้เชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ':'This workspace is too large for this version to connect in one step. Please contact support.',
   'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive':'Move your data back to in-app storage first, then connect Google Drive',
   'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้':'This Mac cannot store the sign-in securely yet',
   'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
   'บัญชีนี้ยังใช้ซิงก์ไม่ได้':'This account cannot use sync yet',
   'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account',
-  'ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง':'Google Drive sync across Macs, plus on-device AI quotation drafts',
-  'ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)':'Google Drive sync — the same data on several Macs (up to 3 Google accounts per key)',
+  'ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง':'Google Drive sync across devices, plus on-device AI quotation drafts',
+  'ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)':'Google Drive sync — the same data across devices (up to 3 Google accounts per key)',
   'ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง':'The old sync has been retired — connect Google Drive again in Settings → Data & backup',
   'เชื่อมต่อ Google Drive ไม่ได้ตอนนี้ ข้อมูลและร่างในเครื่องยังอยู่ ลองอีกครั้งเมื่อมีอินเทอร์เน็ต':'Can\'t reach Google Drive right now. Your data and drafts are safe on this Mac — try again when you\'re online.'
 });
@@ -6337,7 +6547,7 @@ function restoreRecord(target,original){for(const k of Object.keys(target))if(!(
 Object.assign(I18N_EN,{
   'ใบกำกับภาษีเดิมต้องให้ผู้เชี่ยวชาญตรวจสอบ':'Historical tax invoices need professional review',
   'กรุณายืนยันวันที่และการรับเงินเต็มจำนวน':'Confirm a valid payment date and full payment',
-  'เก็บเข้าคลังโดยไม่ยกเลิก':'Archive without voiding',
+  'เก็บเข้าคลังโดยไม่ยกเลิก':'Archive without voiding','เก็บเข้าคลัง':'Archive',
   'นำกลับจากคลัง':'Restore from archive',
   'ข้อมูลที่เก็บไว้ ไม่ใช่เอกสารต้นฉบับ':'Retained facts — not an original document',
   'ไม่ทราบข้อมูลเดิม':'Original information unknown',
@@ -6715,7 +6925,7 @@ async function applyReceiptReissues(batch,facts){
       if(!await assignSyncNumber(doc,'reviewEvent:'+id))throw Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
       // Counters advance per row; reject collisions with earlier members of this same batch too.
       if(events.some(e=>e.receipt.number===doc.number))throw Error(tr('เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้'));
-      const parties=JSON.parse(row.partiesJSON);freezeIssuedDocument(doc,{...parties,docLang:doc.docLang,yearMode:parties.business.yearMode});
+      const parties=JSON.parse(row.partiesJSON);internSnapshotImages(freezeIssuedDocument(doc,{...parties,docLang:doc.docLang,yearMode:parties.business.yearMode}));
       const event={id,type:'receipt_reissue',documentId:row.id,recordedAt:new Date().toISOString(),purpose:'document_correction_only',...facts,
         sourceRecordAtReview:JSON.parse(row.sourceJSON),receipt:doc,evidence:[]};
       if(!validReceiptReissueEvent(event))throw Error('DATA_SCHEMA_INVALID');events.push(event);
@@ -6809,6 +7019,21 @@ async function createLegacyReceipt(id,eventId){
     const context={business:{...blankDB().business,businessName:event.issuer.name,address:event.issuer.address,taxId:event.issuer.taxId,vatStatus:'non_registered'},buyer:JSON.parse(JSON.stringify(event.buyer)),docLang:'bilingual',yearMode:DB.business.yearMode};
     if(!await persistDocumentMutation(rec,null,context))return false;viewDoc(rec.id);return rec;
   }finally{issuanceBusy=false;}
+}
+// A newly issued original keeps each business image once in DB.assets and refers to it by
+// content hash, in both the frozen business copy and the archived HTML. Older originals keep
+// their embedded copies untouched. An image outside the stored form simply stays embedded.
+function internSnapshotImages(snapshot){
+  for(const key of ['logo','signature','stamp']){
+    // A correction issued from an original that already refers to a stored image reuses it.
+    const value=snapshot.business[key],stored=/^asset:([a-f0-9]{64})$/.exec(String(value||''));
+    const data=stored?(DB.assets||{})[stored[1]]:value;
+    if(typeof data!=='string'||data.length>BillingData.ASSET_MAX||!BillingData.ASSET_DATA.test(data)) continue;
+    const ref=stored?value:'asset:'+BillingData.sha256(data);
+    DB.assets=DB.assets||{};DB.assets[ref.slice(6)]=data;
+    snapshot.business[key]=ref;
+    snapshot.renderedHtml=snapshot.renderedHtml.split(escapeHtml(data)).join(ref);
+  }
 }
 function freezeIssuedDocument(d,sourceContext=null){
   if(hasIssuedSnapshot(d)) return d.issuedSnapshot;
@@ -7165,7 +7390,9 @@ function renderPaper(d,cl,t,issuanceContext=null){
 // Issuer signature + company stamp, overlaid above a signature line.
 function documentImageSource(value){
   // Embedded image data only: no remote tracking, attribute breakout or active URL.
-  const s=String(value||'');
+  // "asset:<hash>" is an image this workspace stores once for its issued originals.
+  const ref=/^asset:([a-f0-9]{64})$/.exec(String(value||''));
+  const s=ref?String((DB.assets||{})[ref[1]]||''):String(value||'');
   return /^data:image\/(?:png|jpe?g|gif|webp|svg\+xml);base64,[a-z0-9+/=\s]+$/i.test(s)?escapeHtml(s):'';
 }
 function signMark(b){
@@ -7770,7 +7997,7 @@ async function boot(){
   if(IS_ELECTRON){
     try{ DEVICE_ID = await window.billingAPI.deviceId(); }catch(e){ DEVICE_ID = browserDeviceId(); }
     let raw = null;
-    try{ raw = await window.billingAPI.load(); }catch(e){ loadFailed = true; }
+    try{ raw = await window.billingAPI.load(); }catch(e){ loadFailed = true; loadErrorCode=String(e.message).match(/DATA_[A-Z_]+/)?.[0]||''; }
     if(raw !== null){
       // A data file EXISTS — if it won't parse, never autosave a blank DB over it.
       try{
@@ -7779,13 +8006,19 @@ async function boot(){
         if((parsed.version||1) < 2 && window.billingAPI.snapshotBackup){
           try{ await window.billingAPI.snapshotBackup('pre-v2'); }catch(e){}
         }
-        DB = migrate(parsed);
+        adoptDatabase(parsed);
       }
-      catch(e){ loadFailed = true; }
+      catch(e){ loadFailed = true; loadErrorCode=String(e.message).match(/DATA_[A-Z_]+/)?.[0]||''; }
     }
     if(!DB) DB = blankDB();
     buildJournalIndex();   // baseline ของ journal — เริ่มนับความเปลี่ยนแปลงจากสถานะนี้
     try{ if(window.billingAPI.licenseStatus) PRO = await window.billingAPI.licenseStatus(); }catch(e){}
+    // MAS: การซื้อ/กู้คืนสำเร็จมาจาก StoreKit แบบ async — อัปเดตสถานะ Pro ทันทีที่ transaction จบ
+    if(IS_MAS && window.billingAPI.onIapChanged){
+      window.billingAPI.onIapChanged(handleIapChanged);
+      // Recover a transaction delivered before the renderer finished booting.
+      if(window.billingAPI.iapStatus) await handleIapChanged(await window.billingAPI.iapStatus());
+    }
     await refreshSyncInfo();
     if(isSyncEnabled()) setTimeout(()=>syncNow(true), 4000);        // ดึงงานจากเครื่องอื่นหลังเปิดแอป
     // ตัวจับเวลา/โฟกัสลงทะเบียนเสมอ — เผื่อเปิด Pro/เชื่อม Drive ระหว่างใช้งาน (เช็คเงื่อนไขตอนยิง)
@@ -7819,7 +8052,7 @@ async function boot(){
   const cached = loadLocal();
   // เก็บสำเนา v1 ไว้หนึ่งชุดก่อนอัปเกรดสคีมา (กู้มือจาก localStorage ได้ถ้าจำเป็น)
   if(cached && (cached.version||1) < 2){ try{ localStorage.setItem(LS_KEY+'_prev2', JSON.stringify(cached)); }catch(e){} }
-  DB = migrate(cached || blankDB());
+  adoptDatabase(cached || blankDB());
   applyTheme();
   updateFileStatus();
   setView('dashboard');
@@ -7852,6 +8085,8 @@ async function boot(){
 (()=>{ const k=document.getElementById('cmdkKey'); const mac=typeof navigator!=='undefined' && /Mac/i.test(navigator.platform||''); if(k && !mac) k.textContent='Ctrl K'; })();
 // paint the static sidebar nav icons
 document.querySelectorAll('.sidebar .ico[data-ic], .cmdk .ico[data-ic]').forEach(s=> s.innerHTML = ic(s.dataset.ic,18));
+// MAS build ไม่มี AI add-on — ซ่อนทั้งบล็อก Add-on ในแถบข้าง
+if(IS_MAS){ const an=document.getElementById('addonNav'); if(an) an.style.display='none'; }
 boot();
 </script>
 </body>

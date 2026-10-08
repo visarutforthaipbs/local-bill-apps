@@ -23,20 +23,29 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));
     const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
     await page.waitForFunction(()=>DB&&!loadFailed&&DB.documents.length===4);
+    await page.waitForFunction(()=>!!pendingDataUpgrade);
+    assert.match(await page.locator('#content').innerText(),/ตรวจการอัปเกรดข้อมูล/);
+    await page.getByRole('button',{name:'สำรองและเปิดใช้',exact:true}).click();
+    await page.waitForFunction(()=>!pendingDataUpgrade&&!dirty);
     const originals=await page.evaluate(()=>JSON.stringify(DB.documents));
+    // Conflicting live receipt amounts remain visible when simple pairs are unavailable.
+    assert.match(await page.locator('#unresolvedReceipts').innerText(),/1,040/);
+    assert.match(await page.locator('#unresolvedReceipts').innerText(),/ยังไม่รวมในรับแล้ว/);
+    assert.equal(await page.evaluate(()=>unresolvedReceiptSummary().receiptCount),1);
     // Dashboard: no empty pair card; one to-do line leads to the review.
     assert.equal(await page.locator('#pendingPayments').count(),0);
     await page.locator('.todo-row').filter({hasText:'ข้อมูลเดิมรอตรวจ'}).getByRole('button',{name:'ตรวจข้อมูลเดิม',exact:true}).click();
     await page.waitForFunction(()=>currentView==='legacy');
     assert.equal(await page.locator('.legacy-group').count(),2);
     // Missing confirmation/note is rejected without saving.
-    await page.locator('.legacy-group').nth(0).locator('input[value="not_income"]').check({force:true});
+    await page.locator('.legacy-group').nth(0).locator('input[value="not_income"]').check();
     await page.getByRole('button',{name:'บันทึกคำตอบ',exact:true}).click();
     assert.equal(await page.evaluate(()=>DB.reviewEvents.length),0);
     const idx=await page.evaluate(()=>legacyRendered.findIndex(r=>JSON.parse(r.sourceJSON).some(d=>d.id==='i1')));
-    await page.locator(`.legacy-group[data-legacy-index="${idx}"] input[value="not_income"]`).check({force:true});
-    await page.locator(`.legacy-group[data-legacy-index="${1-idx}"] input[value="same_payment"]`).check({force:true});
-    await page.locator('#legacyConfirmed').check({force:true});
+    await page.locator(`.legacy-group[data-legacy-index="${idx}"] input[value="not_income"]`).check();
+    await page.locator(`.legacy-group[data-legacy-index="${1-idx}"] input[value="same_payment"]`).check();
+    await page.locator('label.toggle').filter({has:page.locator('#legacyConfirmed')}).click();
+    assert.equal(await page.locator('#legacyConfirmed').isChecked(),true);
     await page.locator('#legacyNote').fill('ตรวจกับรายการเดินบัญชีแล้ว (ข้อมูลทดสอบ)');
     await page.getByRole('button',{name:'บันทึกคำตอบ',exact:true}).click();
     await page.waitForFunction(()=>DB.reviewEvents.length===2&&!issuanceBusy);
@@ -50,6 +59,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     await page.evaluate(()=>setView('dashboard'));
     assert.equal(await page.locator('.todo-row').filter({hasText:'ข้อมูลเดิม'}).count(),0);
     assert.equal(await page.locator('.pillar.received .val-tag').count(),0);
+    assert.equal(await page.locator('#unresolvedReceipts').count(),0);
     await page.evaluate(()=>setView('documents'));
     assert.equal(await page.locator('#topActions').getByRole('button',{name:/ตรวจข้อมูลเดิม/}).count(),0);
     await page.evaluate(()=>{settingsTab='data';setView('settings');});

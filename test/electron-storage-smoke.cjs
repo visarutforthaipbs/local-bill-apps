@@ -40,7 +40,7 @@ app.on('browser-window-created', (_event, win) => {
         d.clients=[{id:'test-client',name:'Test customer',taxId:'',address:'',deletedAt:null}];
         d.documents=Array.from({length:3},(_,i)=>({id:'test-'+i,type:'invoice',number:'TEST-'+(i+1),
           clientId:'test-client',issueDate:todayISO(),dueDate:todayISO(),status:'draft',currency:'THB',
-          items:[{description:'Test service',qty:1,price:1000,unit:'job'}],vatRate:7,whtRate:3,notes:'',deletedAt:null}));
+          items:[{description:'Test service',qty:1,price:1000,unit:'job'}],vatRate:0,whtRate:3,notes:'',deletedAt:null}));
         return JSON.stringify(d);
       })()`);
       await fsp.writeFile(external, restored);
@@ -50,6 +50,8 @@ app.on('browser-window-created', (_event, win) => {
       await fsp.writeFile(path.join(root, 'failed-load.png'), (await win.webContents.capturePage()).toPNG());
       // Real preload/IPC recovery, followed by normal save and local backup UI.
       await run(`window.billingAPI.recoverData(${JSON.stringify(restored)})`);
+      const legacyBaseline=await fsp.readFile(external,'utf8');
+      assert.deepEqual(JSON.parse(legacyBaseline).documents,JSON.parse(restored).documents);
       await run("(async()=>{ DB=migrate(JSON.parse(await window.billingAPI.load())); loadFailed=false; buildJournalIndex(); await persist(true); await window.billingAPI.snapshotBackup('manual'); setView('settings'); setSettingsTab('data'); })()");
       for(let i = 0; i < 100; i++) {
         if(await run("document.getElementById('backupHist')?.textContent.includes('วันที่สำรอง (เวลาเครื่อง)')")) break;
@@ -66,10 +68,11 @@ app.on('browser-window-created', (_event, win) => {
       // Exercise the real document editor/save path and Chromium's PDF renderer.
       await run("openDocEditor('invoice'); updItem(0,'description','Native runtime test'); updItem(0,'price',1500); saveDoc();");
       for(let i=0;i<100;i++) {
-        if(JSON.parse(await fsp.readFile(external,'utf8')).documents.length===4) break;
+        if(await run('window.billingAPI.load().then(text=>JSON.parse(text).documents.length===4)')) break;
         await new Promise(resolve=>setTimeout(resolve,50));
       }
-      assert.equal(JSON.parse(await fsp.readFile(external,'utf8')).documents.length,4);
+      assert.equal(await run('window.billingAPI.load().then(text=>JSON.parse(text).documents.length)'),4);
+      assert.equal(await fsp.readFile(external,'utf8'),legacyBaseline,'legacy JSON remains unchanged after SQLite saves');
       assert.equal(await run("document.querySelector('.paper').textContent.includes('Native runtime test')"),true);
       await run('document.fonts.ready.then(()=>{applyPrintZoom(); return true;})');
       const pdf = await win.webContents.printToPDF({printBackground:true,preferCSSPageSize:true});
@@ -93,7 +96,7 @@ app.on('browser-window-created', (_event, win) => {
         editField('whtReviewed',true);editField('fullPaymentConfirmed',true);editField('issueConfirmed',true);
         await saveDoc();
       })()`);
-      assert.equal(JSON.parse(await fsp.readFile(external,'utf8')).documents.length,5);
+      assert.equal(await run('window.billingAPI.load().then(text=>JSON.parse(text).documents.length)'),5);
       assert.equal(await run("document.querySelector('.paper').textContent.includes('ไม่ใช่ใบกำกับภาษี')"),true);
       const receiptPaper=await run("document.querySelector('.paper').innerHTML");
       await run("DB.business.businessName='Changed profile';DB.clients[0].name='Changed buyer';DB.business.isVatRegistered=true;render();");

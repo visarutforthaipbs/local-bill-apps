@@ -5,7 +5,7 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
  await fs.writeFile(path.join(profile,'config.json'),'{"externalPath":null}');
  await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify({version:2,business:{businessName:'Synthetic audio seller',address:'Sample address',taxId:'1234567890123',vatStatus:'non_registered'},clients:[],documents:[],reviewEvents:[],recurring:[],counters:{},meta:{setupDone:true}}));
  const exe=process.argv[2]||path.join(os.homedir(),'.local/share/billngai-dev/43.7.3/Electron.app/Contents/MacOS/Electron');
- const app=await _electron.launch({executablePath:exe,args:[...(process.argv[2]?[]:[path.resolve(__dirname,'..')]),'--user-data-dir='+profile]});
+ const app=await _electron.launch({executablePath:exe,args:[path.resolve(__dirname,'..'),'--user-data-dir='+profile]});
  try{
   assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));
   const page=await app.firstWindow(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>DB&&!loadFailed&&dataLoc.path);

@@ -88,7 +88,7 @@ test('leaving Settings without changes does not create a new business version',a
  const html=await fs.readFile(path.join(__dirname,'../billing.html'),'utf8');
  const script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
  const values={s_name:'Synthetic',s_vatStatus:'non_registered',s_year:'be'};
- const ctx=vm.createContext({window:{addEventListener(){},matchMedia(){return {matches:false};}},
+ const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},
   document:{getElementById:id=>id in values?{value:values[id],setAttribute(){},removeAttribute(){},focus(){}}:id.startsWith('s_')?null:{addEventListener(){},classList:{add(){},remove(){}}},querySelectorAll(){return [];},addEventListener(){}},
   navigator:{platform:'Test'},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},localStorage:{getItem(){return null;},setItem(){}}});
  vm.runInContext(script,ctx);
