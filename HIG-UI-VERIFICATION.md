@@ -1,6 +1,6 @@
 # Apple HIG restyle — source verification
 
-2026-10-09 · Owner-authorized UI overhaul · Unreleased, package version remains 2.0.14 · branch `codex/hig-restyle`
+2026-10-09 · Owner-authorized UI overhaul · Unreleased · version bumped to 2.0.15 (2.0.14 exists in TestFlight) · branch `codex/hig-restyle`
 
 Decision and token contract: `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` (HIG sources read on
 2026-10-09) and the revised `BRAND.md` design-tokens section. Screenshots: `review/2026-10-09/design/screens/`.
@@ -36,6 +36,7 @@ Decision and token contract: `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` (HIG
 | Inline script syntax (`node --check` on the extracted `<script>` blocks) | OK |
 | `npm test` | 342 / 342 pass |
 | `npm run release:check` | PASS |
+| `npm run dist:unsigned` → `dist/BillNgai-2.0.15-universal.dmg` (227 MB, unsigned) and `mobile` `build:device` (unsigned arm64) | both build |
 | `git diff --check` | clean |
 | `mobile/test/accessibility.test.cjs` (mobile.css contract) | 9 / 9 pass |
 | Contrast, every text/background token pair, light and dark (WCAG, script in the session log) | all ≥ 4.5:1 (lowest: tertiary text on canvas 4.58 light / 4.85 dark; dark text on orange 6.30 / 7.03) |
@@ -46,26 +47,26 @@ Decision and token contract: `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` (HIG
 | Real macOS window captures (`screencapture` of the Playwright-driven Electron window) in light and dark | vibrancy sidebar, inset traffic lights, dark canvas — `screens/real-*.png` |
 | Playwright screenshots: dashboard, documents, clients, report, WHT, settings, editor sheet, old-records review, confirm alert, document view — light and dark | no page errors — `screens/*.png` |
 | Chrome previews of the iOS layer at 390 × 844 and 1024 × 768, light and dark | tab bar, sheets, switch rows, segmented tabs — `screens/phone-*.png`, `screens/tablet-*.png` |
+| **iOS Simulator (iPad Pro 11-inch M5, iOS 27.0)** | Setup sheet over the sidebar layout, dashboard with demo data — `screens/ipad-sim-dashboard-light.png` |
 | **iOS Simulator (iPhone 17, iOS 27.0), Debug build from `npm run build:simulator`** | Setup wizard sheet, dashboard with demo data, Documents list (light) and dashboard in Dark appearance render as designed — `screens/ios-sim-*.png`. Note: the debug simulator's first WebView paint takes ~40–70 s; a blank screen before that is not a failure. |
 | Printed paper | `.paper` rules unchanged; `.paper` assertions in the fintech smoke (white background, `--accent #ff6b00`, ink `rgb(31, 28, 23)`) pass in both schemes |
 
-### Electron smoke suite status
+### Electron smoke suite status (2026-10-09, after test maintenance)
 
-- Four tests had fixtures that predate 2.0.14's data-upgrade review gate (`meta.reviewSemanticsVersion`
-  missing → "Review the data upgrade" blocks the old-records view). Declaring
-  `reviewSemanticsVersion:3` in the synthetic fixtures fixed `brand-color`, `payment-match`,
-  `bulk-correction` and the gate step of the others.
-- `prepublish` force-checked the 1 px hidden switch input after convert-to-invoice, which Playwright
-  rejects as "outside of the viewport"; it now clicks the visible switch track like a person and gets
-  past that step. It then stops at its confirm-dialog helper (line 71) — the same place it stops on the
-  untouched `HEAD`.
-- Five still fail, **identically on the unmodified `HEAD` with the same fixture fix** (checked in a
-  clean worktree, same failing line numbers): `stabilization` (void reason not persisted),
-  `option-a` (expects settings to save on tab switch; 2.0.14 saves explicitly), `receipt-reissue`
-  (no `receipt_reissue` events written), `design-fixes` (client-save wait). These are behaviour
-  changes in 2.0.14 that the tests never caught up with (plus `prepublish` at line 71) — a separate test-maintenance pass.
-- `audio` needs a dev Electron at `~/.local/share/billngai-dev/43.7.3` (not installed here);
-  `upgrade-2.0.4` needs a 2.0.4 checkout argument.
+All smoke tests pass except two that need tooling this Mac lacks: `audio` (dev Electron under
+`~/.local/share/billngai-dev/43.7.3`) and `upgrade-2.0.4` (needs a 2.0.4 checkout argument).
+What had to change, and why — none of it was the restyle:
+
+- Fixtures predate 2.0.14's data-upgrade gate → they now declare `meta.reviewSemanticsVersion:3`.
+- 2.0.14 persists to `billing.sqlite`; `billing.json` in the profile is the frozen migration origin.
+  Tests that read the JSON file now read the persisted store through `billingAPI.load()` (or the
+  SQLite payload after the window is closed).
+- Review events are append-only since 2.0.14; `design-fixes` no longer clears them in memory.
+- Settings has four tabs (Sounds was added); receipts issue straight after the VAT confirmation;
+  `prepublish` clicks the visible switch instead of force-checking the 1 px hidden input.
+- Real gap found by the i18n checks: six direct-purchase dialog strings had no English. They are
+  registered by `registerDirectPurchaseCopy()` inside the region the Apple renderer strips, so the
+  App Store bundle still contains no purchase copy (`test/channel-renderer.test.cjs`).
 
 ### Scheme switching note
 

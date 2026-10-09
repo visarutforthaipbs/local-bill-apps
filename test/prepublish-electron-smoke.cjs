@@ -10,7 +10,8 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
   const page=await app.firstWindow(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewportSize({width:1280,height:860});
   await page.waitForFunction(()=>typeof DB!=='undefined'&&DB&&!loadFailed,{},{polling:100});
   const shot=name=>page.screenshot({path:path.join(root,name+'.png')});
-  const confirmOk=async()=>{await page.locator('#confirmOverlay.open').waitFor();await page.locator('#confirmOk').click();await page.locator('#confirmOverlay.open').waitFor({state:'detached'}).catch(()=>{});await page.waitForFunction(()=>!document.getElementById('confirmOverlay').classList.contains('open'));};
+  const confirmIfShown=async()=>{if(await page.locator('#confirmOverlay.open').waitFor({timeout:2000}).then(()=>true,()=>false))await confirmOk();};
+  const confirmOk=async()=>{await page.locator('#confirmOverlay.open').waitFor();const before=await page.locator('#confirmMsg').innerText();await page.locator('#confirmOk').click();await page.waitForFunction(b=>!document.getElementById('confirmOverlay').classList.contains('open')||document.getElementById('confirmMsg').textContent!==b,before);await page.locator('#confirmOverlay.open').waitFor({state:'detached'}).catch(()=>{});};
   const settle=()=>page.waitForFunction(()=>!issuanceBusy&&!pendingPersist,{},{polling:50});
 
   // 1. First-run setup: tax-ID feedback, VAT left unanswered on purpose.
@@ -68,8 +69,8 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
   // 6. Receipt: the VAT answer is asked in place, persisted, then the receipt is issued.
   await page.getByRole('button',{name:'ออกใบเสร็จรับเงิน'}).click();
   await page.locator('#confirmOverlay.open').waitFor();assert.match(await page.locator('#confirmMsg').innerText(),/ไม่ได้จดทะเบียน VAT/);await shot('03-vat-prompt');
-  await confirmOk();await confirmOk();await settle();
-  const saved=JSON.parse(await fs.readFile(path.join(profile,'billing.json'),'utf8'));
+  await confirmOk();await confirmIfShown();await settle();   // 2.0.14 issues straight after the VAT confirmation; a second prompt is optional
+  const saved=JSON.parse(await page.evaluate(()=>window.billingAPI.load()));
   assert.equal(saved.business.vatStatus,'non_registered');assert.ok(saved.business.vatStatusConfirmedAt);
   assert.equal(saved.documents.filter(d=>d.type==='receipt'&&d.status==='issued').length,1);
 

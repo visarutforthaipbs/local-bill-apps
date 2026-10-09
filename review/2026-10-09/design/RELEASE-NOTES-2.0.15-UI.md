@@ -1,4 +1,6 @@
-# 2.0.14 — release notes draft for the HIG restyle (2026-10-09)
+# 2.0.15 — release notes draft for the HIG restyle (2026-10-09)
+
+Version bumped to 2.0.15 on 2026-10-09: 2.0.14 already exists in TestFlight (builds 3–5) and in the delivered Mac App Store package, so the restyled builds use a new version.
 
 Use for the next TestFlight build ("What to Test"), the App Store "What's New", and the
 website/LINE announcement. Thai first; English for the App Store secondary locale.
@@ -61,8 +63,8 @@ and one printed invoice compared with the previous version.
 
 ## Build numbers
 
-- iOS: next build is 2.0.14 (6) — pass `CURRENT_PROJECT_VERSION=6` on the archive command line,
-  as builds 3–5 were made (`handoff-M5-2026-10-07.md`).
-- macOS App Store: new build number on the same 2.0.14 version.
+- iOS: 2.0.15 (1) — `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` are set in the project; raise
+  `CURRENT_PROJECT_VERSION` on later uploads.
+- macOS App Store: 2.0.15 with its own build number.
 - Direct DMG and Windows: rebuild from `codex/hig-restyle` once it is merged into
   `codex/integrated-data-revamp`.

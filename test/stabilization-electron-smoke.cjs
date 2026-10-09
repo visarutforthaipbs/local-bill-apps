@@ -39,7 +39,7 @@ const project=path.resolve(__dirname,'..');
     await page.locator('#voidReason').fill('Synthetic duplicate cancellation');
     await page.locator('#modal').getByRole('button',{name:'ยกเลิกและเก็บเอกสาร',exact:true}).click();
     await page.waitForFunction(()=>!!DB.documents[0].voidedAt&&!issuanceBusy);
-    assert.equal(JSON.parse(await fs.readFile(store,'utf8')).documents[0].voidReason,'Synthetic duplicate cancellation');
+    assert.equal(JSON.parse(await page.evaluate(()=>window.billingAPI.load())).documents[0].voidReason,'Synthetic duplicate cancellation');
     await page.reload();await page.waitForFunction(()=>DB&&!loadFailed&&!!DB.documents[0].voidedAt);
     // Create a supported issued invoice only in the verified synthetic profile.
     await page.evaluate(async()=>{
@@ -51,7 +51,7 @@ const project=path.resolve(__dirname,'..');
     await page.locator('#paymentFull').check();
     await page.locator('#modal').getByRole('button',{name:'บันทึก',exact:true}).click();
     await page.waitForFunction(()=>DB.documents.find(d=>d.id==='issued').status==='paid'&&!issuanceBusy);
-    assert.equal(JSON.parse(await fs.readFile(store,'utf8')).documents.find(d=>d.id==='issued').paidDate,'2026-09-21');
+    assert.equal(JSON.parse(await page.evaluate(()=>window.billingAPI.load())).documents.find(d=>d.id==='issued').paidDate,'2026-09-21');
     await page.evaluate(()=>viewDoc('draft'));
     await page.locator('.draft-print-marker').waitFor();
     await page.screenshot({path:path.join(root,'draft-screen.png'),animations:'disabled'});
@@ -104,7 +104,9 @@ const project=path.resolve(__dirname,'..');
     await page.waitForEvent('close',{timeout:20000}).catch(async error=>{
       if(!page.isClosed())throw error;
     });
-    assert.equal(JSON.parse(await fs.readFile(store,'utf8')).meta.nativeCloseCanary,'saved-before-window-close');
+    // The window is closed: read the SQLite store (2.0.14 storage) directly.
+    const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(path.join(profile,'billing.sqlite'),{readOnly:true});
+    try{assert.equal(JSON.parse(db.prepare('SELECT payload FROM workspace WHERE id=1').get().payload).meta.nativeCloseCanary,'saved-before-window-close');}finally{db.close();}
     console.log('PASS: '+(packagedExecutable?'packaged executable':'source runtime')+', native void/payment dialogs, reload, draft PDF, tax-draft block, evidence IPC/bundle, legacy payment/new receipt counted once, TH/EN views and close drain.');
     console.log('SYNTHETIC_ARTIFACTS='+root);
   }finally{if(app)await app.close();}

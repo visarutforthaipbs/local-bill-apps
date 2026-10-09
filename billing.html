@@ -1656,6 +1656,14 @@ function openDirectUpgradeModal(){
     </div>`;
   openModal();
 }
+// Direct-purchase dialog copy. Lives in the region the Apple renderer omits; registered once I18N_EN exists.
+function registerDirectPurchaseCopy(){ Object.assign(I18N_EN,{
+  'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your Mac',
+  'จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน':'One-time payment — Early Bird ฿599 (full price ฿1,900), no subscription',
+  'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
+  'เปิดใช้งานรหัส':'Activate key',
+  'ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย':'Buy Pro: pay by PromptPay, send the slip on LINE and get your key back in the chat',
+  'ทักทาง LINE':'Message us on LINE'}); }
 async function activateLicense(){
   if(IS_MAS) return;
   const key = (document.getElementById('lic_key')||{value:''}).value.trim();
@@ -3228,6 +3236,7 @@ function markBackup(){ DB.meta = DB.meta || {}; DB.meta.lastBackupAt = new Date(
 function backupVerb(){ return IS_ELECTRON ? 'elExport()' : 'exportJSON()'; }
 // Shown when the data file exists but couldn't be read — saving is blocked
 // until the user recovers from a snapshot or imports a backup.
+if(typeof registerDirectPurchaseCopy==='function')registerDirectPurchaseCopy();   // absent in App Store bundles
 Object.assign(I18N_EN,{'ข้อมูลนี้มาจากแอปรุ่นใหม่กว่า — อัปเดตแอปก่อนเปิด':'This data requires a newer app. Update BillNgai before opening it.','แอปรุ่นเดิมแก้ไฟล์ JSON หลังย้ายข้อมูล — ตรวจทั้งสองสำเนาก่อนนำเข้า':'An older app changed the JSON after migration. Review both copies before importing.'});
 function loadFailBanner(){
   if(!loadFailed) return '';

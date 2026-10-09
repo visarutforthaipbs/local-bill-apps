@@ -25,7 +25,7 @@ const {_electron}=require('playwright');const fs=require('node:fs/promises'),pat
   assert.equal(await page.locator('.tax-stamp').count(),0);assert.match(await page.locator('.doc-title').innerText(),/ใบเสร็จรับเงิน/);
   const numbers=await page.evaluate(()=>receiptReissues().map(e=>e.receipt.number));assert.equal(new Set(numbers).size,2);
   const backups=await fs.readdir(path.join(profile,'backups'));assert.ok(backups.some(f=>f.includes('before-receipt-reissue')));
-  const raw=JSON.parse(await fs.readFile(path.join(profile,'billing.json'),'utf8'));assert.equal(raw.reviewEvents.filter(e=>e.type==='receipt_reissue').length,2);
+  const raw=JSON.parse(await page.evaluate(()=>window.billingAPI.load()));assert.equal(raw.reviewEvents.filter(e=>e.type==='receipt_reissue').length,2);
   const ids=await page.evaluate(()=>receiptReissues().map(e=>e.receipt.id));
   for(const [i,id] of ids.entries()){
    await page.evaluate(id=>viewDoc(id),id);assert.equal(await page.evaluate(()=>documentOutputBlocked(getViewingDocument())),false);

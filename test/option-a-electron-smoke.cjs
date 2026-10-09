@@ -48,10 +48,10 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     await page.evaluate(()=>{PRO={valid:false};aiAddonStatus={valid:false,installed:false};setView('settings');settingsTab='business';render();});
     await page.locator('#s_name').fill('Saved through tab switch');
     await page.locator('.tabs button').nth(1).click();await page.locator('#s_vatStatus').waitFor();
-    assert.equal(JSON.parse(await fs.readFile(path.join(profile,'billing.json'),'utf8')).business.businessName,'Saved through tab switch');
+    assert.equal(JSON.parse(await page.evaluate(()=>window.billingAPI.load())).business.businessName,'Saved through tab switch');
     for(const lang of ['th','en']){
       await page.evaluate(lang=>{DB.business.uiLang=lang;settingsTab='docs';render();},lang);
-      assert.equal(await page.locator('.tabs button').count(),3);
+      assert.equal(await page.locator('.tabs button').count(),4);   // business, documents & tax, data & backup, sounds
       await page.locator('button[onclick="openSafetyLimits()"]').click();
       assert.doesNotMatch(await page.locator('#modal').innerText(),/2\.0\.4/);
       await page.evaluate(()=>closeModal());
