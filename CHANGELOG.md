@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 
 ## [2.0.14] - Unreleased candidate
 
+### Changed
+- App interface restyled to Apple's Human Interface Guidelines (macOS and iOS/iPadOS) while keeping the orange accent: system font for Latin and figures with LINE Seed Sans TH for Thai, light and dark appearance following the OS, capsule controls, grouped 12 px containers, hidden title bar with a translucent sidebar on macOS, iOS text sizes and switch rows on iPhone/iPad. Printed documents and PDFs are unchanged.
+- The receipt-correction dialog's three confirmation checkboxes render inline with their labels (they were styled as text fields).
+
 ### Added
 - Atomic SQLite storage on desktop and iOS, with verified backups, guarded recovery and older-writer protection.
 - Explicit backed-up approval for historical payment interpretation; stable confirmation matching and visible conflicting review decisions.

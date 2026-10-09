@@ -52,7 +52,7 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
   assert.equal(qt.issuedSnapshot.amounts.subtotal,Math.round(3*unit*100)/100,'printed qty × unit equals the line total');
 
   // 4. Invoice without payment details: issuing warns but does not block.
-  await page.getByRole('button',{name:'แปลงเป็นใบแจ้งหนี้'}).click();await page.locator('#d_whtReviewed').check({force:true});
+  await page.getByRole('button',{name:'แปลงเป็นใบแจ้งหนี้'}).click();await page.locator('label.toggle:has(#d_whtReviewed) .track').click();await page.waitForFunction(()=>document.getElementById('d_whtReviewed').checked);   // click the visible switch like a person; the 1px hidden input defeats Playwright's viewport check
   await page.locator('#modal').getByRole('button',{name:'ออกเอกสาร'}).click();
   await page.locator('#confirmOverlay.open').waitFor();assert.match(await page.locator('#confirmDetail').innerText(),/ยังไม่มีช่องทางรับเงิน/);
   await confirmOk();await settle();

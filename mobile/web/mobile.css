@@ -124,6 +124,57 @@ input,select,textarea{font-size:16px!important}
  .paper,.paper *{font-variant-numeric:normal!important;font-feature-settings:normal!important}
 }
 
+/* iOS layer — Apple HIG restyle 2026-10-09 (review/2026-10-09/design/HIG-RESTYLE-PLAN.md).
+   iOS text styles, 44pt controls, 51×31 switches, translucent tab bar, bottom sheets. Colours stay desktop tokens. */
+@media screen{
+ :root{--fs-large-title:34px;--fs-title1:28px;--fs-title2:22px;--fs-title3:20px;--fs-headline:17px;--fs-body:17px;--fs-callout:16px;--fs-subhead:15px;--fs-caption:13px;
+  --control-h:44px;--control-h-sm:36px;--control-pad:18px;--switch-w:51px;--switch-h:31px;--radius:12px;--radius-sm:10px;--radius-lg:20px;--lh:1.4}
+ body{font-size:var(--fs-body)}
+ .topbar h2{font-size:var(--fs-title1);font-weight:700;letter-spacing:.3px}
+ .btn{font-size:var(--fs-headline);font-weight:600}
+ .btn-sm{font-size:var(--fs-subhead)}
+ .tabs button,.pill-select button,.filter-chips button{min-height:36px;font-size:var(--fs-subhead)}
+ .search input{min-height:36px;font-size:var(--fs-headline)}
+ .badge-status{font-size:var(--fs-caption);min-height:26px}
+ .field label{font-size:var(--fs-subhead)}
+ .field input:not([type="checkbox"]):not([type="radio"]),.field select,.field textarea{font-size:var(--fs-headline)!important;padding:10px 14px}
+ /* HIG iOS: no checkboxes; an attestation row uses a trailing switch. */
+ p>label:has(>input[type="checkbox"]){align-items:center;justify-content:space-between;gap:16px;min-height:44px;padding:8px 0}
+ p>label:has(>input[type="checkbox"])>input{order:2;appearance:none;-webkit-appearance:none;width:51px;height:31px;margin:0;border-radius:999px;background:var(--fill);position:relative;flex:0 0 51px;transition:background .2s ease-out}
+ p>label:has(>input[type="checkbox"])>input::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s ease-out}
+ p>label:has(>input[type="checkbox"])>input:checked{background:var(--accent)}
+ p>label:has(>input[type="checkbox"])>input:checked::after{transform:translateX(20px)}
+ .modal{border-radius:var(--radius-lg)}
+ .modal-head h3{font-size:var(--fs-title3)}
+ .confirm-box{max-width:300px;padding:20px;text-align:center;border-radius:14px}
+ .confirm-msg{font-size:var(--fs-headline)}
+ .confirm-detail{font-size:var(--fs-caption)}
+ .confirm-actions{justify-content:stretch}
+ .confirm-actions .btn{flex:1 1 0}
+ .section-title{font-size:var(--fs-title3)}
+ .document-client{font-size:var(--fs-headline)}
+ .nav button,.mobile-nav button{font-size:var(--fs-subhead)}
+}
+@media screen and (max-width:767px), screen and (max-height:499px){
+ .mobile-nav{background:color-mix(in srgb,var(--surface) 78%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--border-soft);padding-top:6px;gap:4px}
+ .mobile-nav button{gap:4px;min-height:49px;border-radius:0;background:transparent;color:var(--text-faint)}
+ .mobile-nav button[aria-current="page"]{background:transparent;color:var(--accent-ink);font-weight:600}
+ .mobile-nav button .ic{width:26px;height:26px}
+ .topbar{background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid transparent}
+ .banner{flex-direction:column;align-items:flex-start;gap:12px}
+ .banner .btn{align-self:flex-end}
+ .overlay{align-items:flex-end;padding:0}
+ .modal{border-radius:var(--radius-lg) var(--radius-lg) 0 0;max-height:calc(100% - env(safe-area-inset-top) - 8px)}
+ .modal-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+}
+@media screen and (min-width:768px) and (min-height:500px){
+ .mobile-nav{background:var(--surface-2);border-right:1px solid var(--border-soft);padding:16px 12px;gap:4px}
+ .mobile-nav button{min-height:44px;padding:10px 12px;border-radius:var(--radius-sm);font-size:var(--fs-subhead);gap:12px;color:var(--text)}
+ .mobile-nav button[aria-current="page"]{background:var(--accent);color:var(--on-accent)}
+ .mobile-nav button .ic{color:var(--accent-ink)}
+ .mobile-nav button[aria-current="page"] .ic{color:inherit}
+}
+
 /* Native accessibility preferences affect the reading UI only; paper printing is unchanged. */
 @media screen{
  [data-mobile-inline-font]:not(.paper):not(.paper *){font-size:calc(var(--mobile-inline-font-size) * var(--mobile-text-scale,1))!important}

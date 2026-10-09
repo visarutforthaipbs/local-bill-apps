@@ -4,7 +4,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-payment-match-')),profile=path.join(root,'profile');await fs.mkdir(profile,{mode:0o700});
   const invoice={id:'inv',type:'invoice',number:'INV-TEST',status:'paid',clientId:'buyer',currency:'THB',issueDate:'2026-01-10',paidDate:'2026-01-10',vatRate:0,whtRate:3,items:[{description:'Synthetic service',qty:1,price:1000}]};
   const receipt={...invoice,id:'tx',type:'tax_invoice',number:'TX-TEST',status:'issued',parentId:'inv'};
-  const data={version:2,business:{uiLang:'th'},clients:[{id:'buyer',name:'Synthetic buyer'}],documents:[invoice,receipt],recurring:[],reviewEvents:[],counters:{},meta:{setupDone:true}};
+  const data={version:2,business:{uiLang:'th'},clients:[{id:'buyer',name:'Synthetic buyer'}],documents:[invoice,receipt],recurring:[],reviewEvents:[],counters:{},meta:{reviewSemanticsVersion:3,setupDone:true}};
   await fs.writeFile(path.join(profile,'config.json'),JSON.stringify({externalPath:null}));await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify(data));let app;
   try{
     const exe=process.argv[2];app=await electron.launch({executablePath:exe||require('electron'),args:[...(exe?[]:[path.resolve(__dirname,'..')]),'--user-data-dir='+profile],timeout:30000});

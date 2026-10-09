@@ -34,7 +34,7 @@ const pdfTextRaw=file=>execFileSync('/usr/bin/osascript',['-l','JavaScript','-e'
   await app.evaluate(({dialog,shell},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});shell.showItemInFolder=()=>{};},file);
   await page.evaluate(()=>savePDF());
   await fs.access(file);
-  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBackgroundColor()),'#FFF9F3','app background restored after export');
+  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBackgroundColor()),process.platform==='darwin'?'#000000':'#F5F3EF','app background restored after export');
   const text=pdfText(file);
   assert.match(text,/ใบเสนอราคา/);assert.match(text,/Report layout/);
   for(const screenOnly of ['นำไปออก','สร้างจาก','การแบ่งงวด','ชำระแล้ว','ออกบิลแล้ว','ส่งแล้ว','พิมพ์','ตัวเลือกเพิ่มเติม'])

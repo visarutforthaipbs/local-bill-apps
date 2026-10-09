@@ -14,8 +14,8 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
   const originalNet=await page.evaluate(()=>taxYearAgg(new Date().getFullYear()).agg.net);
   const report=[];
   for(const scheme of ['light','dark'])for(const lang of ['th','en']){
-   await page.emulateMedia({colorScheme:scheme,reducedMotion:'reduce'});await page.setViewportSize({width:1440,height:1000});
-   assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 249, 243)','Original cream canvas under '+scheme+' OS preference');
+   await app.evaluate(({nativeTheme},scheme)=>{nativeTheme.themeSource=scheme;},scheme);await page.emulateMedia({colorScheme:scheme,reducedMotion:'reduce'});await page.setViewportSize({width:1440,height:1000});await page.waitForFunction(scheme=>document.documentElement.classList.contains('scheme-dark')===(scheme==='dark'),scheme);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+   assert.equal(await page.locator('.main').evaluate(el=>getComputedStyle(el).backgroundColor),scheme==='dark'?'rgb(28, 28, 30)':'rgb(245, 243, 239)','HIG canvas follows the '+scheme+' OS preference');
    for(const view of ['dashboard','documents','wht','clients','report','filing','settings','recurring','legacy','corrections']){
     await page.evaluate(({lang,view})=>{DB.business.uiLang=lang;settingsTab='business';setView(view);hideToast();}, {lang,view});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,scheme+' '+lang+' '+view+' overflow');

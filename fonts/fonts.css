@@ -1,28 +1,7 @@
-/* BillNgai brand fonts (BRAND.md) — bundled locally, no network needed.
-   Inter = Latin/ตัวเลข · LINE Seed Sans TH = ไทย
+/* BillNgai fonts — HIG restyle 2026-10-09 (review/2026-10-09/design/HIG-RESTYLE-PLAN.md)
+   Latin + ตัวเลข = system font (SF Pro บน Mac/iOS, Segoe UI บน Windows) ไม่ฝังตามข้อกำหนดของ Apple
+   ไทย = LINE Seed Sans TH (bundled, offline) — SF ไม่มีอักษรไทย จึง fallback มาที่นี่ทีละตัวอักษร
    น้ำหนักที่อนุญาต: 400 / 600 / 700 เท่านั้น (ห้าม thin) */
-
-@font-face{
-  font-family:'Inter';
-  font-style:normal;
-  font-weight:400;
-  font-display:swap;
-  src:url('Inter-Regular.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Inter';
-  font-style:normal;
-  font-weight:600;
-  font-display:swap;
-  src:url('Inter-SemiBold.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Inter';
-  font-style:normal;
-  font-weight:700;
-  font-display:swap;
-  src:url('Inter-Bold.woff2') format('woff2');
-}
 
 /* LINE Seed Sans TH มีเฉพาะ Regular/Bold — น้ำหนัก 600–700 ใช้ Bold ร่วมกัน */
 @font-face{

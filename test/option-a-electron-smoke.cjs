@@ -6,7 +6,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-option-a-'));
   const profile=path.join(root,'profile');await fs.mkdir(profile,{mode:0o700});
   const legacy={id:'legacy-tax',type:'tax_invoice',number:'TX-SYNTHETIC',status:'issued',clientId:'buyer',currency:'THB',issueDate:'2026-01-10',updatedAt:'2026-01-10T00:00:00Z',vatRate:0,whtRate:0,items:[{description:'Synthetic service',qty:1,price:1000}]};
-  const fixture={version:2,business:{businessName:'Synthetic studio',address:'Synthetic address',taxId:'0000000000000',uiLang:'th',vatStatus:'non_registered'},clients:[{id:'buyer',name:'Synthetic buyer'}],documents:[legacy],recurring:[],reviewEvents:[],counters:{},meta:{setupDone:true}};
+  const fixture={version:2,business:{businessName:'Synthetic studio',address:'Synthetic address',taxId:'0000000000000',uiLang:'th',vatStatus:'non_registered'},clients:[{id:'buyer',name:'Synthetic buyer'}],documents:[legacy],recurring:[],reviewEvents:[],counters:{},meta:{reviewSemanticsVersion:3,setupDone:true}};
   await fs.writeFile(path.join(profile,'config.json'),JSON.stringify({externalPath:null}));
   await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify(fixture));
   let app;

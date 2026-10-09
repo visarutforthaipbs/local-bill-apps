@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, inAppPurchase } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, inAppPurchase, nativeTheme } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -1633,13 +1633,20 @@ handleIPC('data:export', async (_e, text) => {
   return r.filePath;
 });
 
-// Chromium paints the @page margins with the window background, so printing on the cream
-// app color would give PDFs and paper a cream border. Print on white, then restore.
-const WINDOW_BACKGROUND = '#FFF9F3';
+// Chromium paints the @page margins with the window background, so printing on the
+// app canvas would give PDFs and paper a tinted border. Print on white, then restore.
+// The canvas follows the OS appearance (HIG restyle 2026-10-09); on macOS the window is
+// transparent so the sidebar vibrancy shows through — keep these in sync with :root in billing.html.
+const WINDOW_BACKGROUND_LIGHT = '#F5F3EF', WINDOW_BACKGROUND_DARK = '#1C1C1E';
+const MAC_WINDOW = process.platform === 'darwin';
+function windowBackground() {
+  if (MAC_WINDOW) return '#00000000';
+  return nativeTheme && nativeTheme.shouldUseDarkColors ? WINDOW_BACKGROUND_DARK : WINDOW_BACKGROUND_LIGHT;   // test harnesses stub electron without nativeTheme
+}
 async function onWhitePage(target, action) {
   target.setBackgroundColor('#FFFFFF');
   try { return await action(); }
-  finally { if (!target.isDestroyed()) target.setBackgroundColor(WINDOW_BACKGROUND); }
+  finally { if (!target.isDestroyed()) target.setBackgroundColor(windowBackground()); }
 }
 function printOnWhitePage(target) {
   return onWhitePage(target, () => new Promise(resolve => target.webContents.print({}, success => resolve(!!success))));
@@ -1674,8 +1681,11 @@ handleIPC('data:import', async () => {
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 860, minWidth: 940, minHeight: 600,
-    backgroundColor: WINDOW_BACKGROUND,
+    backgroundColor: windowBackground(),
     title: 'BillNgai',
+    // macOS: toolbar integrated with the title bar, translucent sidebar (HIG materials:
+    // glass only on the navigation layer; content stays opaque in the renderer CSS).
+    ...(MAC_WINDOW ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 16, y: 18 }, vibrancy: 'sidebar', visualEffectState: 'followWindow' } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -1693,6 +1703,7 @@ function createWindow() {
   win.webContents.on('will-attach-webview', event => event.preventDefault());
   win.on('close', event => requestSafeClose(event, 'window'));
 }
+if (nativeTheme) nativeTheme.on('updated', () => { if (win && !win.isDestroyed()) win.setBackgroundColor(windowBackground()); });
 
 // บน macOS แอปยังรันอยู่หลังผู้ใช้ปิดหน้าต่าง — ต้องมีทางกลับเข้าหน้าต่างหลักเสมอ
 // (เมนู Window + คลิกไอคอนใน Dock). มีหน้าต่างอยู่แล้ว = โฟกัสตัวเดิม ไม่เปิดซ้ำ

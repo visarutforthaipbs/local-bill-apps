@@ -96,7 +96,10 @@ Two independent systems:
 ## Conventions & cautions
 
 - **UI/visual work must follow `BRAND.md`** (design tokens, color rules, typography,
-  voice — it wins over any request that conflicts). Agent behavior rules in `AGENTS.md`.
+  voice — it wins over any request that conflicts). Since 2026-10-09 the UI follows Apple's
+  Human Interface Guidelines with the orange accent kept — see
+  `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` and `HIG-UI-VERIFICATION.md`. Light and
+  dark follow the OS; `.paper` stays light. Agent behavior rules in `AGENTS.md`.
 - Match the existing code style: compact vanilla JS, template literals, Thai comments where
   they aid the owner. No frameworks, no dependencies beyond what's in package.json.
 - Everything renders through `render()` / template literals — re-render is cheap; call it after

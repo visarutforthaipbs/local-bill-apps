@@ -13,7 +13,7 @@ const project=path.resolve(__dirname,'..');
     {id:'old',type:'invoice',number:'OLD-204',status:'sent',clientId:'buyer',currency:'THB',issueDate:'2025-01-10',dueDate:'2025-02-10',vatRate:0,whtRate:0,items:[{description:'บริการเดิมที่เก็บไว้',qty:1,price:1000}],notes:'Retained original facts'},
     {id:'draft',type:'invoice',number:'DRAFT-204',status:'draft',clientId:'buyer',currency:'THB',issueDate:'2026-09-20',vatRate:0,whtRate:0,items:[{description:'บริการทดสอบร่าง',qty:1,price:1000}]},
     {id:'tax-draft',type:'tax_invoice',number:'TAX-OLD',status:'draft',clientId:'buyer',currency:'THB',issueDate:'2026-09-20',vatRate:7,whtRate:0,items:[{description:'Retained tax draft',qty:1,price:1000}]}
-  ],recurring:[],counters:{},meta:{setupDone:true},reviewEvents:[]};
+  ],recurring:[],counters:{},meta:{reviewSemanticsVersion:3,setupDone:true},reviewEvents:[]};
   await fs.writeFile(store,JSON.stringify(fixture));
   let app;
   try{

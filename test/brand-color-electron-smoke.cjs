@@ -2,7 +2,7 @@
 const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 (async()=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'billngai-brand-color-')),profile=path.join(root,'profile');await fs.mkdir(profile);await fs.writeFile(path.join(profile,'config.json'),'{"externalPath":null}');
- await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify({version:2,business:{businessName:'Synthetic seller',address:'Example address',taxId:'1234567890123',vatStatus:'non_registered',brandColor:'#1f5d43'},clients:[],documents:[],reviewEvents:[],meta:{setupDone:true},counters:{},recurring:[]}));
+ await fs.writeFile(path.join(profile,'billing.json'),JSON.stringify({version:2,business:{businessName:'Synthetic seller',address:'Example address',taxId:'1234567890123',vatStatus:'non_registered',brandColor:'#1f5d43'},clients:[],documents:[],reviewEvents:[],meta:{reviewSemanticsVersion:3,setupDone:true},counters:{},recurring:[]}));
  const exe=process.argv[2],app=await _electron.launch({executablePath:exe||require('electron'),args:[...(exe?[]:[path.resolve(__dirname,'..')]),'--user-data-dir='+profile]});
  try{
   assert.equal(await app.evaluate(({app})=>app.getPath('userData')),await fs.realpath(profile));const page=await app.firstWindow(),errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -26,7 +26,7 @@ const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=requ
   await page.locator('#s_brand').evaluate(el=>{el.focus();el.value='#2456c8';el.dispatchEvent(new Event('input',{bubbles:true}));});assert.equal(await page.locator('#s_brandHex').inputValue(),'#2456c8');assert.equal(await page.evaluate(()=>saveSettings(true)),true);
   assert.equal(await page.evaluate(()=>JSON.stringify(DB.documents)),frozen);assert.equal(await page.evaluate(()=>renderPaper(DB.documents[0])),paper);
   assert.equal(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--document-accent')),'#2456c8');
-  assert.equal(await page.locator('body').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 249, 243)');assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().toLowerCase()),'#ff6b00');
+  assert.equal(await page.locator('.main').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(245, 243, 239)');assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().toLowerCase()),'#ff6b00');
   const draft=await page.evaluate(()=>{const d={id:'new',type:'quotation',number:'NEW',status:'draft',issueDate:todayISO(),clientId:'sample',currency:'THB',vatRate:0,whtRate:0,items:[{description:'New work',qty:1,price:100}]};return renderPaper(d,clientById(d.clientId),compute(d));});assert.match(draft,/--accent:#2456c8/);
   for(const lang of ['th','en']){await page.evaluate(lang=>{DB.business.uiLang=lang;render();},lang);await page.locator('#s_brand').scrollIntoViewIfNeeded();await page.locator('.card-block').filter({has:page.locator('#s_brand')}).screenshot({path:path.join(root,'brand-'+lang+'.png')});}
   await page.setViewportSize({width:600,height:1000});await settings();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.locator('#s_brand').scrollIntoViewIfNeeded();await page.locator('.card-block').filter({has:page.locator('#s_brand')}).screenshot({path:path.join(root,'brand-narrow.png')});
