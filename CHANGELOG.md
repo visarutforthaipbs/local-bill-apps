@@ -12,13 +12,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - The receipt-correction dialog's three confirmation checkboxes render inline with their labels (they were styled as text fields).
 - Distribution: App Store only (Mac, iPhone, iPad); final direct DMG carries the guided export.
 
-### Removed
-- Local AI add-on ("TOR → Invoice"): sidebar item, AI view, AI settings and add-on install/verify. Installed add-on folders are left on disk.
-- Sound effects: the Sounds settings tab and task cues. Reduce Motion is still honoured.
-- Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
-- e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
-- Windows beta: discontinued; no further Windows builds.
-
 ### Added
 - Atomic SQLite storage on desktop and iOS, with verified backups, guarded recovery and older-writer protection.
 - Explicit backed-up approval for historical payment interpretation; stable confirmation matching and visible conflicting review decisions.
@@ -27,7 +20,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Google Drive workspace access across desktop and mobile with native Google authorization and server-verified Pro access.
 
 ### Removed
+- Local AI add-on ("TOR → Invoice"): sidebar item, AI view, AI settings and add-on install/verify. Installed add-on folders are left on disk.
 - Sound effects and Thai voice guides: the Settings → Sounds tab, task and button cues, the bundled audio files and the device-local sound preference. Feedback stays visual (toasts, status badges) and Reduce Motion is still honoured; a sound preference left on a device by an older version is ignored.
+- Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
+- e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
+- Windows beta: discontinued; no further Windows builds.
 
 ### Fixed
 - Preserve both concurrent payment-review answers until an explicit successor resolves them; keep unresolved amounts separate from received income.
