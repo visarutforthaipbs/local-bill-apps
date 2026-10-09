@@ -16,7 +16,6 @@ Authorized zero-VAT historical corrections can now issue ordinary receipts using
 reviewed correction workflow; see `RECEIPT-REISSUE-VERIFICATION.md`. Corrections
 are immutable `receipt_reissue` review events, not additional ledger documents.
 Keep them in the shared receipt-number namespace and preserve original payment facts.
-Optional local AI is reachable only when its license and installed add-on are usable.
 Built for Thai freelancers/small businesses; has real users giving feedback.
 Renamed from **Billiong** in 1.2.0 — `main.js` still contains a one-time
 `migrateFromBilliong()` that copies data from the old `Billiong` app-support folder;

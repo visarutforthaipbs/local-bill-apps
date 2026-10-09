@@ -196,18 +196,6 @@
   .cmdk-hint .ico{color:var(--text-faint);display:inline-flex}
   .cmdk-hint:hover{border-color:var(--border);color:var(--text-dim)}
   .cmdk-hint kbd{margin-left:auto;font-size:var(--fs-caption);font-family:inherit;color:var(--text-faint)}
-  .addon-nav{padding:8px 12px 8px;border-top:1px solid var(--border-soft)}
-  .addon-label{font-size:var(--fs-caption);font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px;margin:0 10px 6px}
-  .addon-nav button{
-    display:flex;align-items:center;gap:10px;width:100%;min-height:32px;padding:6px 10px;border-radius:var(--radius-sm);
-    color:var(--text);font-size:var(--fs-body);font-weight:600;text-align:left;
-    background:var(--accent-tint);transition:background .16s ease;
-  }
-  .addon-nav button:hover{background:var(--accent-soft)}
-  .addon-nav button.active{background:var(--accent-fill);color:var(--on-accent)}
-  .addon-nav .ico{width:20px;text-align:center;color:var(--accent-ink);display:inline-flex;justify-content:center}
-  .addon-nav button.active .ico{color:inherit}
-  .addon-nav .tag{margin-left:auto;font-size:var(--fs-caption);font-weight:700;border:1px solid currentColor;border-radius:var(--radius-pill);padding:0 6px;opacity:.8}
   .file-status{padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border-soft);font-size:var(--fs-caption);color:var(--text-faint);display:flex;align-items:center;gap:8px;min-width:0}
   .file-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sys-grey);flex:0 0 auto}
   .file-status.connected .dot{background:var(--sys-green)}
@@ -371,30 +359,6 @@
   .filing-detail{margin-top:10px}
   .filing-detail table{border:none;border-radius:0;box-shadow:none;background:transparent}
   .filing-detail tbody td{padding:8px 4px}
-  /* AI working state — flat skeleton, no spinner */
-  .ai-working{padding:4px 0}
-  .ai-working-head{display:flex;align-items:center;gap:8px;font-size:var(--fs-body);font-weight:600;color:var(--text-dim);margin-bottom:14px}
-  .ai-working-head .ic{color:var(--accent-ink)}
-  .ai-working-head b{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--accent-ink)}
-  .ai-skel i{display:block;height:12px;border-radius:6px;margin-bottom:10px;background:var(--fill-3);animation:aiPulse 1.1s ease-in-out infinite alternate}
-  .ai-skel i:nth-child(2){animation-delay:.15s}
-  .ai-skel i:nth-child(3){animation-delay:.3s}
-  .ai-skel i:nth-child(4){animation-delay:.45s}
-  .ai-skel i:nth-child(5){animation-delay:.6s}
-  .ai-skel i:nth-child(6){animation-delay:.75s}
-  @keyframes aiPulse{from{opacity:.4}to{opacity:1}}
-  .ai-steps{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-  .ai-steps .step{display:flex;align-items:center;gap:8px;font-size:var(--fs-callout);font-weight:600;color:var(--text-faint)}
-  .ai-steps .step .n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-size:var(--fs-caption);font-weight:700;background:var(--fill-3);color:var(--text-faint);flex-shrink:0}
-  .ai-steps .step.active{color:var(--text)}
-  .ai-steps .step.active .n{background:var(--accent-fill);color:var(--on-accent)}
-  .ai-steps .step.done{color:var(--accent-ink)}
-  .ai-steps .step.done .n{background:var(--accent-tint);color:var(--accent-ink)}
-  .ai-steps .sep{width:26px;height:1px;background:var(--border)}
-  .ai-tor-summary{display:flex;align-items:center;gap:9px;font-size:var(--fs-callout);color:var(--text-dim);
-    background:var(--surface-2);border-radius:var(--radius-sm);padding:9px 13px;margin-bottom:14px}
-  .ai-tor-summary b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .filing-detail .line{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--border-soft);font-size:var(--fs-callout)}
   .filing-detail .line:last-child{border-bottom:none}
   .filing-detail .line>span{color:var(--text-dim);flex-shrink:0}
@@ -839,11 +803,11 @@
     .sidebar{width:72px}
     .brand{padding:12px 0 8px;justify-content:center}
     .brand > div:not(.mark){display:none}
-    .nav,.addon-nav{padding:8px 10px}
-    .nav button,.addon-nav button{justify-content:center;padding:6px 0}
-    .nav button span[data-t],.addon-nav button span[data-t],.cmdk-hint span[data-t]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    .nav{padding:8px 10px}
+    .nav button{justify-content:center;padding:6px 0}
+    .nav button span[data-t],.cmdk-hint span[data-t]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
     .nav .badge{position:absolute;top:2px;right:6px;margin:0;padding:0 5px;min-width:16px;font-size:var(--fs-caption)}
-    .addon-label,.addon-nav .tag,.cmdk-hint kbd{display:none}
+    .cmdk-hint kbd{display:none}
     .cmdk-hint{justify-content:center;width:calc(100% - 20px);margin:4px 10px 8px;padding:0}
     .file-status{padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));justify-content:center;font-size:0}
     .file-status .dot{margin:0}
@@ -895,10 +859,6 @@
       <button data-view="settings"><span class="ico" data-ic="settings"></span> <span data-t="ตั้งค่า">ตั้งค่า</span></button>
     </nav>
     <button class="cmdk-hint" type="button" onclick="openCmdk()"><span class="ico" data-ic="search"></span><span data-t="ค้นหา">ค้นหา</span><kbd id="cmdkKey">⌘K</kbd></button>
-    <div class="addon-nav" id="addonNav" style="display:none">
-      <div class="addon-label">Add-on</div>
-      <button data-view="ai"><span class="ico" data-ic="sparkles"></span> <span data-t="TOR → Invoice">TOR → Invoice</span><span class="tag">AI</span></button>
-    </div>
     <div class="file-status" id="fileStatus">
       <span class="dot"></span><span id="fileStatusText">ยังไม่ได้เชื่อมไฟล์</span>
     </div>
@@ -967,7 +927,7 @@ const supportsFSA = 'showOpenFilePicker' in window && 'showSaveFilePicker' in wi
    native bridge (window.billingAPI) instead of the browser File System APIs. */
 const IS_ELECTRON = !!(window.billingAPI && window.billingAPI.isElectron);
 /* Mac App Store build: Pro ผ่าน In-App Purchase เท่านั้น (ห้ามลิงก์ซื้อภายนอก/ช่องวางรหัส — กติกา 3.1.1)
-   ไม่มี AI (sandbox ห้าม spawn) และไม่มีไฟล์ข้อมูลภายนอก (รอ security-scoped bookmarks) */
+   ไม่มีไฟล์ข้อมูลภายนอก (รอ security-scoped bookmarks) */
 const IS_MAS = !!(window.billingAPI && window.billingAPI.isMas);
 let dataLoc = { mode:'app', path:'' };            // Electron: 'app' folder vs 'external' file
 const baseName = p => String(p||'').split(/[\\/]/).pop();
@@ -1479,8 +1439,7 @@ function resolveConflict(i, useRemote){
 
 /* ---------- Channel-specific Pro purchase paths ---------- */
 function openUpgradeModal(){ return IS_MAS ? openMasUpgradeModal() : openDirectUpgradeModal(); }
-/* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
-   รายการขายไม่มี AI (sandbox ห้าม spawn llama-cli) — อย่าเพิ่มกลับโดยไม่แก้ข้อจำกัดนั้นก่อน */
+/* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส) */
 let iapBusy=false;
 let iapProduct=null;
 let iapCurrentState='idle';
@@ -1666,7 +1625,6 @@ async function activateLicense(){
     PRO = await window.billingAPI.licenseActivate(key);
     closeModal();
     await refreshSyncInfo();
-    await refreshAiAddonStatus();
     render();
     toast(tr('เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!'),'ok');
   }catch(e){ toast(tr('รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง'),'err'); }
@@ -2109,7 +2067,7 @@ function applyUiLang(){
   document.documentElement.lang = uiLang();
   document.querySelectorAll('[data-t]').forEach(el=> el.textContent = tr(el.dataset.t));
   // Icon-only sidebar (narrow windows) keeps an accessible name and a hover label.
-  document.querySelectorAll('#nav button, #addonNav button, .cmdk-hint').forEach(b=>{
+  document.querySelectorAll('#nav button, .cmdk-hint').forEach(b=>{
     const label=b.querySelector('[data-t]'); if(!label) return;
     b.title=label.textContent; b.setAttribute('aria-label',label.textContent);
   });
@@ -2158,80 +2116,11 @@ const I18N_EN = {
   'ระบบออกเอกสาร':'Invoicing',
   'แดชบอร์ด':'Dashboard',
   'เอกสาร':'Documents',
-  'TOR → Invoice':'TOR → Invoice',
-  'TOR':'TOR',
-  'AI พร้อมใช้งาน':'AI ready',
-  'นำเข้า TOR':'Import TOR',
-  'AI ร่างเอกสาร':'AI drafts',
-  'ตรวจทานและสร้าง':'Review & create',
-  'แก้ไข TOR':'Edit TOR',
-  'ข้อความที่วางเอง':'Pasted text',
-  'ตัวอักษร':'characters',
-  'AI กำลังอ่าน TOR และร่างเอกสารบนเครื่องของคุณ':'AI is reading the TOR and drafting on your machine',
-  'วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต':'Paste the TOR or job details and let AI draft a quotation — everything runs on your machine, nothing leaves it',
-  'โดยปกติใช้เวลาราว 1 นาที ขึ้นกับความยาว TOR และความเร็วเครื่อง':'Usually takes about a minute, depending on TOR length and machine speed',
-  'กำลังแปลง...':'Converting...',
-  'แปลง TOR':'Convert TOR',
-  'แปลง TOR แล้ว — ตรวจทานร่างก่อนสร้างเอกสาร':'TOR converted — review the draft before creating a document',
-  'ร่างจาก AI':'AI draft',
-  'ดูข้อความดิบ':'View raw output',
-  'กลับไปดูร่าง':'Back to draft',
-  'ชื่องาน':'Project',
-  'ลูกค้า/ผู้ว่าจ้าง':'Client / hiring party',
-  'ต้องถามเพิ่ม':'Needs confirmation',
-  'กำหนดส่งมอบ':'Delivery',
-  'เงื่อนไขชำระเงิน':'Payment terms',
-  'รวมก่อน VAT':'Total before VAT',
-  'ไม่ระบุราคา':'No price given',
-  'งวดตาม TOR':'Installments per TOR',
-  'สร้างเอกสารแล้วใช้ปุ่ม "แบ่งงวด" ต่อได้เลย':'After creating the document, use the "Split into installments" button',
-  'ควรถามลูกค้าเพิ่ม':'Ask the client about',
-  'สร้างใบเสนอราคา (ร่าง)':'Create draft quotation',
-  'สร้างอัตโนมัติจากร่าง AI — กรอกเลขภาษี/ที่อยู่ก่อนออกใบกำกับภาษี':'Auto-created from AI draft — add tax ID/address before issuing a tax invoice',
-  'เพิ่มลูกค้าใหม่จากร่าง AI แล้ว — อย่าลืมกรอกเลขภาษี':'New client added from the AI draft — remember to fill in the tax ID',
-  'ไฟล์ TOR และข้อมูลบิลถูกประมวลผลบนเครื่อง ผลลัพธ์เป็นร่างให้ตรวจทานก่อนนำไปออกเอกสาร':'TOR files and billing data are processed on this machine; the result is a draft for review before any document is created',
   'รายการประจำ':'Recurring',
   'หัก ณ ที่จ่าย (50 ทวิ)':'Withholding tax (50 tawi)',
   'ลูกค้า':'Clients',
   'สรุปภาษี':'Tax summary',
   'ตั้งค่า':'Settings',
-  'BillNgai AI Add-on':'BillNgai AI Add-on',
-  'BillNgai AI พร้อมใช้งาน':'BillNgai AI is ready',
-  'ตรวจอีกครั้ง':'Check again',
-  'กำลังตรวจโมดูล AI ในเครื่อง':'Checking the local AI module',
-  'โมดูล AI แบบออฟไลน์ใช้ได้ในแอปเดสก์ท็อปเท่านั้น':'The offline AI module is available only in the desktop app',
-  'ตรวจพบโมดูล AI แบบออฟไลน์ที่ผ่านการตรวจลายเซ็นและแฮชไฟล์แล้ว':'Found an offline AI module with valid signature and file hashes',
-  'เวอร์ชันโมดูล':'Module version',
-  'โมเดล':'Model',
-  'ไฟล์ที่ตรวจแล้ว':'Verified files',
-  'เริ่มแปลง TOR':'Start TOR conversion',
-  'เปิดโฟลเดอร์โมดูล':'Open module folder',
-  'โหมดต้นแบบ: ขั้นต่อไปคือเชื่อม runtime เพื่อแปลง TOR เป็นร่างเอกสาร':'Prototype mode: next step is wiring the runtime to convert TOR into a document draft',
-  'BillNgai ไม่เชื่อมอินเทอร์เน็ตเพื่อใช้ AI — โมดูลนี้ต้องติดตั้งจากตัวติดตั้งแยกต่างหาก':'BillNgai does not connect to the internet for AI — this module must be installed from a separate installer',
-  'สถานะความเป็นส่วนตัว':'Privacy status',
-  'ไฟล์ TOR และข้อมูลบิลจะถูกประมวลผลบนเครื่อง เมื่อเชื่อม runtime จริงแล้วผลลัพธ์จะเปิดเป็นร่างให้ตรวจทานก่อนบันทึก':'TOR files and billing data will be processed on this device. Once the runtime is wired, results will open as a draft for review before saving',
-  'ติดตั้ง BillNgai AI Add-on':'Install BillNgai AI Add-on',
-  'พบโมดูล AI แต่ตรวจสอบไม่ผ่าน โปรดติดตั้งใหม่จากตัวติดตั้งที่เชื่อถือได้':'An AI module was found but verification failed. Reinstall from a trusted installer',
-  'โมดูล AI เป็นส่วนเสริมแยกต่างหาก ติดตั้งแบบออฟไลน์ แล้ว BillNgai จะเปิดใช้งานจากไฟล์ในเครื่องเท่านั้น':'The AI module is a separate add-on. Install it offline and BillNgai will enable it only from local files',
-  'เปิดโฟลเดอร์สำหรับติดตั้ง':'Open install folder',
-  'สำหรับต้นแบบภายใน ใช้คำสั่ง dev เพื่อสร้างโมดูลจำลองก่อน ต่อไปจะเปลี่ยนเป็น DMG Add-on จริง':'For the internal prototype, use the dev command to create a dummy module first. Later this becomes a real DMG add-on',
-  'หลักการของโมดูลนี้':'How this module works',
-  'ไม่มีการดาวน์โหลดในแอป ไม่มีการเปิดใช้งานผ่านอินเทอร์เน็ต และไม่มีการส่งเอกสารออกจากเครื่อง':'No in-app downloads, no internet activation, and no documents leave this device',
-  'นำเข้า TOR แล้ว':'TOR imported',
-  'นำเข้า TOR ไม่สำเร็จ':'Could not import TOR',
-  'ไฟล์ที่นำเข้า':'Imported file',
-  'ลากไฟล์ PDF/DOCX/TXT มาวาง หรือเลือกไฟล์จากเครื่อง':'Drop a PDF/DOCX/TXT file here or choose from this device',
-  'กำลังนำเข้า...':'Importing...',
-  'เลือกไฟล์ TOR':'Choose TOR file',
-  'วาง TOR หรือรายละเอียดงานที่นี่':'Paste TOR or project details here',
-  'แปลงเป็นร่างเอกสาร':'Convert to document draft',
-  'ตรวจทานและแก้ไขก่อนนำไปใช้จริง':'Review and edit before using',
-  'ผลลัพธ์จะแสดงที่นี่':'Results will appear here',
-  'กำลังประมวลผลบนเครื่อง...':'Processing locally...',
-  'ใส่ข้อความ TOR ก่อน':'Enter TOR text first',
-  'แปลง TOR แล้ว':'TOR converted',
-  'แปลง TOR ไม่สำเร็จ':'Could not convert TOR',
-  'ไม่มีผลลัพธ์จากโมเดล':'No model output',
   // --- ยื่นภาษี (ภ.ง.ด. 90/94) & ชุดส่งออกให้บัญชี ---
   'ยื่นภาษี':'Tax filing',
   'ยื่นภาษี (ภ.ง.ด. 90/94)':'Tax filing (PND 90/94)',
@@ -2798,14 +2687,12 @@ const I18N_EN = {
   'ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94':'Full Thai tax handling: VAT · withholding · PND 90/94',
   'ข้อมูลอยู่ในเครื่องคุณ 100%':'Your data stays 100% on your machine',
   'สำรอง/กู้คืนในเครื่อง':'Local backup & restore',
-  'BillNgai Pro — Local AI':'BillNgai Pro — Local AI',
   'ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง':'Work on every device, back up automatically, and prepare taxes more easily — with data in your own Google Drive',
   'ทุกอย่างที่มีใน Local':'Everything in Local',
   'ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน':'Sync via your own Google Drive — start at the office, continue at home',
   'สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม':'Automatic cloud backup + restore on a new computer',
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
-  'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
   'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
   'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
@@ -3003,8 +2890,6 @@ const I18N_EN = {
   'ยอดที่ลูกค้าจะหัก — ขอใบ 50 ทวิ':'Client will withhold — request 50 tawi',
   'รอใบ 50 ทวิ':'Pending 50 tawi',
   'ดูเอกสารทั้งหมด':'View all documents',
-  'ส่วนเสริม (ไม่บังคับ)':'Add-on (optional)',
-  'จัดการ AI Add-on':'Manage AI Add-on',
   'ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น':'THB receipt, no VAT, full payment only',
   'รายละเอียดภาษี (ถ้ามี)':'Tax details (if any)',
   'สร้างใบเสนอราคา':'New quotation',
@@ -3445,7 +3330,7 @@ function setView(v){
   const viewChanged=currentView!==v;
   currentView = v;
   const navView=['recurring','legacy','corrections','docview'].includes(v)?'documents':v==='filing'?'report':v;
-  document.querySelectorAll('#nav button, #addonNav button').forEach(b=>{
+  document.querySelectorAll('#nav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.view===navView);
     if(b.dataset.view===navView) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
@@ -3459,16 +3344,14 @@ async function navTo(v){
   if(currentView==='settings' && settingsDirty && !await saveSettings()) return false;
   setView(v); return true;
 }
-document.querySelectorAll('#nav,#addonNav').forEach(nav=>nav.addEventListener('click',e=>{
+document.querySelectorAll('#nav').forEach(nav=>nav.addEventListener('click',e=>{
   const b = e.target.closest('button[data-view]'); if(b) navTo(b.dataset.view);
 }));
 
-const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',legacy:'ตรวจข้อมูลเดิม',corrections:'ตรวจและเตรียมแก้เอกสารเดิม',ai:'TOR → Invoice',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปรายรับ',filing:'สรุปสำหรับบัญชี',settings:'ตั้งค่า'};
+const TITLES = {dashboard:'แดชบอร์ด',documents:'เอกสาร',legacy:'ตรวจข้อมูลเดิม',corrections:'ตรวจและเตรียมแก้เอกสารเดิม',recurring:'รายการประจำ',wht:'หัก ณ ที่จ่าย (50 ทวิ)',clients:'ลูกค้า',report:'สรุปรายรับ',filing:'สรุปสำหรับบัญชี',settings:'ตั้งค่า'};
 
 Object.assign(I18N_EN, {
   'ข้อจำกัดการใช้งาน':'Usage limits',
-  'ส่วนเสริม (ไม่บังคับ)':'Optional add-ons',
-  'จัดการ AI Add-on':'Manage AI add-on',
   'ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น':'THB receipts, no VAT, full payment only',
   'ปิด':'Close',
   'สรุปรายรับ':'Income summary',
@@ -3503,7 +3386,6 @@ function openSafetyLimits(){
 
 function render(){ setBreadcrumb(null);
   applyUiLang();
-  updateAiNavigation();
   document.getElementById('pageTitle').textContent = tr(TITLES[currentView]||'');
   const c = document.getElementById('content');
   const ta = document.getElementById('topActions');
@@ -3525,7 +3407,6 @@ function render(){ setBreadcrumb(null);
   else if(currentView==='documents'){ renderDocuments(c,ta); }
   else if(currentView==='corrections'){ renderCorrections(c,ta); }
   else if(currentView==='legacy'){ renderLegacyReview(c,ta); }
-  else if(currentView==='ai'){ renderAi(c,ta); }
   else if(currentView==='recurring'){ renderRecurring(c,ta); }
   else if(currentView==='wht'){ renderWht(c,ta); }
   else if(currentView==='clients'){ renderClients(c,ta); }
@@ -3603,256 +3484,6 @@ function brandEmpty(assetKey, title, sub=''){
     <div class="brand-empty-art" aria-hidden="true">${brandImg(assetKey,'',artClass)}</div>
     <div class="brand-empty-title">${title}</div>
     ${sub?`<div class="brand-empty-sub">${sub}</div>`:''}
-  </div>`;
-}
-
-/* ---------- OFFLINE AI ADD-ON ---------- */
-let aiAddonStatus = null;
-let aiAddonRequest = null;
-function updateAiNavigation(){
-  const nav = document.getElementById('addonNav');
-  if(nav) nav.style.display = !IS_MAS && IS_ELECTRON && isPro() && aiAddonStatus?.valid ? '' : 'none';
-}
-async function openAiSettings(){
-  if(!await saveSettings(true)) return;
-  setView('ai');
-}
-let aiTorInput = 'โครงการพัฒนาเว็บไซต์บริษัท พร้อมออกแบบหน้าแรก หน้าบริการ และระบบติดต่อกลับ ระยะเวลาดำเนินงาน 30 วัน ชำระ 50% ก่อนเริ่มงาน และ 50% หลังส่งมอบ';
-let aiTorOutput = '';
-let aiTorDraft = null;   // โครงร่าง JSON ที่ตรวจทานได้ก่อนสร้างเอกสารจริง
-let aiTorShowRaw = false; // สลับดูข้อความดิบโดยไม่ทิ้งร่าง
-let aiTorRunning = false;
-let aiTorFileName = '';
-let aiTorImporting = false;
-function refreshAiAddonStatus(){
-  if(!IS_ELECTRON || !window.billingAPI.aiStatus) return Promise.resolve(null);
-  // Share a pending check: revisiting AI must wait, not loop on a cached null.
-  if(aiAddonRequest) return aiAddonRequest;
-  aiAddonRequest = Promise.resolve().then(()=>window.billingAPI.aiStatus())
-    .then(status=>(aiAddonStatus=status))
-    .catch(e=>(aiAddonStatus={installed:false,valid:false,error:e?.message||'unknown'}))
-    .finally(()=>{ aiAddonRequest=null; updateAiNavigation(); });
-  return aiAddonRequest;
-}
-function revealAiFolder(){
-  if(IS_ELECTRON && window.billingAPI.revealAiFolder) window.billingAPI.revealAiFolder();
-}
-async function importTorFile(filePath){
-  if(!IS_ELECTRON || !window.billingAPI.importTor || aiTorImporting) return;
-  aiTorImporting = true;
-  render();
-  try{
-    const result = await window.billingAPI.importTor(filePath || null);
-    if(result){
-      aiTorInput = result.text || '';
-      aiTorFileName = result.name || '';
-      aiTorOutput = '';
-      toast(tr('นำเข้า TOR แล้ว'),'ok');
-    }
-  }catch(e){
-    toast((e && e.message) || tr('นำเข้า TOR ไม่สำเร็จ'),'err');
-  }
-  aiTorImporting = false;
-  render();
-}
-function aiTorDrop(event){
-  event.preventDefault();
-  const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-  if(!file) return;
-  const p = (window.billingAPI && window.billingAPI.pathForFile) ? window.billingAPI.pathForFile(file) : file.path;
-  if(p) importTorFile(p);
-}
-function aiTorDrag(event){ event.preventDefault(); }
-function aiBackToInput(){ aiTorDraft=null; aiTorOutput=''; aiTorShowRaw=false; render(); }
-// ตัวนับเวลาให้ผู้ใช้เห็นว่า AI ทำงานอยู่ (โมเดลบนเครื่องใช้เวลาเป็นนาที)
-let aiTorTimer = null, aiTorStart = 0;
-function aiTickStart(){
-  aiTorStart = Date.now();
-  clearInterval(aiTorTimer);
-  aiTorTimer = setInterval(()=>{
-    const el = document.getElementById('aiElapsed'); if(!el) return;
-    const s = Math.floor((Date.now()-aiTorStart)/1000);
-    el.textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-  }, 1000);
-}
-function aiTickStop(){ clearInterval(aiTorTimer); aiTorTimer = null; }
-// skeleton ตาม BRAND.md (ไม่ใช้ spinner) — แถบกะพริบสลับจังหวะ + เวลาที่ผ่านไป
-function aiWorkingSkeleton(){
-  return `<div class="ai-working">
-    <div class="ai-working-head">${ic('sparkles')} <span>${tr('AI กำลังอ่าน TOR และร่างเอกสารบนเครื่องของคุณ')}</span><b id="aiElapsed">0:00</b></div>
-    <div class="ai-skel"><i></i><i style="width:84%"></i><i style="width:62%"></i><i style="width:91%"></i><i style="width:47%"></i><i style="width:73%"></i></div>
-    <div class="hint">${tr('โดยปกติใช้เวลาราว 1 นาที ขึ้นกับความยาว TOR และความเร็วเครื่อง')}</div>
-  </div>`;
-}
-async function runAiTor(){
-  if(!IS_ELECTRON || !window.billingAPI.aiInfer || aiTorRunning) return;
-  const input = (document.getElementById('aiTorInput')?.value || '').trim();
-  if(!input){ toast(tr('ใส่ข้อความ TOR ก่อน'),'err'); return; }
-  aiTorInput = input;
-  aiTorRunning = true;
-  aiTorOutput = '';
-  aiTorDraft = null;
-  aiTorShowRaw = false;
-  render();
-  aiTickStart();
-  try{
-    const result = await window.billingAPI.aiInfer(input);
-    aiTorDraft = result && result.draft ? result.draft : null;
-    aiTorOutput = result && result.text ? result.text : tr('ไม่มีผลลัพธ์จากโมเดล');
-    toast(tr('แปลง TOR แล้ว — ตรวจทานร่างก่อนสร้างเอกสาร'),'ok');
-  }catch(e){
-    aiTorOutput = `${tr('แปลง TOR ไม่สำเร็จ')}\n${e.message || e}`;
-    toast(tr('แปลง TOR ไม่สำเร็จ'),'err');
-  }
-  aiTickStop();
-  aiTorRunning = false;
-  render();
-}
-// สร้างใบเสนอราคาแบบร่างจากผล AI — ผ่านตัวแก้ไขเอกสารเสมอ (คนตรวจก่อนบันทึกทุกครั้ง)
-function createDocFromAiDraft(){
-  const d = aiTorDraft; if(!d) return;
-  const name = (d.client||'').trim();
-  const askMore = !name || /ต้องถามเพิ่ม/.test(name);
-  let client = !askMore ? activeClients().find(c => (c.name||'').trim() === name) : null;
-  if(!client && !askMore){
-    client = { id:uid(), name, contactPerson:'', taxId:'', address:'', email:'', phone:'', defaultWht:true, docLang:'', defaultIncomeCategory:'', deletedAt:null, notes:tr('สร้างอัตโนมัติจากร่าง AI — กรอกเลขภาษี/ที่อยู่ก่อนออกใบกำกับภาษี') };
-    touch(client);
-    DB.clients.push(client); persist();
-    toast(tr('เพิ่มลูกค้าใหม่จากร่าง AI แล้ว — อย่าลืมกรอกเลขภาษี'),'ok');
-  }
-  const items = (d.items&&d.items.length ? d.items : [{description:d.project||'',qty:1,unit:'งาน',price:0}])
-    .map(it=>({description:it.description, qty:Number(it.qty)||1, unit:it.unit||'งาน', price:round2(Number(it.price)||0)}));
-  const noteParts = [];
-  if(d.paymentTerms) noteParts.push(tr('เงื่อนไขชำระเงิน')+': '+d.paymentTerms);
-  if(d.installments&&d.installments.length) noteParts.push(tr('งวดตาม TOR')+': '+d.installments.map(g=>`${g.label} ${g.percent}%`).join(' · '));
-  if(d.delivery) noteParts.push(tr('กำหนดส่งมอบ')+': '+d.delivery);
-  const resolved = client || activeClients()[0];
-  openDocEditor('quotation', null, items, null, {
-    clientId: resolved && resolved.id,
-    // สำคัญ: หัก ณ ที่จ่าย ต้องตามลูกค้าที่เลือกจริง ไม่ใช่ลูกค้าคนแรกในระบบ
-    whtRate: (resolved && resolved.defaultWht!==false) ? DB.business.defaultWhtRate : 0,
-    incomeCategory: (resolved && resolved.defaultIncomeCategory) || '',
-    project: d.project||'',
-    notes: noteParts.join('\n')
-  });
-}
-// การ์ดตรวจทานร่างจาก AI — แสดงเป็นโครงสร้าง ไม่ใช่ข้อความดิบ
-function renderAiDraftCard(d){
-  const total = (d.items||[]).reduce((s,it)=> s + round2((Number(it.qty)||0)*(Number(it.price)||0)), 0);
-  const askMore = !d.client || /ต้องถามเพิ่ม/.test(d.client);
-  return `
-    <div class="filing-detail" style="margin-bottom:12px">
-      <div class="line"><span>${tr('ชื่องาน')}</span><b>${escapeHtml(d.project||'—')}</b></div>
-      <div class="line"><span>${tr('ลูกค้า/ผู้ว่าจ้าง')}</span><b style="${askMore?'color:var(--amber)':''}">${escapeHtml(d.client||tr('ต้องถามเพิ่ม'))}</b></div>
-      ${d.delivery?`<div class="line"><span>${tr('กำหนดส่งมอบ')}</span><b>${escapeHtml(d.delivery)}</b></div>`:''}
-      ${d.paymentTerms?`<div class="line"><span>${tr('เงื่อนไขชำระเงิน')}</span><b>${escapeHtml(d.paymentTerms)}</b></div>`:''}
-    </div>
-    ${(d.items||[]).length?`<table class="rclient" style="margin-bottom:10px"><tbody>
-      ${d.items.map(it=>`<tr><td>${escapeHtml(it.description)}<div class="muted" style="font-size:12px">${Number(it.qty)||1} ${escapeHtml(it.unit||'งาน')}</div></td><td class="num">${it.price?fmtMoneyC(round2((Number(it.qty)||1)*(Number(it.price)||0)),'THB'):`<span style="color:var(--amber)">${tr('ไม่ระบุราคา')}</span>`}</td></tr>`).join('')}
-      <tr><td><b>${tr('รวมก่อน VAT')}</b></td><td class="num"><b>${fmtMoneyC(round2(total),'THB')}</b></td></tr>
-    </tbody></table>`:''}
-    ${(d.installments||[]).length?`<div class="hint" style="margin-bottom:10px">${tr('งวดตาม TOR')}: ${d.installments.map(g=>escapeHtml(`${g.label} ${g.percent}%`)).join(' · ')} — ${tr('สร้างเอกสารแล้วใช้ปุ่ม "แบ่งงวด" ต่อได้เลย')}</div>`:''}
-    ${(d.questions||[]).length?`<div class="banner" style="background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber);display:block;margin-bottom:12px"><b>${tr('ควรถามลูกค้าเพิ่ม')}</b><br>${d.questions.map(q=>'• '+escapeHtml(q)).join('<br>')}</div>`:''}
-    <div style="display:flex;gap:9px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="createDocFromAiDraft()">${ic('arrowRight')} ${tr('สร้างใบเสนอราคา (ร่าง)')}</button>
-      <button class="btn" onclick="aiTorShowRaw=true;render()">${tr('ดูข้อความดิบ')}</button>
-    </div>`;
-}
-function renderAi(c,ta){
-  ta.innerHTML = `<button class="btn" onclick="refreshAiAddonStatus(true).then(()=>render())">${ic('repeat')} ${tr('ตรวจอีกครั้ง')}</button>`;
-  if(!IS_ELECTRON){
-    c.innerHTML = `<div class="settings-grid"><div class="card-block">
-      <h4>${ic('sparkles')} ${tr('BillNgai AI Add-on')}</h4>
-      <div class="desc">${tr('โมดูล AI แบบออฟไลน์ใช้ได้ในแอปเดสก์ท็อปเท่านั้น')}</div>
-    </div></div>`;
-    return;
-  }
-  // TOR → Invoice เป็นฟีเจอร์ Pro (2.0) — 1.5.0 ไม่เคยเผยแพร่ จึงไม่มีผู้ใช้เดิมให้ grandfather
-  if(!isPro()){
-    ta.innerHTML = '';
-    c.innerHTML = `<div class="settings-grid">
-      <div class="card-block">
-        <h4>${ic('sparkles')} ${tr('TOR → Invoice — ฟีเจอร์ของ BillNgai Pro')}</h4>
-        <div class="desc">${tr('วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต')}</div>
-        <div style="display:flex;gap:9px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="openUpgradeModal()">${ic('sparkles')} ${tr('ดูแพ็กเกจ Pro')}</button>
-        </div>
-      </div>
-      <div class="card-block">
-        <h4>${tr('หลักการของโมดูลนี้')}</h4>
-        <div class="desc">${tr('ไม่มีการดาวน์โหลดในแอป ไม่มีการเปิดใช้งานผ่านอินเทอร์เน็ต และไม่มีการส่งเอกสารออกจากเครื่อง')}</div>
-      </div>
-    </div>`;
-    return;
-  }
-  const status = aiAddonStatus;
-  if(!status){
-    c.innerHTML = `<div class="settings-grid"><div class="card-block">
-      <h4>${ic('sparkles')} ${tr('BillNgai AI Add-on')}</h4>
-      <div class="desc">${tr('กำลังตรวจโมดูล AI ในเครื่อง')}</div>
-    </div></div>`;
-    refreshAiAddonStatus().then(()=>{ if(currentView==='ai') render(); });
-    return;
-  }
-  if(status.valid){
-    ta.innerHTML += ` <button class="btn btn-ghost" onclick="revealAiFolder()">${ic('folderOpen')} ${tr('เปิดโฟลเดอร์โมดูล')}</button>`;
-    const step = aiTorRunning ? 2 : ((aiTorDraft || aiTorOutput) ? 3 : 1);
-    const stepCls = n => n===step ? 'step active' : (n<step ? 'step done' : 'step');
-    const stepN = n => n<step ? ic('check',12) : n;
-    const torChars = (aiTorInput||'').length;
-    const torSummary = `<div class="ai-tor-summary">${ic('fileText',14)}
-      <b style="flex:1">${aiTorFileName?escapeHtml(aiTorFileName):tr('ข้อความที่วางเอง')} · ${torChars.toLocaleString()} ${tr('ตัวอักษร')}</b>
-      ${step===3?`<button class="btn btn-sm" onclick="aiBackToInput()">${tr('แก้ไข TOR')}</button>`:''}</div>`;
-    let body = '';
-    if(step===1){
-      body = `
-        <div class="desc">${tr('วางข้อความ TOR หรือรายละเอียดงาน แล้วให้ AI ร่างใบเสนอราคาให้ — ประมวลผลบนเครื่องคุณทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต')}</div>
-        <div class="banner" ondrop="aiTorDrop(event)" ondragover="aiTorDrag(event)" style="background:var(--accent-tint);border-color:var(--accent-tint-bd);color:var(--text);margin-bottom:13px">
-          ${ic('upload')} <span style="flex:1">${aiTorFileName?`${tr('ไฟล์ที่นำเข้า')}: <b>${escapeHtml(aiTorFileName)}</b>`:tr('ลากไฟล์ PDF/DOCX/TXT มาวาง หรือเลือกไฟล์จากเครื่อง')}</span>
-          <button class="btn btn-sm" onclick="event.stopPropagation();importTorFile()" ${aiTorImporting?'disabled':''}>${aiTorImporting?tr('กำลังนำเข้า...'):tr('เลือกไฟล์ TOR')}</button>
-        </div>
-        <div class="field" style="margin-bottom:12px">
-          <textarea id="aiTorInput" oninput="aiTorInput=this.value" style="min-height:190px" placeholder="${tr('วาง TOR หรือรายละเอียดงานที่นี่')}">${escapeHtml(aiTorInput)}</textarea>
-        </div>
-        <button class="btn btn-primary" onclick="runAiTor()">${ic('sparkles')} ${tr('แปลงเป็นร่างเอกสาร')}</button>
-        <div class="hint" style="margin-top:12px">${ic('check')} ${tr('AI พร้อมใช้งาน')} · ${escapeHtml(status.model||'')} ${status.version?'v'+escapeHtml(status.version):''} · Built with Llama</div>`;
-    } else if(step===2){
-      body = torSummary + aiWorkingSkeleton();
-    } else {
-      body = torSummary + (aiTorDraft && !aiTorShowRaw ? renderAiDraftCard(aiTorDraft) : `
-        <pre style="white-space:pre-wrap;margin:0 0 12px;min-height:120px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;line-height:1.65;color:var(--text)">${escapeHtml(aiTorOutput||tr('ผลลัพธ์จะแสดงที่นี่'))}</pre>
-        <div style="display:flex;gap:9px;flex-wrap:wrap">
-          ${aiTorDraft?`<button class="btn" onclick="aiTorShowRaw=false;render()">${ic('arrowLeft')} ${tr('กลับไปดูร่าง')}</button>`:`<button class="btn" onclick="aiBackToInput()">${ic('arrowLeft')} ${tr('แก้ไข TOR')}</button>`}
-        </div>`);
-    }
-    c.innerHTML = `<div class="settings-grid">
-      <div class="ai-steps">
-        <div class="${stepCls(1)}"><span class="n">${stepN(1)}</span> ${tr('นำเข้า TOR')}</div><div class="sep"></div>
-        <div class="${stepCls(2)}"><span class="n">${stepN(2)}</span> ${tr('AI ร่างเอกสาร')}</div><div class="sep"></div>
-        <div class="${stepCls(3)}"><span class="n">${stepN(3)}</span> ${tr('ตรวจทานและสร้าง')}</div>
-      </div>
-      <div class="card-block">${body}</div>
-    </div>`;
-    return;
-  }
-  const installedButInvalid = status.installed && status.error !== 'not_installed';
-  c.innerHTML = `<div class="settings-grid">
-    <div class="card-block">
-      <h4>${ic('sparkles')} ${tr('ติดตั้ง BillNgai AI Add-on')}</h4>
-      <div class="desc">${installedButInvalid
-        ? tr('พบโมดูล AI แต่ตรวจสอบไม่ผ่าน โปรดติดตั้งใหม่จากตัวติดตั้งที่เชื่อถือได้')
-        : tr('โมดูล AI เป็นส่วนเสริมแยกต่างหาก ติดตั้งแบบออฟไลน์ แล้ว BillNgai จะเปิดใช้งานจากไฟล์ในเครื่องเท่านั้น')}</div>
-      ${installedButInvalid?`<div class="banner danger">${ic('alert')} ${escapeHtml(status.error||'invalid add-on')}</div>`:''}
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="revealAiFolder()">${ic('folderOpen')} ${tr('เปิดโฟลเดอร์สำหรับติดตั้ง')}</button>
-        <button class="btn" onclick="refreshAiAddonStatus(true).then(()=>render())">${tr('ตรวจอีกครั้ง')}</button>
-      </div>
-      <div class="hint" style="margin-top:12px">${tr('สำหรับต้นแบบภายใน ใช้คำสั่ง dev เพื่อสร้างโมดูลจำลองก่อน ต่อไปจะเปลี่ยนเป็น DMG Add-on จริง')}</div>
-    </div>
-    <div class="card-block">
-      <h4>${tr('หลักการของโมดูลนี้')}</h4>
-      <div class="desc">${tr('ไม่มีการดาวน์โหลดในแอป ไม่มีการเปิดใช้งานผ่านอินเทอร์เน็ต และไม่มีการส่งเอกสารออกจากเครื่อง')}</div>
-    </div>
   </div>`;
 }
 
@@ -5431,11 +5062,7 @@ function renderSettings(c,ta){
     </div>`:`<div class="card-block">
       <h4>${tr('สถานะ Pro')}</h4>
       <button class="btn btn-sm" onclick="openUpgradeModal()">${tr('ดูแพ็กเกจ Pro')}</button>
-    </div>`}
-    ${!IS_MAS?`<details class="card-block">
-      <summary>${tr('ส่วนเสริม (ไม่บังคับ)')}</summary>
-      <p><button class="btn btn-sm" onclick="openAiSettings()">${tr('จัดการ AI Add-on')}</button></p>
-    </details>`:''}` : `
+    </div>`}` : `
     <div class="card-block">
       <h4>${ic('folder')} ${tr('ไฟล์ข้อมูล')}</h4>
       <div class="desc">
@@ -5708,7 +5335,7 @@ function openClientEditor(id){
         <div class="field"><label>${tr('อีเมล')}</label><input id="c_email" value="${attr(cl.email)}"></div>
         <div class="field"><label>${tr('โทรศัพท์')}</label><input id="c_phone" value="${attr(cl.phone)}"></div>
       </div>
-      <details class="tax-details"><summary>${tr('ค่าเริ่มต้นเพิ่มเติม')}</summary><div class="field"><label class="toggle"><input type="checkbox" id="c_wht" ${cl.defaultWht!==false?'checked':''}><span class="track"></span><span>${tr('ใช้ค่าหัก ณ ที่จ่ายเดิมกับรายการประจำและร่าง AI')}</span></label></div></details>
+      <details class="tax-details"><summary>${tr('ค่าเริ่มต้นเพิ่มเติม')}</summary><div class="field"><label class="toggle"><input type="checkbox" id="c_wht" ${cl.defaultWht!==false?'checked':''}><span class="track"></span><span>${tr('ใช้ค่าหัก ณ ที่จ่ายเดิมกับรายการประจำ')}</span></label></div></details>
       <div class="field"><label>${tr('ภาษาเอกสารของลูกค้ารายนี้')}</label>
         <select id="c_lang">
           <option value="" ${!cl.docLang?'selected':''}>${tr('ตามค่าเริ่มต้น (ตั้งค่า)')}</option>
@@ -7848,7 +7475,7 @@ Object.assign(I18N_EN,{
   "ใช้ภาษานี้เมื่อสร้างเอกสารให้ลูกค้ารายนี้": "Use this language for this customer’s documents",
   "ใช้จัดกลุ่มรายรับในสรุปสำหรับบัญชี": "Groups income in the accounting summary",
   "ค่าเริ่มต้นเพิ่มเติม": "Additional defaults",
-  "ใช้ค่าหัก ณ ที่จ่ายเดิมกับรายการประจำและร่าง AI": "Use the saved withholding default for recurring and AI drafts",
+  "ใช้ค่าหัก ณ ที่จ่ายเดิมกับรายการประจำ": "Use the saved withholding default for recurring invoices",
   "คำตอบที่ค้างไว้ยังไม่เปลี่ยนยอดรายรับ กดบันทึกเมื่อพร้อม": "Pending answers do not change income. Save when ready.",
   "ทิ้งคำตอบที่ยังไม่บันทึก": "Discard pending answers",
   "เก็บงานที่ยังไม่บันทึกไม่สำเร็จ กรุณาบันทึกก่อนออกจากหน้านี้": "Could not keep pending work. Save before leaving.",
@@ -7916,7 +7543,6 @@ async function boot(){
     applyTheme();
     updateFileStatus();
     setView('dashboard');
-    if(isPro()) refreshAiAddonStatus();
     if(!loadFailed && !DB.meta.setupDone && !DB.business.businessName && !activeDocs().length) openWizard();
     return;
   }
@@ -7969,8 +7595,6 @@ async function boot(){
     sync(); if(mq.addEventListener) mq.addEventListener('change',sync); } })();
 // paint the static sidebar nav icons
 document.querySelectorAll('.sidebar .ico[data-ic], .cmdk .ico[data-ic]').forEach(s=> s.innerHTML = ic(s.dataset.ic,18));
-// MAS build ไม่มี AI add-on — ซ่อนทั้งบล็อก Add-on ในแถบข้าง
-if(IS_MAS){ const an=document.getElementById('addonNav'); if(an) an.style.display='none'; }
 boot();
 </script>
 </body>

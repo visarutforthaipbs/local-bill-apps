@@ -34,6 +34,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Connect workspaces with more than 512 records in one atomic first upload, send larger change sets in whole linked groups, transfer several files at a time and save far less often while syncing.
 - Show "Archive" instead of Thai text in the English document menu.
 
+### Removed
+- The local AI add-on ("TOR → Invoice"): sidebar entry, add-on verification, local inference runner, TOR import and its settings and strings. Existing profiles still load; add-on folders already on disk are left untouched (see PRD-SIMPLIFY-2026-10.md §2).
+
 Candidate only. Live Apple server verification, remaining physical-device checks and final distribution/release gates are recorded in docs/INTEGRATED-DATA-ACCEPTANCE-2026-10-04.md. This entry does not claim publication or App Store approval.
 
 ## [2.0.13] - 2026-10-03
