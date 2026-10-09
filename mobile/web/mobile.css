@@ -133,7 +133,7 @@ input,select,textarea{font-size:16px!important}
  .topbar h2{font-size:var(--fs-title1);font-weight:700;letter-spacing:.3px}
  .btn{font-size:var(--fs-headline);font-weight:600}
  .btn-sm{font-size:var(--fs-subhead)}
- .tabs button,.pill-select button,.filter-chips button{min-height:36px;font-size:var(--fs-subhead)}
+ .tabs button,.pill-select button,.filter-chips button{min-height:44px;font-size:var(--fs-subhead)}
  .search input{min-height:36px;font-size:var(--fs-headline)}
  .badge-status{font-size:var(--fs-caption);min-height:26px}
  .field label{font-size:var(--fs-subhead)}
