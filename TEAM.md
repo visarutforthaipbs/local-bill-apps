@@ -1,6 +1,47 @@
 # BillNgai — AI Agent Team (โครงทีมที่รันธุรกิจนี้)
 
-## Current operating override — 2026-09-23, 2.0.3 containment
+## Current operating override — 2026-10-09, simplification cycle (App Store only)
+
+บล็อกนี้มีผลเหนือ override 2026-09-23 และ §0–§4 ด้านล่าง ตลอดรอบงาน "ทำแอปให้เรียบง่าย" จนกว่า 2.0.15 จะขึ้น
+App Store หรือเจ้าของสั่งเปลี่ยน แผนงานฉบับเต็มอยู่ใน `PRD-SIMPLIFY-2026-10.md` (plan of record) · SKU ที่เหลือ
+และนโยบาย promo code อยู่ใน `SKU.md` override 2026-10-09 · งานที่เจ้าของต้องกดเองเรียงลำดับไว้ใน
+`review/2026-10-09/SIMPLIFY-OWNER-CHECKLIST.md`
+
+**การตัดสินใจของเจ้าของ (2026-10-09, "agree")**
+
+- ช่องทางเดียว: Mac App Store + iOS App Store (bundle เดิม `com.visarut.billngai`, Pro = IAP เดิม universal)
+- ถอดออก: AI add-on ในเครื่อง, เสียงประกอบ, หน้าซื้อตรง/วางรหัส, เศษ e-Tax และใบกำกับภาษีใหม่ที่พักไว้
+- DMG ตรงออกอีกรุ่นเดียว (2.0.15) เพื่อให้ผู้ใช้เดิมส่งออกข้อมูลไป App Store แล้วเลิก · Windows beta ยุติทันที
+- ราคา Pro ไม่เปลี่ยน (฿599 → ฿1,900) · ผู้ถือรหัส Pro ตรงได้ App Store promo code ไม่คืนเงิน ไม่จ่ายซ้ำ
+- เลขรุ่นอาจเปลี่ยนจาก 2.0.15 เป็น 2.1.0 ก่อนส่งรีวิว (เจ้าของตัดสินใจ, ไม่มีอะไรอื่นเปลี่ยน)
+
+**วิธีทำงาน manager/agent ในรอบนี้ (PRD §7)**
+
+1. งานแบ่งเป็น stream A–G แต่ละ stream รันโดย agent ใน worktree แยกที่แตกจาก `codex/simplify-2.0.15`
+   ไม่แตะโปรไฟล์จริงของเจ้าของ ไม่มี side effect ออกเน็ต
+2. ทุก agent ส่งกลับสามอย่าง: ไฟล์ที่แก้ · ผลเทสต์พร้อม output · คำถามค้าง — ไม่ merge เอง ไม่ push เอง
+3. manager (session Claude ของเจ้าของ) อ่าน diff, รันเทสต์ซ้ำ, merge ตามลำดับ A+B → C+D → E → F → G
+   และเป็นคนเดียวที่แก้ conflict ใน `billing.html`
+4. หลังทุกครั้งที่ merge manager รัน gate: `npm test`, `npm run release:check`, smoke list ตาม
+   `HIG-UI-VERIFICATION.md`, และ `npm run build:simulator` ใน `mobile/` — แดงเมื่อไหร่หยุดก่อน
+5. กติกาเดิมของการถอดฟีเจอร์ (PRD §2): ลบโค้ด + คีย์ i18n + เทสต์ + ข้อความในเอกสาร + รายการใน release validator
+   ในคอมมิตเดียว และเติมบรรทัด "Removed" ใน CHANGELOG — ถ้ายังมี string ไทยของฟีเจอร์นั้นเหลืออยู่ที่ไหน ถือว่ายังไม่เสร็จ
+
+**สิ่งที่ยังเป็นของเจ้าของเท่านั้น (ไม่เปลี่ยนจาก §0 ข้อ 1 และ PRD §4.3)**
+
+push / tag / merge เข้า branch หลัก · build-sign-notarize DMG รุ่นสุดท้ายและอัปโหลด R2 · ส่ง Mac App Store
+และ iOS ให้ Apple รีวิว · metadata/สกรีนช็อต/Review Notes ใน App Store Connect (agent ร่าง เจ้าของวาง) ·
+สร้างและส่ง promo code · เผยแพร่หน้าเว็บที่เปลี่ยน · ข้อความถึงลูกค้าทุกช่องทาง · เรื่องเงินทุกบาท (ราคา, คืนเงิน)
+agent เตรียมคำสั่ง ร่าง และ checklist ให้ แต่ไม่กดแทน
+
+**ผลต่อ role ด้านล่าง**: Role 5 (Channel Ops) เหลือช่องทางเดียวคือ App Store — งาน R2/SHA-256/Windows SKU
+จบหลัง DMG รุ่นสุดท้าย · Role 3 (Support) เลิก flow "ขอรหัสตรงฟรีเพื่อใช้ AI" ใช้ flow promo code แทน ·
+Role 4 (Content) ห้ามพูดราคา/ช่องทางอื่น/LINE ใน store copy เหมือนเดิม และห้ามประกาศจนกว่า Apple จะอนุมัติ ·
+ตาราง sprint ใน §2 เป็นประวัติ ไม่ใช่งานปัจจุบัน
+
+---
+
+## Superseded operating override — 2026-09-23, 2.0.3 containment (replaced by the 2026-10-09 block above)
 
 The owner explicitly authorized audit and Direct macOS release preparation,
 reviewed commits/signing/notarization/tag/push/publication and the matching website
@@ -129,7 +170,7 @@ Historical roles/sprints below are retained, not evidence of completed channels.
 
 ---
 
-## 2. งานช่วงนี้ — ระหว่างรอ Apple review (sprint ปัจจุบัน)
+## 2. งานช่วงนี้ — ระหว่างรอ Apple review (sprint เดิม — ประวัติ, superseded 2026-10-09)
 
 รอรีวิว = ช่วงทองของการเตรียมยิง ทำได้เลยโดยไม่ต้องรอผล:
 
