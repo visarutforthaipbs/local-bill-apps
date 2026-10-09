@@ -428,6 +428,9 @@
   @media(hover:hover) and (pointer:fine){
     .brand-empty-art:hover .fintech-art,.setup-art:hover .fintech-art,.brand-art:hover .fintech-art{transform:translateY(-4px) rotate(-2deg)}
   }
+  /* The PNG renders carry a white plate that glows in Dark Mode (HIG dark-mode: modify the asset or use separate
+     light/dark assets). Until they are re-exported with transparency, Dark Mode shows the text without the art. */
+  @media(prefers-color-scheme:dark){.setup-art,.brand-empty-art,.brand-snapshot .brand-art,.filing-guide .guide-art{display:none}}
   @media(prefers-reduced-motion:reduce){
     .fintech-art,.empty.brand-empty .brand-empty-art img.fintech-art,
     .brand-empty-art:hover .fintech-art,.setup-art:hover .fintech-art{
@@ -856,7 +859,7 @@
       <button data-view="documents"><span class="ico" data-ic="fileText"></span> <span data-t="เอกสาร">เอกสาร</span> <span class="badge" id="navDocCount" style="display:none">0</span></button>
       <button data-view="clients"><span class="ico" data-ic="users"></span> <span data-t="ลูกค้า">ลูกค้า</span></button>
       <button data-view="report"><span class="ico" data-ic="barChart"></span> <span data-t="สรุปรายรับ">สรุปรายรับ</span></button>
-      <button data-view="wht"><span class="ico" data-ic="receipt"></span> <span data-t="หัก ณ ที่จ่าย (50 ทวิ)">หัก ณ ที่จ่าย (50 ทวิ)</span> <span class="badge" id="navWhtCount" style="display:none">0</span></button>
+      <button data-view="wht"><span class="ico" data-ic="receipt"></span> <span data-t="หัก ณ ที่จ่าย">หัก ณ ที่จ่าย</span> <span class="badge" id="navWhtCount" style="display:none">0</span></button>
       <button data-view="settings"><span class="ico" data-ic="settings"></span> <span data-t="ตั้งค่า">ตั้งค่า</span></button>
     </nav>
     <button class="cmdk-hint" type="button" onclick="openCmdk()"><span class="ico" data-ic="search"></span><span data-t="ค้นหา">ค้นหา</span><kbd id="cmdkKey">⌘K</kbd></button>
@@ -1308,9 +1311,9 @@ const SYNC_ERROR_TEXT={
   APPSTORE_VERIFICATION_UNAVAILABLE:'ตรวจสอบการซื้อไม่ได้ในตอนนี้ ลองอีกครั้ง',
   APPSTORE_SANDBOX_NOT_ENABLED:'บัญชี Google นี้ยังไม่ได้เปิดทดสอบการซื้อผ่าน App Store',
   PRO_REQUIRED:'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้',
-  LICENSE_ACCOUNT_LIMIT:'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ',
+  LICENSE_ACCOUNT_LIMIT:'Pro ของคุณใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ',
   SYNC_DRIVE_PERMISSION_REQUIRED:'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้',
-  SYNC_BOOTSTRAP_TOO_LARGE:'ข้อมูลมีมากเกินกว่าที่รุ่นนี้เชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ',
+  SYNC_BOOTSTRAP_TOO_LARGE:'ข้อมูลมีมากเกินกว่าจะเชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ',
   SYNC_USE_LOCAL_STORAGE:'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive',
   SYNC_KEYCHAIN_REQUIRED:'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้',
   SYNC_FINALIZATION_PENDING:'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน',
@@ -1458,7 +1461,7 @@ function openMasUpgradeModal(){
         <div class="card-block" style="margin-bottom:0">
           <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
           <div class="desc">${tr('ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
-          ${li(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'))}
+          ${li(tr('ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'))}
           ${li(tr('สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี'))}
           ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
           ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
@@ -2061,8 +2064,6 @@ const I18N_EN = {
  'บัญชี Google นี้ยังไม่ได้เปิดทดสอบการซื้อผ่าน App Store':'App Store purchase testing is not enabled for this Google account',
 
  'ซิงก์ Google Drive ของคุณ ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง':'Sync your Google Drive across devices',
- 'ร่างงานออฟไลน์ได้ เชื่อมต่อก่อนออกเอกสาร':'Draft offline; connect before issuing documents',
- 'รุ่นทดสอบ ใช้บัญชีและข้อมูลทดสอบแยกเท่านั้น':'Private pilot: use a separate test account and test data only',
  'รอยืนยันการออกเอกสาร':'Document issuance awaiting confirmation',
  'ซิงก์ไม่สำเร็จ — ลองอีกครั้ง':'Sync failed — try again',
  'ซิงก์ตอนนี้':'Sync now',
@@ -2072,7 +2073,6 @@ const I18N_EN = {
  'เก็บทั้งสองฉบับไว้จนกว่าจะเลือก':'Both versions are kept until you choose',
  'ข้อมูลชุดนี้ต้องตรวจพร้อมกัน':'These related records must be reviewed together',
  'ใช้ชุดข้อมูลจากอีกเครื่อง':'Use the records from the other device',
- 'เชื่อมต่อพื้นที่ทดสอบ Google Drive?':'Connect a Google Drive test workspace?',
  'ไฟล์หลักฐานแนบต้องส่งออกแยก':'Export attached evidence separately',
  'รอปิดหน้าต่างที่เปิดอยู่ แล้วจะซิงก์ต่อ':'Waiting for the open window to close, then syncing',
  'อีกเครื่องบันทึกการรับเงินนี้ไว้แล้ว เลือก “ใช้ชุดข้อมูลจากอีกเครื่อง” เพื่อไม่ให้นับรายรับซ้ำ':'The other Mac already recorded this payment. Choose “Use the records from the other device” so the income is not counted twice.',
@@ -2100,17 +2100,10 @@ const I18N_EN = {
   'ตั้งค่า':'Settings',
   // --- ยื่นภาษี (ภ.ง.ด. 90/94) & ชุดส่งออกให้บัญชี ---
   'กำหนดยื่น':'Filing deadline',
-  '{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น':'{n} document(s) missing an FX rate — the figures above exclude that income',
   'จากเอกสารรายรับ':'From income documents',
   'ส่งออกชุดให้บัญชี':'Export for accountant',
-  'ยังไม่มีรายรับสำหรับยื่นภาษีปีนี้':'No income to file for this tax year yet',
-  'เมื่อออกใบเสร็จหรือใบกำกับภาษี ตัวเลขสำหรับ ภ.ง.ด.90/94 จะสรุปให้ที่นี่โดยอัตโนมัติ':'Once receipts or tax invoices are issued, PND 90/94 numbers will summarize here automatically',
-  '+ เพิ่มเอกสารรายรับ':'+ Add income document',
-  'ดูสรุปภาษี':'View tax summary',
-  'รายละเอียดจะเปิดเมื่อมีเอกสารรายรับในงวดนี้':'Details appear once this period has income documents',
   'เงินได้':'Income',
   'เครดิตภาษี':'Tax credit',
-  'ต้องชำระเพิ่ม':'Amount due',
   'ส่งออกชุดข้อมูลสำหรับนักบัญชีแล้ว':'Accountant bundle exported',
   'ชื่อลูกค้า':'Client name',
   'ธุรกิจ':'Business',
@@ -2153,7 +2146,7 @@ const I18N_EN = {
   'ใบแจ้งหนี้':'Invoice',
   'ใบเสร็จรับเงิน':'Receipt',
   'ใบกำกับภาษี':'Tax invoice',
-  'ใบเสร็จ / ใบกำกับภาษี':'Receipt / Tax invoice',
+  'ใบเสร็จ':'Receipts',
   'ใบเสร็จรับเงิน / ใบกำกับภาษี':'Receipt / Tax invoice',
   'ทั้งหมด':'All',
   'ค้างชำระ':'Unpaid',
@@ -2220,7 +2213,6 @@ const I18N_EN = {
   'วันที่รับเงิน':'Payment date',
   'ฐานภาษี':'Tax base',
   'อัตรา%':'Rate %',
-  'ภาษีถูกหัก':'Tax withheld',
   'ได้รับใบ50ทวิ':'Cert received',
   'เลขที่ใบ50ทวิ':'Cert no.',
   'วันที่ใบรับรอง':'Cert date',
@@ -2230,7 +2222,6 @@ const I18N_EN = {
   'ส่งออก CSV (50 ทวิ)':'Export WHT CSV',
   // --- banners ---
   'อ่านไฟล์ข้อมูลเดิมไม่ได้':'Could not read the existing data file',
-  '— ระงับการบันทึกไว้ก่อนเพื่อไม่ให้ทับข้อมูลเดิม กู้ข้อมูลจากสำรองอัตโนมัติ (ทุก 30 นาที) หรือนำเข้าไฟล์ที่เคยสำรองไว้':'— saving is paused so the old data is not overwritten. Restore from the automatic backups (every 30 min) or import a saved backup',
   'เปิดโฟลเดอร์สำรอง':'Open backup folder',
   'นำเข้าข้อมูล':'Import data',
   'ยังไม่เคยสำรองข้อมูลออกไปไว้ที่อื่นเลย — สำรองสักครั้งเพื่อความปลอดภัย (เก็บไว้ใน Drive/Dropbox ได้)':'You have never exported a backup — export one for safety (keep it in Drive/Dropbox)',
@@ -2238,35 +2229,21 @@ const I18N_EN = {
   'สำรองตอนนี้':'Back up now',
   // --- dashboard ---
   'เอกสารใหม่':'New document',
-  '+ เอกสารใหม่':'+ New document',
   'มีรายการประจำถึงกำหนด {n} รายการ':'{n} recurring item(s) due',
   'ดูและสร้าง':'View & create',
-  'ยอดค้างรับ (สุทธิ)':'Outstanding (net)',
-  '{n} ใบเกินกำหนดแล้ว':'{n} overdue',
-  'เงินที่จะเข้าบัญชีจากใบแจ้งหนี้ที่ยังไม่ชำระ':'Cash expected from unpaid invoices',
-  'รับแล้ว (สุทธิ)':'Received (net)',
-  'ยอดสุทธิจากใบเสร็จที่ออกแล้ว':'Net total from issued receipts',
-  'ภาษีหัก ณ ที่จ่ายที่คาดว่าจะถูกหัก':'Expected withholding tax',
-  'ยอดที่ลูกค้าจะหักไว้ — ขอใบ 50 ทวิ เพื่อเครดิตภาษี':'What clients will withhold — collect 50 tawi certs for tax credit',
-  'ใบเสนอราคาที่เปิดอยู่':'Open quotations',
-  'มูลค่าใน pipeline':'Pipeline value',
-  'รอใบ 50 ทวิ จากลูกค้า':'Awaiting 50 tawi certs',
   'ค้างรับ':'Outstanding',
   'รับแล้ว':'Received',
   'เอกสารล่าสุด':'Recent documents',
   'ยังไม่มีเอกสาร — กด “เอกสารใหม่” เพื่อเริ่ม':'No documents yet — click “New document” to start',
-  'รายรับ (สุทธิจากใบเสร็จ)':'Income (net, from receipts)',
   'รายรับรายเดือน':'Monthly income',
-  'รายรับตามลูกค้า (สูงสุด 6)':'Income by client (top 6)',
   'ออกบิลไว เก็บเงินง่าย':'Bill fast, get paid easily',
   'เลือกงานถัดไปจากแดชบอร์ด แล้วส่งเอกสารให้ลูกค้าได้ทันที':'Pick the next task from the dashboard and send documents right away',
   'ดูเอกสาร':'View documents',
   'เริ่มจากใบเสนอราคา แล้วแปลงเป็นใบแจ้งหนี้ได้ต่อทันที':'Start with a quotation, then turn it into an invoice',
   'ลองเปลี่ยนตัวกรองหรือคำค้นหา':'Try another filter or search term',
   'เก็บข้อมูลลูกค้าไว้ใช้ซ้ำบนใบเสนอราคาและใบแจ้งหนี้':'Save client details for reuse on quotations and invoices',
-  'รายงานจะเริ่มขึ้นเมื่อมีใบเสร็จหรือใบกำกับภาษี':'Reports start once receipts or tax invoices exist',
   // --- welcome & setup wizard ---
-  'ยินดีต้อนรับ! ตั้งค่าข้อมูลธุรกิจแบบไว 3 ขั้นตอน — หรือดูตัวอย่างการใช้งานก่อนก็ได้':'Welcome! Set up your business in 3 quick steps — or explore sample data first',
+  'ยินดีต้อนรับ — ตั้งค่าธุรกิจ 3 ขั้นตอน หรือดูข้อมูลตัวอย่างก่อนก็ได้':'Welcome — set up your business in 3 steps, or look at the sample data first',
   'ลองดูข้อมูลตัวอย่าง':'Try sample data',
   'เริ่มตั้งค่า':'Start setup',
   'พร้อมใช้งานแล้ว — เพิ่มลูกค้าแล้วออกเอกสารแรกได้เลย':'All set — add a client and issue your first document',
@@ -2283,7 +2260,7 @@ const I18N_EN = {
   'โทรศัพท์':'Phone',
   'ที่อยู่ (แสดงบนหัวเอกสาร)':'Address (shown on document header)',
   'อีเมล':'Email',
-  'ข้อมูลนี้จะขึ้นบนหัวเอกสารทุกใบ — แก้ไขภายหลังได้ที่ ตั้งค่า':'Shown on every document header — you can edit this later in Settings',
+  'แก้ไขภายหลังได้ที่ ตั้งค่า':'You can edit this later in Settings',
   'PromptPay (เบอร์มือถือ หรือเลขบัตรประชาชน)':'PromptPay (mobile number or national ID)',
   'เช่น 0812345678':'e.g. 0812345678',
   'ใส่แล้วใบแจ้งหนี้จะมี QR ให้ลูกค้าสแกนจ่ายได้ทันที':'Invoices will include a QR code your client can scan to pay',
@@ -2294,7 +2271,6 @@ const I18N_EN = {
   'โลโก้':'Logo',
   'ลายเซ็น':'Signature',
   'ตราประทับ':'Stamp',
-  'สีแบรนด์ (ธีมของแอปและเอกสารทุกใบ)':'Brand color (themes the app and every document)',
   'เลือกสีอื่นแบบละเอียดได้ภายหลังที่ ตั้งค่า → สีองค์กร':'Fine-tune later in Settings → Brand color',
   'ตั้งค่าเริ่มต้น {step}/3 — {name}':'Quick setup {step}/3 — {name}',
   'ข้ามไปก่อน':'Skip for now',
@@ -2307,7 +2283,7 @@ const I18N_EN = {
   'ล้างข้อมูลตัวอย่างแล้ว — เริ่มใช้งานจริงได้เลย':'Sample data cleared — ready for real use',
   'กำลังแสดง':'Showing ',
   'ข้อมูลตัวอย่าง':'sample data',
-  ' — ลองกดดูเอกสาร แดชบอร์ด และหน้า 50 ทวิ ได้ตามสบาย เมื่อพร้อมใช้งานจริงค่อยล้างออก':' — explore the documents, dashboard and 50 tawi pages freely, then clear it when you are ready',
+  ' — ลองกดดูได้ตามสบาย เมื่อพร้อมใช้จริงค่อยล้างออก':' — explore freely, then clear it when you are ready',
   'ล้างข้อมูลตัวอย่าง':'Clear sample data',
   // --- documents list ---
   'ค้นหาเลขที่ / ลูกค้า / โปรเจกต์…':'Search no. / client / project…',
@@ -2318,16 +2294,9 @@ const I18N_EN = {
   'ยอดบิล':'Total',
   'สุทธิ':'Net',
   // --- WHT (50 tawi) ---
-  'ใบ 50 ทวิ คือหนังสือรับรองการหักภาษี ณ ที่จ่ายที่':'A 50 tawi is the withholding tax certificate that',
-  'ลูกค้าต้องออกให้คุณ':'your client must issue to you',
-  'เก็บไว้เพื่อใช้เครดิตภาษีตอนยื่นภงด.':'keep it to claim the tax credit when you file',
   'ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย':'No withholding tax records yet',
   'เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ':'Receipts with withholding tax will appear here so you can track the 50 tawi certificates',
-  'ถูกหักทั้งหมด':'Total withheld',
-  'ได้รับใบ 50 ทวิ แล้ว':'Certs received',
   'ยังรอใบ 50 ทวิ':'Still awaiting certs',
-  'หัก %':'Rate %',
-  'สถานะใบ 50 ทวิ':'50 tawi status',
   'ได้รับแล้ว':'Received',
   'แก้ไข':'Edit',
   'บันทึกรับใบ':'Record cert',
@@ -2335,13 +2304,11 @@ const I18N_EN = {
   'ได้รับใบหนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ) แล้ว':'Withholding tax certificate (50 tawi) received',
   'เลขที่ใบ 50 ทวิ (ถ้ามี)':'Certificate no. (optional)',
   'วันที่บนใบรับรอง':'Certificate date',
-  'ภาษีถูกหัก: {a} · อัตรา {r}% จากฐาน {b}':'Tax withheld: {a} · rate {r}% on base {b}',
   'ยกเลิก':'Cancel',
   'บันทึก':'Save',
   'บันทึกข้อมูลใบ 50 ทวิ แล้ว':'50 tawi details saved',
   // --- recurring ---
   'รายการประจำใหม่':'New recurring item',
-  '+ รายการประจำใหม่':'+ New recurring item',
   'ยังไม่มีรายการประจำ':'No recurring items yet',
   'สร้างเทมเพลตสำหรับงานที่วางบิลซ้ำ ๆ (รายเดือน/ไตรมาส/ปี) แล้วสร้างใบแจ้งหนี้ได้ในคลิกเดียว':'Create templates for repeat billing (monthly / quarterly / yearly) and generate invoices in one click',
   'เพิ่มลูกค้าก่อน':'Add a client first',
@@ -2364,7 +2331,6 @@ const I18N_EN = {
   'ราคา/หน่วย':'Unit price',
   'รวม':'Total',
   'เพิ่มรายการ':'Add item',
-  '+ เพิ่มรายการ':'+ Add item',
   'หัก ณ ที่จ่าย (%)':'Withholding tax (%)',
   'หมายเหตุ':'Notes',
   'เปิดใช้งาน':'Active',
@@ -2375,27 +2341,20 @@ const I18N_EN = {
   'ลบรายการประจำนี้?':'Delete this recurring item?',
   'สร้างใบแจ้งหนี้จากรายการประจำแล้ว — ครั้งถัดไป {d}':'Invoice generated — next run {d}',
   // --- clients ---
-  '+ เพิ่มลูกค้า':'+ Add client',
   'ยังไม่มีลูกค้า — เพิ่มลูกค้าเพื่อเริ่มออกเอกสาร':'No clients yet — add one to start issuing documents',
   'ยังไม่มีเลขภาษี':'No tax ID',
   'ไม่หัก':'No WHT',
   'แก้ไขลูกค้า':'Edit client',
   'เพิ่มลูกค้า':'Add client',
-  'ชื่อบริษัท / หน่วยงาน *':'Company / organization *',
   'เช่น Thai PBS, มูลนิธิ LPN':'e.g. Thai PBS, LPN Foundation',
   'ผู้ติดต่อ':'Contact person',
-  'จำเป็นสำหรับใบกำกับภาษีเต็มรูป':'Required for full tax invoices',
-  'ลูกค้ารายนี้หักภาษี ณ ที่จ่าย (ค่าเริ่มต้น)':'This client withholds tax (default)',
   'ภาษาเอกสารของลูกค้ารายนี้':'Document language for this client',
   'ตามค่าเริ่มต้น (ตั้งค่า)':'Default (from Settings)',
-  'ใบกำกับภาษีจะยังพิมพ์แบบไทย+อังกฤษเสมอ (เอกสารของกรมสรรพากร)':'Tax invoices always print Thai + English (Revenue Department document)',
   'ตั้งภาษาเฉพาะรายลูกค้าได้ในหน้าลูกค้า':'You can override this per client in the client editor',
   'ตามลูกค้า / ค่าเริ่มต้น':'Client default',
-  'สำหรับโอนจากต่างประเทศ — แสดงบนใบแจ้งหนี้ภาษาอังกฤษหรือสกุลเงินต่างประเทศ':'For international transfers — shown on English or foreign-currency invoices',
   'อัตราแลกเปลี่ยน (บาทต่อ 1 {c})':'Exchange rate (THB per 1 {c})',
   'เช่น 36.50':'e.g. 36.50',
   'ไม่บังคับ — ใช้แปลงยอดเป็นบาทในหน้าสรุปภาษี (ไม่แสดงบนเอกสาร)':'Optional — converts totals to THB in the tax summary (not printed on the document)',
-  'รายรับต่างประเทศ (เทียบเท่าบาท)':'Foreign income (THB equivalent)',
   '{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน':'{n} document(s) missing an FX rate',
   'จากอัตราแลกเปลี่ยนที่ระบุในแต่ละเอกสาร':'Converted using the rate on each document',
   '{n} ใบไม่มีเรต':'{n} without rate',
@@ -2409,25 +2368,16 @@ const I18N_EN = {
   // --- tax report ---
   'ส่งออก CSV ปีนี้':'Export CSV (this year)',
   'ปีภาษี':'Tax year',
-  '(ปฏิทิน ม.ค.–ธ.ค. · คิดจากใบเสร็จ/ใบกำกับภาษีที่ออกแล้ว)':'(Calendar Jan–Dec · based on issued receipts / tax invoices)',
   'ยังไม่มีรายรับที่บันทึกในปี {y}':'No income recorded in {y}',
   'รายรับก่อน VAT':'Income before VAT',
   'ฐานเงินได้ ({n} ใบเสร็จ)':'Income base ({n} receipts)',
-  'VAT ขาย (ออกให้ลูกค้า)':'Output VAT (charged to clients)',
-  'ภาษีขายที่เก็บแทนสรรพากร':'VAT collected for the Revenue Dept.',
   'ก่อนหักภาษี ณ ที่จ่าย':'Before withholding tax',
-  'ถูกหัก ณ ที่จ่าย':'Withheld at source',
-  'เครดิตภาษี — ใช้ใบ 50 ทวิ ยื่นภงด.':'Tax credit — claim with your 50 tawi certs',
-  'รับสุทธิเข้าบัญชี':'Net received',
   'หลังหักภาษี ณ ที่จ่าย':'After withholding tax',
   'ค้างรับ (บิลปีนี้)':'Outstanding (this year)',
   'ใบแจ้งหนี้ที่ยังไม่ชำระ':'Unpaid invoices',
   'รับสุทธิ':'Net received',
-  'รายรับรายเดือน (ยอดรวม, บาท)':'Monthly income (gross, THB)',
-  'รายรับสุทธิตามลูกค้า':'Net income by client',
   'เลขผู้เสียภาษี':'Tax ID',
   'ก่อนVAT':'Before VAT',
-  'หักณที่จ่าย':'WHT',
   // --- settings ---
   'ไฟล์ข้อมูล':'Data file',
   'กำลังบันทึกลงไฟล์ {f} โดยอัตโนมัติ':'Saving automatically to {f}',
@@ -2453,7 +2403,6 @@ const I18N_EN = {
   'ข้อมูลธุรกิจ (ผู้ออกเอกสาร)':'Business info (document issuer)',
   'แสดงบนหัวเอกสารทุกฉบับ':'Shown on every document header',
   'ชื่อ (ไทย)':'Name (Thai)',
-  'ที่อยู่ (ไทย)':'Address (Thai)',
   'ใช้บนเอกสารภาษาอังกฤษ — เว้นว่างได้ถ้าไม่ใช้':'Used on English-language documents — leave blank if not needed',
   'ที่อยู่':'Address',
   'เลขประจำตัวผู้เสียภาษี (13 หลัก)':'Tax ID (13 digits)',
@@ -2461,18 +2410,12 @@ const I18N_EN = {
   'แสดงบนใบแจ้งหนี้':'Shown on invoices',
   'PromptPay (เบอร์มือถือ 10 หลัก หรือเลขบัตรประชาชน/ผู้เสียภาษี 13 หลัก)':'PromptPay (10-digit mobile or 13-digit national / tax ID)',
   'สีองค์กร / แบรนด์':'Brand color',
-  'เลือกสีหลักให้ตรงกับแบรนด์ของคุณ — จะปรับสีทั้งแอปและสีบนเอกสารทุกฉบับ (หัวตาราง หัวข้อ ยอดสุทธิ ตราใบกำกับภาษี ฯลฯ) พร้อมกัน':'Pick your brand color — it themes the whole app and every document (table headers, titles, totals, tax stamp, etc.) at once',
   'คืนค่าเริ่มต้น':'Reset to default',
   'ตัวอย่างสด:':'Live preview:',
-  'ปุ่ม/แท็ก':'Buttons / tags',
-  'ตัวอักษรเน้น':'Accent text',
   'โลโก้ · ลายเซ็น · ตราประทับ':'Logo · Signature · Stamp',
-  'ไม่บังคับ — โลโก้แสดงหัวเอกสาร · ลายเซ็นและตราประทับแสดงเหนือเส้นลงนาม (เหมาะกับใบเสร็จ/ใบกำกับภาษี) แนะนำไฟล์ PNG พื้นหลังโปร่งใส':'Optional — the logo appears on document headers; the signature and stamp appear above the signing line (great for receipts / tax invoices). Transparent PNG recommended',
+  'ไม่บังคับ — โลโก้แสดงบนหัวเอกสาร ลายเซ็นและตราประทับแสดงเหนือเส้นลงนาม แนะนำ PNG พื้นหลังโปร่งใส':'Optional — the logo prints in the header; the signature and stamp print above the signing line. A PNG with a transparent background works best',
   'เลือก…':'Choose…',
   'ภาษีและค่าเริ่มต้น':'Tax & defaults',
-  'จดทะเบียนภาษีมูลค่าเพิ่ม (VAT) — เปิดใช้ใบกำกับภาษี':'VAT registered — enables tax invoices',
-  'VAT เริ่มต้น (%)':'Default VAT (%)',
-  'หัก ณ ที่จ่ายเริ่มต้น (%)':'Default withholding tax (%)',
   'เงื่อนไขการชำระเริ่มต้น':'Default payment terms',
   'รูปแบบการแสดงผล':'Display',
   'ปีในเอกสาร':'Year on documents',
@@ -2488,19 +2431,13 @@ const I18N_EN = {
   'ใช้ได้ — QR นี้จะแสดงบนใบแจ้งหนี้ (สกุลเงินบาท)':'Valid — this QR will appear on THB invoices',
   'ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลข 13 หลัก':'Must be a 10-digit mobile number or a 13-digit ID',
   // --- document editor ---
-  'เพิ่มลูกค้าก่อนออกเอกสาร':'Add a client before issuing documents',
   'สร้าง':'New',
   'ครบกำหนดชำระ':'Due date',
   'วันที่รับชำระ':'Payment date',
   'ค่าบริการ / ค่าที่ปรึกษา':'Service / consulting fee',
   'งาน':'job',
   'เช่น Thai PBS — dashboard Q2':'e.g. Thai PBS — dashboard Q2',
-  '0% ไม่หัก · 1% ขนส่ง · 2% โฆษณา · 3% บริการ · 5% ค่าเช่า':'0% none · 1% transport · 2% advertising · 3% services · 5% rent',
-  'ลูกค้าต่างประเทศไม่หักภาษี ณ ที่จ่ายของไทย — ระบบจึงไม่คำนวณ WHT สำหรับสกุลเงิน {c}':'Foreign clients do not withhold Thai tax — WHT is not calculated for {c}',
-  'ออกใบกำกับภาษีไม่ได้ — ลูกค้ายังไม่มีเลขประจำตัวผู้เสียภาษี':'Cannot issue a tax invoice — this client has no tax ID',
-  'ลูกค้ายังไม่มีเลขภาษี ต้องการเพิ่มตอนนี้?':'The client has no tax ID — add it now?',
   'บันทึกเอกสารแล้ว':'Document saved',
-  'ลบเอกสารนี้?':'Delete this document?',
   // --- document view ---
   'กลับ':'Back',
   'ทำเครื่องหมายว่าส่งแล้ว':'Mark as sent',
@@ -2508,7 +2445,6 @@ const I18N_EN = {
   'ลูกค้าปฏิเสธ':'Client declined',
   'แปลงเป็นใบแจ้งหนี้':'Convert to invoice',
   'บันทึกรับชำระ':'Record payment',
-  'ออกใบเสร็จ/ใบกำกับภาษี':'Issue receipt / tax invoice',
   'คัดลอกข้อความ':'Copy summary',
   'พิมพ์':'Print',
   'บันทึก PDF':'Save PDF',
@@ -2518,12 +2454,7 @@ const I18N_EN = {
   'คัดลอกข้อความแล้ว — วางส่งใน LINE ได้เลย':'Copied — paste it into LINE or chat',
   'สร้างจาก':'Created from',
   'นำไปออก':'Led to',
-  'อัปเดตสถานะ:':'Status updated:',
-  'สร้างใบแจ้งหนี้จากใบเสนอราคาแล้ว':'Invoice created from the quotation',
-  'ลูกค้ายังไม่มีเลขภาษี — ออกได้เฉพาะใบเสร็จธรรมดา (ไม่ใช่ใบกำกับภาษี)\nต้องการเพิ่มเลขภาษีก่อน?':'The client has no tax ID — only a plain receipt can be issued (not a tax invoice)\nAdd the tax ID first?',
-  'ออกใบเสร็จ/ใบกำกับภาษีแล้ว':'Receipt / tax invoice issued',
   'ออกใบเสร็จแล้ว':'Receipt issued',
-  'ทำสำเนาแล้ว':'Duplicated',
   // --- share text (copy for LINE/chat) ---
   'เรียน {n}':'To {n}',
   'ยอดรวม: {a}':'Total: {a}',
@@ -2543,18 +2474,18 @@ const I18N_EN = {
   'ยังไม่มีไฟล์สำรอง — จะถูกสร้างอัตโนมัติระหว่างใช้งาน':'No backups yet — they are created automatically as you work',
   'วันที่สำรอง':'Backed up',
   'วันที่สำรอง (เวลาเครื่อง)':'Backed up (device time)',
-  'หยุดบันทึกและซิงก์ชั่วคราว':'Saving and sync paused',
   'ไฟล์ข้อมูลไม่พร้อมหรือเปลี่ยนไป หยุดบันทึกเพื่อป้องกันข้อมูลเดิม':'Data is unavailable or changed on disk. Saving is paused to protect it.',
   'ก่อนแทนที่ข้อมูล':'Before replacing data',
-  'หยุดบันทึกและซิงก์เพื่อป้องกันข้อมูลเดิม ตรวจว่า Drive พร้อมแล้ว จากนั้นเปิดแอปใหม่ หรือกู้ข้อมูลจากสำรอง':'Saving and sync are paused to protect your data. Check that Drive is ready, then reopen the app or restore a backup.',
   'ที่มา':'Source',
   'ขนาด':'Size',
   'อัตโนมัติ':'Automatic',
   'สำรองเอง':'Manual',
   'ก่อนอัปเกรด':'Before upgrade',
+  'ก่อนอัปเดตที่เก็บข้อมูล':'Before the storage update','ก่อนอัปเกรดข้อมูล':'Before the data upgrade',
+  'ก่อนเชื่อมต่อ Google Drive':'Before connecting Google Drive','ก่อนหยุดซิงก์':'Before sync was stopped','ก่อนรับข้อมูลจากซิงก์':'Before data arrived from sync',
+  'สำรองโดยแอป':'Saved by the app',
   'ก่อนกู้คืน':'Before restore',
   'กู้คืน':'Restore',
-  'กู้คืนข้อมูลจากไฟล์สำรองนี้? ข้อมูลปัจจุบันจะถูกสำรองไว้ให้ก่อนโดยอัตโนมัติ':'Restore from this backup? Your current data will be backed up first automatically',
   'สร้างไฟล์สำรองแล้ว':'Backup created',
   'กู้คืนข้อมูลแล้ว':'Data restored',
   'กู้คืนไม่สำเร็จ:':'Restore failed:',
@@ -2563,13 +2494,9 @@ const I18N_EN = {
   'ประเภทเงินได้':'Income category',
   'ไม่ระบุ':'Unspecified',
   'ยังไม่ระบุประเภท':'Uncategorized',
-  'เลือกประเภทแล้วระบบแนะนำอัตราหัก ณ ที่จ่ายให้ และช่วยจัดกลุ่มยอดตอนยื่นภาษี':'Picking a category suggests the withholding rate and groups income for tax filing',
   'ประเภทเงินได้เริ่มต้นของลูกค้ารายนี้':'Default income category for this client',
-  'ใช้เป็นค่าเริ่มต้นเวลาออกเอกสารให้ลูกค้ารายนี้ — ช่วยจัดกลุ่มยอดตอนยื่นภาษี':'Used as the default on documents for this client — helps group income for tax filing',
   'รายรับตามประเภทเงินได้ (มาตรา 40)':'Income by category (Section 40)',
   'ใบ':'doc(s)',
-  'ยอดก่อน VAT — ใช้จัดกลุ่มเงินได้พึงประเมินตอนยื่น ภ.ง.ด.90/94':'Pre-VAT amounts — groups assessable income for PND 90/94 filing',
-  '{n} ใบไม่ถูกนับใน ภ.ง.ด.94 เพราะเป็นเงินได้นอก 40(5)–(8)':'{n} document(s) not counted in PND 94 — income outside section 40(5)–(8)',
   'เงินเดือน ค่าจ้าง':'Salary / wages',
   'รับจ้างทั่วไป ฟรีแลนซ์ ค่านายหน้า':'Freelance / services / commissions',
   'ค่าลิขสิทธิ์ ค่ากู๊ดวิลล์':'Royalties / goodwill',
@@ -2578,22 +2505,15 @@ const I18N_EN = {
   'รับเหมาที่ลงทุนจัดหาสัมภาระ':'Contract work with materials',
   'ธุรกิจ พาณิชย์ อื่น ๆ':'Business / commerce / other',
   // --- Workspace sync (Pro, Phase D) ---
-  'พื้นที่ทำงาน (Workspace)':'Workspace',
-  'ทำงานต่อได้ทุกเครื่อง สำรองอัตโนมัติ และกู้คืนเมื่อเปลี่ยนคอม — ข้อมูลซิงก์ผ่าน Google Drive ของคุณเอง BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา':'Work on every device, back up automatically, and restore on a new computer — data syncs through your own Google Drive. BillNgai never stores client documents on our servers',
   'ดูแพ็กเกจ Pro':'See Pro plans',
-  'ตอนนี้ใช้แบบ Local: ข้อมูลอยู่ในเครื่องนี้เท่านั้น (สำรอง/กู้คืนได้ที่แท็บ ข้อมูลและสำรอง)':'Currently on Local: data lives on this device only (back up / restore in the Data & backup tab)',
   'ธุรกิจของฉัน':'My business',
   'เอกสารและภาษี':'Documents & tax',
   'ข้อมูลและสำรอง':'Data & backup',
   'พื้นที่ทำงาน':'Workspace',
-  'รุ่นนี้ยังไม่ได้ฝังค่า Google OAuth client — สำหรับนักพัฒนา: วางไฟล์ secrets/gdrive-oauth.json หรือตั้งค่า BILLNGAI_GDRIVE_CLIENT_ID':'This build has no Google OAuth client embedded — for developers: add secrets/gdrive-oauth.json or set BILLNGAI_GDRIVE_CLIENT_ID',
   'เชื่อมต่อ Google Drive':'Connect Google Drive',
-  'เชื่อมต่อแล้วจะซิงก์อัตโนมัติ — เครื่องใหม่ใช้ปุ่ม "กู้คืนจากคลาวด์" หลังเชื่อมต่อ':'Once connected, sync runs automatically — on a new computer, use "Restore from cloud" after connecting',
-  'เชื่อมต่อแล้ว: {e}':'Connected: {e}',
   'ซิงก์ล่าสุด {t}':'Last synced {t}',
   'ยังไม่ได้ซิงก์':'Not synced yet',
   'กำลังซิงก์…':'Syncing…',
-  'ซิงก์เดี๋ยวนี้':'Sync now',
   'ซิงก์แล้ว':'Synced',
   'ส่งการแก้ไขขึ้น Drive แล้ว':'changes uploaded to Drive',
   'รับมา {n} รายการ':'received {n} update(s)',
@@ -2601,12 +2521,8 @@ const I18N_EN = {
   'ซิงก์แล้ว — ข้อมูลตรงกับ Drive อยู่แล้ว ไม่มีอะไรต้องส่ง':'Synced — already up to date with Drive, nothing to send',
   'ซิงก์ไม่สำเร็จ:':'Sync failed:',
   'ซิงก์ไม่สำเร็จ — จะลองใหม่ให้อัตโนมัติ':'Sync failed — will retry automatically',
-  'กู้คืนจากคลาวด์ (เครื่องใหม่)':'Restore from cloud (new computer)',
-  'ดูข้อขัดแย้ง':'View conflicts',
   'ยกเลิกการเชื่อมต่อ':'Disconnect',
-  'เครื่องที่เชื่อมต่อ':'Connected devices',
   'เครื่องนี้':'this device',
-  'ใช้งานล่าสุด':'last active',
   'เปิดหน้าล็อกอิน Google ในเบราว์เซอร์แล้ว — ล็อกอินเสร็จแล้วกลับมาที่แอป':'Google sign-in opened in your browser — come back to the app when done',
   'เชื่อมต่อ Google Drive แล้ว':'Google Drive connected',
   'เชื่อมต่อไม่สำเร็จ:':'Could not connect:',
@@ -2634,18 +2550,14 @@ const I18N_EN = {
   // --- Pro packaging (Phase E) ---
   'อัปเกรดเป็น BillNgai Pro':'Upgrade to BillNgai Pro',
   'BillNgai Local — ของคุณตลอดไป':'BillNgai Local — yours forever',
-  'ออกเอกสารครบทุกแบบ ไม่จำกัดจำนวน':'Every document type, unlimited',
-  'ภาษีไทยครบ: VAT · หัก ณ ที่จ่าย · ภ.ง.ด.90/94':'Full Thai tax handling: VAT · withholding · PND 90/94',
   'ข้อมูลอยู่ในเครื่องคุณ 100%':'Your data stays 100% on your machine',
   'สำรอง/กู้คืนในเครื่อง':'Local backup & restore',
-  'ทำงานได้ทุกเครื่อง สำรองข้อมูลอัตโนมัติ และเตรียมภาษีง่ายขึ้น โดยข้อมูลยังอยู่ใน Google Drive ของคุณเอง':'Work on every device, back up automatically, and prepare taxes more easily — with data in your own Google Drive',
   'ทุกอย่างที่มีใน Local':'Everything in Local',
   'ซิงก์ผ่าน Google Drive ของคุณเอง — เริ่มงานที่ออฟฟิศ ทำต่อที่บ้าน':'Sync via your own Google Drive — start at the office, continue at home',
   'สำรองขึ้นคลาวด์อัตโนมัติ + กู้คืนเมื่อเปลี่ยนคอม':'Automatic cloud backup + restore on a new computer',
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
-  'ฟีเจอร์ Pro — ดูแพ็กเกจ':'Pro feature — see plans',
   'สถานะ Pro':'Pro status',
   'BillNgai Pro มีใน App Store เท่านั้น':'BillNgai Pro is only on the App Store',
   'ตอนนี้ BillNgai Pro ซื้อได้เฉพาะใน App Store (Mac, iPhone และ iPad) — รุ่นดาวน์โหลดตรงนี้ไม่มีการซื้อในแอปแล้ว':'BillNgai Pro is now sold only through the App Store (Mac, iPhone and iPad) — this direct-download version no longer sells Pro.',
@@ -2656,9 +2568,6 @@ const I18N_EN = {
   'ไม่ทราบสกุลเงิน':'Unknown currency',
   'ปิด':'Close',
   'ยอดยังไม่ครบ':'Amount incomplete',
-  'ยอดที่รวมได้ตอนนี้':'Total currently available',
-  'ยอดสุทธิตามรายการรับเงิน ไม่ใช่เครดิตภาษีที่ตรวจแล้ว':'Net amount from payment records — not a verified tax credit',
-  'รายรับสุทธิตามรายการรับเงิน':'Net income from payment records',
   'ตรวจและเตรียมแก้เอกสารเดิม':'Review and prepare corrections',
   'คลังเอกสาร':'Document archive',
   'ยกเลิกแล้ว':'Voided',
@@ -2713,8 +2622,6 @@ const I18N_EN = {
   'ยังไม่ยืนยัน':'Not confirmed',
   'ยืนยันว่าไม่ได้จดทะเบียน VAT':'Confirm VAT not registered',
   'จดทะเบียน VAT แล้ว':'VAT registered',
-  'รุ่นนี้รองรับใบเสร็จธรรมดาสำหรับผู้ไม่จด VAT เท่านั้น':'This release supports ordinary receipts for non-VAT issuers only',
-  'สำรองไฟล์ในเครื่องได้ อย่าแก้ไฟล์เดียวพร้อมกันหลายเครื่อง':'Back up locally — do not edit the same file on multiple devices at once',
   'ข้อมูลเปลี่ยนระหว่างเลือกไฟล์ กรุณาเลือกใหม่':'Data changed while selecting a file — please try again',
   'บันทึกการเปลี่ยนแปลงไม่สำเร็จ':'Failed to save changes',
   'อ่านไฟล์รูปภาพไม่สำเร็จ':'Failed to read image file',
@@ -2725,15 +2632,12 @@ const I18N_EN = {
   'รองรับใบเสร็จเงินบาท ไม่รวม VAT และชำระเต็มจำนวนเท่านั้น':'THB receipts only — no VAT, full payment required',
   'กรอกวันรับเงินจริงและยืนยันรับเต็มจำนวน':'Enter actual payment date and confirm full payment',
   'เอกสารออกแล้ว แก้ไขไม่ได้':'Document issued — cannot edit',
-  'ยืนยันลบ VAT จากร่างนี้? ยังไม่เปลี่ยนเอกสารที่ออกแล้ว':'Remove VAT from this draft? Issued documents are unchanged',
-  'ร่างเดิมมี VAT รุ่นนี้ไม่รองรับ กรุณาตรวจแล้วเลือกสร้างร่างไม่รวม VAT':'Draft had VAT — this version does not support it. Review and choose to create a VAT-excluded draft',
+  'ร่างนี้มี VAT — ใบเสร็จออกได้เฉพาะไม่รวม VAT ตรวจยอดก่อนเปลี่ยนร่าง':'This draft has VAT — receipts are issued without VAT only. Check the amounts before changing the draft',
   'เปลี่ยนร่างเป็นไม่รวม VAT':'Convert draft to VAT-excluded',
   'ใช้จัดหมวดรายได้ ไม่เปลี่ยนอัตราหัก ณ ที่จ่าย':'For income categorisation — does not change withholding rate',
   'อัตราขึ้นกับประเภทเงินได้และผู้จ่าย ไม่ใช่สกุลเงิน':'Rate depends on income type and payer — not currency',
   'ตรวจอัตราหัก ณ ที่จ่ายกับผู้จ่ายแล้ว':'Withholding rate verified with payer',
   'ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย':'Confirm full payment received — not a deposit or instalment',
-  'ยืนยันออกเอกสาร เก็บต้นฉบับและแก้ไขไม่ได้':'Confirm issuance — original is preserved and cannot be edited',
-  'บันทึกร่าง หรือเลือกยืนยันออกเอกสาร':'Save as draft, or confirm issuance',
   'ต้องมีใบแจ้งหนี้ที่ยืนยันรับเงินเต็มจำนวนแล้ว':'Requires a paid invoice with confirmed full payment',
   'เอกสารที่ออกแล้วแก้ไขหรือลบไม่ได้':'Issued documents cannot be edited or deleted',
   'ใบกำกับภาษีเดิมต้องให้ผู้เชี่ยวชาญตรวจสอบ':'Original tax invoices require practitioner review',
@@ -2816,14 +2720,13 @@ const I18N_EN = {
   'ส่งออกชุดหลักฐาน':'Export evidence bundle',
   'นำเข้าชุดหลักฐาน':'Import evidence bundle',
   'เอกสารนี้ต้องตรวจประวัติก่อนเปลี่ยนสถานะ':'This document requires history review before status change',
-  'รุ่นนี้ยังไม่รองรับการรับเงินมัดจำหรือแบ่งจ่าย':'This release does not support deposits or installment payments',
+  'ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย':'Receipts are issued for full payment only, not deposits or instalments',
   'กรุณายืนยันวันที่และการรับเงินเต็มจำนวน':'Please confirm date and full payment',
   'ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?':'Issue full-amount receipt from this payment?',
   'ยอดร่างที่วางแผนไว้':'Planned draft amount',
-  'ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง':'Cloud sync paused in this release — use local backups',
-  'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'This version supports THB receipts for non-VAT issuers receiving full payment only',
+  'ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'Receipts: THB only, for non-VAT issuers paid in full',
   'สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี':'Summary for bookkeeping review — not a tax return',
-  'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน':'This is a version limitation — not a legal prohibition for all freelancers',
+  'เป็นข้อจำกัดของแอป ไม่ใช่ข้อห้ามทางกฎหมาย':'These are app limits, not legal prohibitions',
   'ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว':'Withholding shown is expected — not a verified tax credit',
   'วันที่รับเงินไม่ชัดเจน':'Payment date is unclear',
   'ยอดหักคาดหมาย':'Expected withholding',
@@ -2833,8 +2736,6 @@ const I18N_EN = {
   '{n} ใบเกินกำหนด — ตามลูกค้าก่อน':'{n} overdue — chase your clients',
   'ยอดค้างรับ':'Outstanding',
   '{n} ใบเกินกำหนด':'{n} overdue',
-  'สุทธิตามรายการรับเงิน':'Net from payment records',
-  'ยอดที่ลูกค้าจะหัก — ขอใบ 50 ทวิ':'Client will withhold — request 50 tawi',
   'รอใบ 50 ทวิ':'Pending 50 tawi',
   'ดูเอกสารทั้งหมด':'View all documents',
   'ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น':'THB receipt, no VAT, full payment only',
@@ -2854,18 +2755,13 @@ const I18N_EN = {
   'อัตราหัก ณ ที่จ่ายขึ้นกับประเภทเงินได้และผู้จ่าย — ฟรีแลนซ์มักโดน 3% สำหรับงานรับจ้าง':'Rate depends on income type and payer — freelancers are often withheld 3% for services',
   'ไม่ระบุลูกค้า':'No client specified',
   'PDF':'PDF',
-  'มีการแก้ไขที่ยังไม่ได้บันทึก — ปิดโดยไม่บันทึก?':'You have unsaved changes — close without saving?',
   'เลขประจำตัวผู้เสียภาษีถูกต้อง':'Tax ID is valid',
   'เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง':'Tax ID is invalid',
 // --- Mac App Store build (In-App Purchase) ---
-  'ฟรี — ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ':'Free — create documents forever; your data stays on your Mac',
   'กำลังโหลดราคาจาก App Store…':'Loading price from the App Store…',
   'จ่ายครั้งเดียว {p} — ไม่มีค่ารายเดือน':'One-time {p} — no subscription',
-  'เชื่อมต่อ App Store ไม่ได้ — ลองใหม่อีกครั้ง':'Could not reach the App Store — please try again',
   'ซื้อผ่าน App Store':'Buy via the App Store',
   'กู้คืนการซื้อ':'Restore Purchases',
-  'เริ่มการซื้อแล้ว — ยืนยันกับ App Store ต่อได้เลย':'Purchase started — confirm with the App Store to finish',
-  'ซื้อไม่สำเร็จ:':'Purchase failed:',
   'กำลังกู้คืนการซื้อจาก App Store…':'Restoring purchases from the App Store…',
   'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
   'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
@@ -3319,28 +3215,21 @@ Object.assign(I18N_EN, {
   'ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น':'THB receipts, no VAT, full payment only',
   'ปิด':'Close',
   'สรุปรายรับ':'Income summary',
-  'ทบทวนรายรับ':'Income review',
-  'ประเภทเงินได้ใช้ได้ทุกแพ็กเกจ':'Income classification is available on every plan',
-  'รายรับสุทธิตามรายการรับเงิน':'Net income from payment records',
-  'ร่างเดิมมี VAT รุ่นนี้ไม่รองรับ กรุณาตรวจแล้วเลือกสร้างร่างไม่รวม VAT':'This draft contains VAT, which this release does not support. Review before changing the draft to non-VAT.',
+  'ร่างนี้มี VAT — ใบเสร็จออกได้เฉพาะไม่รวม VAT ตรวจยอดก่อนเปลี่ยนร่าง':'This draft has VAT — receipts are issued without VAT only. Check the amounts before changing the draft',
   'เปลี่ยนร่างเป็นไม่รวม VAT':'Change draft to non-VAT',
-  'ยืนยันลบ VAT จากร่างนี้? ยังไม่เปลี่ยนเอกสารที่ออกแล้ว':'Remove VAT from this draft? Issued documents are not changed.',
-  'ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง':'Cloud sync is paused in this release — use local backups.',
   'แอปนี้ไม่มีการส่งออก e-Tax XML':'This app has no e-Tax XML export.',
-  'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'This release supports full-payment THB ordinary receipts for confirmed non-VAT issuers.',
+  'ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'Receipts: THB only, for non-VAT issuers paid in full',
   'ข้อมูลเก่ายังอยู่ ไม่แก้ใบเดิมอัตโนมัติ โปรดให้ผู้ทำบัญชีตรวจ':'Existing records are retained, not automatically corrected. Ask your tax practitioner to review them.',
-  'สำรองไฟล์ในเครื่องได้ อย่าแก้ไฟล์เดียวพร้อมกันหลายเครื่อง':'Local backup is available. Do not edit the same file on multiple devices concurrently.',
-  'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน':'These are release limits, not legal prohibitions applying to all freelancers.'
-  ,'ยอดสุทธิตามรายการรับเงิน ไม่ใช่เครดิตภาษีที่ตรวจแล้ว':'Net amount from payment records, not verified tax credits'
+  'เป็นข้อจำกัดของแอป ไม่ใช่ข้อห้ามทางกฎหมาย':'These are app limits, not legal prohibitions'
 });
 function openSafetyLimits(){
   document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ข้อจำกัดการใช้งาน')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">${[
-      'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน',
+      'ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน',
       'แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี',
+      'สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี',
       'ข้อมูลเก่ายังอยู่ ไม่แก้ใบเดิมอัตโนมัติ โปรดให้ผู้ทำบัญชีตรวจ',
-      'สำรองไฟล์ในเครื่องได้ อย่าแก้ไฟล์เดียวพร้อมกันหลายเครื่อง',
-      'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน'
+      'เป็นข้อจำกัดของแอป ไม่ใช่ข้อห้ามทางกฎหมาย'
     ].map(s=>`<p>${tr(s)}</p>`).join('')}</div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ปิด')}</button></div>`;
   openModal();
 }
@@ -3490,8 +3379,9 @@ function renderDashboard(c,ta){
     `<button class="btn btn-sm" onclick="setView('recurring')">${tr('ดูและสร้าง')}</button>`]);
   if(pendingCerts.length) todo.push(['amber',tr('รอใบ 50 ทวิ {n} ใบ').replace('{n}',`<b>${pendingCerts.length}</b>`),
     `<button class="btn btn-sm" onclick="setView('wht')">${tr('ดูรายการ')}</button>`]);
-  const unanswered=(paymentSummary.unansweredGroups||[]).length-pendingPayments.eligible.length;
-  if(unanswered>0) todo.push(['amber',tr('ข้อมูลเดิมรอตรวจ {n} กลุ่ม').replace('{n}',`<b>${unanswered}</b>`),
+  // Old records still unresolved: one to-do row carries the count and the unresolved receipt total (no second banner).
+  const unresolved=unresolvedReceiptSummary({...paymentSummary,unallocatedGroups:paymentSummary.unallocatedGroups.filter(group=>!pendingPayments.eligible.includes(group))});
+  if(unresolved.groupCount) todo.push(['amber',tr('ข้อมูลเดิมรอตรวจ {n} กลุ่ม').replace('{n}',`<b>${unresolved.groupCount}</b>`)+unresolvedReceiptDetail(unresolved),
     `<button class="btn btn-sm" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')}</button>`]);
   const backupMsg=backupDueText();
   if(backupMsg) todo.push(['amber',backupMsg,`<button class="btn btn-sm" onclick="${backupVerb()}">${ic('download')} ${tr('สำรองตอนนี้')}</button>`]);
@@ -3527,7 +3417,6 @@ function renderDashboard(c,ta){
     </section>`:''}
 
     ${pendingPayments.eligible.length?renderPendingPayments(pendingPayments):''}
-    ${renderUnresolvedReceiptSummary({...paymentSummary,unallocatedGroups:paymentSummary.unallocatedGroups.filter(group=>!pendingPayments.eligible.includes(group))})}
 
     ${foreignKeys.length?`<div class="fx-row">
       ${foreignKeys.map(cur=>`<div class="fx-chip"><span class="fx-cur">${escapeHtml(cur)}</span>
@@ -3549,7 +3438,7 @@ function welcomeBanner(){
   const named=!!String(DB.business.businessName||'').trim();
   return `<div class="banner info">${ic('sparkles')} <span class="banner-text">${named
       ? tr('ตั้งค่าธุรกิจแล้ว — เพิ่มลูกค้ารายแรก แล้วออกเอกสารได้เลย')
-      : tr('ยินดีต้อนรับ! ตั้งค่าข้อมูลธุรกิจแบบไว 3 ขั้นตอน — หรือดูตัวอย่างการใช้งานก่อนก็ได้')}</span>
+      : tr('ยินดีต้อนรับ — ตั้งค่าธุรกิจ 3 ขั้นตอน หรือดูข้อมูลตัวอย่างก่อนก็ได้')}</span>
     <button class="btn btn-sm" onclick="loadDemoData()">${tr('ลองดูข้อมูลตัวอย่าง')}</button>
     ${named?`<button class="btn btn-sm btn-primary" onclick="setView('clients');openClientEditor()">${ic('plus')} ${tr('เพิ่มลูกค้า')}</button>`
       :`<button class="btn btn-sm btn-primary" onclick="openWizard()">${tr('เริ่มตั้งค่า')}</button>`}</div>`;
@@ -3613,10 +3502,10 @@ function drawWizard(){
           <option value="non_registered" ${b.vatStatus==='non_registered'?'selected':''}>${tr('ยืนยันว่าไม่ได้จดทะเบียน VAT')}</option>
           <option value="registered" ${b.vatStatus==='registered'?'selected':''}>${tr('จดทะเบียน VAT แล้ว')}</option>
         </select>
-        <div class="hint">${tr('ต้องยืนยันก่อนออกใบเสร็จ — รุ่นนี้รองรับใบเสร็จสำหรับผู้ไม่จด VAT')}</div></div>
+        <div class="hint">${tr('ต้องยืนยันก่อนออกใบเสร็จ')}</div></div>
       <div class="field"><label>${tr('ที่อยู่ (แสดงบนหัวเอกสาร)')}</label><textarea id="w_addr">${escapeHtml(b.address)}</textarea></div>
       <div class="field"><label>${tr('อีเมล')}</label><input id="w_email" value="${attr(b.email)}"></div>
-      <div class="hint" style="font-size:12px;color:var(--text-faint)">${tr('ข้อมูลนี้จะขึ้นบนหัวเอกสารทุกใบ — แก้ไขภายหลังได้ที่ ตั้งค่า')}</div>`,`
+      <div class="hint" style="font-size:12px;color:var(--text-faint)">${tr('แก้ไขภายหลังได้ที่ ตั้งค่า')}</div>`,`
       <div class="field"><label>${tr('PromptPay (เบอร์มือถือ หรือเลขบัตรประชาชน)')}</label>
         <input id="w_pp" value="${attr(b.promptpayId)}" placeholder="${tr('เช่น 0812345678')}" oninput="previewPromptpay(this.value)">
         <div class="hint" id="ppHint" style="display:flex;gap:10px;align-items:center;margin-top:8px"></div>
@@ -3697,7 +3586,7 @@ function clearDemoData(){
 function demoBanner(){
   if(!(DB.meta && DB.meta.demo)) return '';
   return `<div class="banner info">
-    ${ic('sparkles')} <span class="banner-text">${tr('กำลังแสดง')}<b>${tr('ข้อมูลตัวอย่าง')}</b>${tr(' — ลองกดดูเอกสาร แดชบอร์ด และหน้า 50 ทวิ ได้ตามสบาย เมื่อพร้อมใช้งานจริงค่อยล้างออก')}</span>
+    ${ic('sparkles')} <span class="banner-text">${tr('กำลังแสดง')}<b>${tr('ข้อมูลตัวอย่าง')}</b>${tr(' — ลองกดดูได้ตามสบาย เมื่อพร้อมใช้จริงค่อยล้างออก')}</span>
     <button class="btn btn-sm" onclick="clearDemoData()">${ic('trash')} ${tr('ล้างข้อมูลตัวอย่าง')}</button></div>`;
 }
 
@@ -3717,7 +3606,7 @@ function resetDocumentFilters(){docFilter='all';docStatusFilter='all';render();}
 function renderDocuments(c,ta){
   const legacyOpen=(paymentReview().unansweredGroups||[]).length;
   ta.innerHTML = `<button class="btn" onclick="setView('recurring')">${tr('รายการประจำ')}</button>${legacyOpen?`<button class="btn" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')} (${legacyOpen})</button>`:''}<button class="btn" onclick="openDocumentArchive()">${tr('คลังเอกสาร')}</button><button class="btn btn-primary" onclick="newDocumentFromList()">${ic('plus')} ${tr('เอกสารใหม่')}</button>`;
-  const tabs = [['all','ทั้งหมด'],['quotation','ใบเสนอราคา'],['invoice','ใบแจ้งหนี้'],['receipt','ใบเสร็จ / ใบกำกับภาษี']];
+  const tabs = [['all','ทั้งหมด'],['quotation','ใบเสนอราคา'],['invoice','ใบแจ้งหนี้'],['receipt','ใบเสร็จ']];
   // status chip counts follow the active type tab
   let typed = activeDocs().filter(d=>!d.archivedAt);
   if(docFilter==='receipt') typed = typed.filter(d=> d.type==='receipt'||d.type==='tax_invoice');
@@ -4106,7 +3995,6 @@ Object.assign(I18N_EN, {
   'ยอดก่อน VAT รวมสกุลเงินที่แปลงค่าได้':'Pre-VAT amount including available currency conversions',
   'รายรับรายเดือนก่อน VAT (บาท)':'Monthly pre-VAT income (THB)',
   'รายรับก่อน VAT ตามลูกค้า':'Pre-VAT income by customer',
-  'รายรับก่อน VAT ที่ระบุประเภทแล้ว':'Classified pre-VAT income',
   'สรุปครึ่งปี เฉพาะประเภท 40(5)–(8)':'Half-year summary: categories 40(5)–(8) only',
   'สรุปรายรับทั้งปี':'Full-year income summary',
   'รายการนอกประเภท 40(5)–(8) ไม่รวมในสรุปครึ่งปี':'Categories outside 40(5)–(8) are excluded from the half-year summary',
@@ -4231,7 +4119,6 @@ function legacyGroupAnswer(groupKey,group){ return legacyGroupResolution(groupKe
 
 Object.assign(I18N_EN,{
   'ยอดยังไม่ครบ':'Total incomplete',
-  'ยอดที่รวมได้ตอนนี้':'Currently included total',
   'รายรับเดิมรอยืนยัน':'Historical income awaiting confirmation',
   'ยอดเบื้องต้นจากคู่เอกสารที่ตรงกัน ยังไม่รวมในยอดรับแล้ว':'Provisional total from matching pairs; not yet included as received',
   'คู่ที่ยอดตรงกัน {n} คู่':'{n} matching pairs',
@@ -4344,14 +4231,18 @@ Object.assign(I18N_EN,{
   'ไม่มีใบเสร็จที่นำมารวมยอดรอตรวจในปีนี้ จึงไม่เพิ่มยอดรับแล้ว':'No receipts contribute to the pending total for this year; Received is unchanged',
   'มีเฉพาะใบแจ้งหนี้ หรือใบเสร็จที่ลบ ยกเลิก หรือตัวอย่าง จึงไม่เพิ่มยอดรับแล้ว':'Only invoices or deleted, voided or demo receipts remain; Received is unchanged'
 });
-function renderUnresolvedReceiptSummary(summary=paymentReview(),year=null){
-  const p=unresolvedReceiptSummary(summary,year);if(!p.groupCount)return '';
+// Detail lines under the "old records" count — shared by the dashboard to-do row and the report/legacy banners.
+function unresolvedReceiptDetail(p,year=null){
   const amount=p.receiptCount&&p.net!==null
     ? `<br><strong>${tr('ยอดตามใบเสร็จที่รอตรวจ {n} ใบ').replace('{n}',p.receiptCount)}: ${escapeHtml(fmtMoneyC(p.net,'THB'))}</strong><br>${tr('ยังไม่รวมในรับแล้ว และอาจมีเอกสารซ้ำ')}`:'';
   const unknown=p.unquantifiedCount?`<br>${tr('ยังรวมยอดไม่ได้ {n} ใบ — ตรวจวันรับเงิน สกุลเงิน และยอด').replace('{n}',p.unquantifiedCount)}`:'';
   const overflow=p.net===null?`<br>${tr('ยอดรวมเกินขอบเขตที่แสดงได้ — ตรวจยอดแต่ละใบ')}`:'';
   const retained=!p.receiptCount&&!p.unquantifiedCount?`<br>${year==null?tr('มีเฉพาะใบแจ้งหนี้ หรือใบเสร็จที่ลบ ยกเลิก หรือตัวอย่าง จึงไม่เพิ่มยอดรับแล้ว'):tr('ไม่มีใบเสร็จที่นำมารวมยอดรอตรวจในปีนี้ จึงไม่เพิ่มยอดรับแล้ว')}`:'';
-  return `<section class="banner" id="unresolvedReceipts"><span class="banner-text">${tr('ข้อมูลเดิมรอตรวจ {n} กลุ่ม').replace('{n}',p.groupCount)}${amount}${unknown}${overflow}${retained}</span><button class="btn btn-sm" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')}</button></section>`;
+  return amount+unknown+overflow+retained;
+}
+function renderUnresolvedReceiptSummary(summary=paymentReview(),year=null){
+  const p=unresolvedReceiptSummary(summary,year);if(!p.groupCount)return '';
+  return `<section class="banner" id="unresolvedReceipts"><span class="banner-text">${tr('ข้อมูลเดิมรอตรวจ {n} กลุ่ม').replace('{n}',p.groupCount)}${unresolvedReceiptDetail(p,year)}</span><button class="btn btn-sm" onclick="setView('legacy')">${tr('ตรวจข้อมูลเดิม')}</button></section>`;
 }
 
 function renderPendingPayments(summary){
@@ -4867,7 +4758,7 @@ function renderSettings(c,ta){
 
     <div class="card-block">
       <h4>${tr('โลโก้ · ลายเซ็น · ตราประทับ')}</h4>
-      <div class="desc">${tr('ไม่บังคับ — โลโก้แสดงหัวเอกสาร · ลายเซ็นและตราประทับแสดงเหนือเส้นลงนาม (เหมาะกับใบเสร็จ/ใบกำกับภาษี) แนะนำไฟล์ PNG พื้นหลังโปร่งใส')}</div>
+      <div class="desc">${tr('ไม่บังคับ — โลโก้แสดงบนหัวเอกสาร ลายเซ็นและตราประทับแสดงเหนือเส้นลงนาม แนะนำ PNG พื้นหลังโปร่งใส')}</div>
       <div class="asset-grid">
         <div class="asset">
           <div class="asset-prev">${b.logo?`<img src="${b.logo}">`:`<span class="muted">${tr('โลโก้')}</span>`}</div>
@@ -4914,7 +4805,7 @@ function renderSettings(c,ta){
           <option value="non_registered" ${b.vatStatus==='non_registered'?'selected':''}>${tr('ยืนยันว่าไม่ได้จดทะเบียน VAT')}</option>
           <option value="registered" ${b.vatStatus==='registered'?'selected':''}>${tr('จดทะเบียน VAT แล้ว')}</option>
         </select>
-        <div class="hint">${tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</div>
+        <div class="hint">${tr('ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</div>
         <button class="btn btn-sm btn-ghost" type="button" onclick="openSafetyLimits()">${tr('ข้อจำกัดการใช้งาน')}</button>
       </div>
       <div class="grid-3">
@@ -5075,12 +4966,15 @@ function renderSettings(c,ta){
 }
 
 /* ---------- backup history & restore (Phase B) — desktop app only ---------- */
-const BK_LABELS = {'pre-v2':'ก่อนอัปเกรด','pre-restore':'ก่อนกู้คืน','manual':'สำรองเอง',
+// Every label main.js and the renderer pass to snapshotText()/snapshotBackup(); anything else reads as a generic app backup.
+const BK_LABELS = {'pre-v2':'ก่อนอัปเกรด','pre-restore':'ก่อนกู้คืน','pre-restore-legacy':'ก่อนกู้คืน','manual':'สำรองเอง',
+  'before-sqlite-migration':'ก่อนอัปเดตที่เก็บข้อมูล','before-domain-v3':'ก่อนอัปเกรดข้อมูล',
+  'before-sync-v3':'ก่อนเชื่อมต่อ Google Drive','before-sync-disconnect':'ก่อนหยุดซิงก์','before-sync-replace':'ก่อนรับข้อมูลจากซิงก์',
   'before-legacy-review':'ก่อนบันทึกคำตอบข้อมูลเดิม','before-payment-match':'ก่อนยืนยันคู่รับเงิน','before-bulk-correction':'ก่อนบันทึกข้อเสนอแก้เอกสาร','before-receipt-reissue':'ก่อนออกใบเสร็จฉบับแก้ไข'};
 function backupLabelOf(name){
   if(String(name).startsWith('billing-pre-replace-')) return tr('ก่อนแทนที่ข้อมูล');
   const m = String(name).match(/^billing-(.+?)-\d{4}-\d{2}-\d{2}T/);
-  return m ? tr(BK_LABELS[m[1]]||m[1]) : tr('อัตโนมัติ');
+  return m ? tr(BK_LABELS[m[1]]||'สำรองโดยแอป') : tr('อัตโนมัติ');
 }
 function backupTimeLabel(backup){
   // Old filenames contain UTC without Z; restore it before converting to the device timezone.
@@ -5382,7 +5276,6 @@ Object.assign(I18N_EN,{
   'ยังไม่ยืนยัน':'Not confirmed',
   'ยืนยันว่าไม่ได้จดทะเบียน VAT':'I confirm I am not VAT registered',
   'จดทะเบียน VAT แล้ว':'VAT registered',
-  'รุ่นนี้รองรับใบเสร็จธรรมดาสำหรับผู้ไม่จด VAT เท่านั้น':'This release supports ordinary receipts for confirmed non-VAT sellers only',
   'เอกสารออกแล้ว แก้ไขไม่ได้':'Issued documents cannot be edited',
   'กรุณายืนยันว่าไม่ได้จด VAT ในตั้งค่าก่อน':'Confirm non-VAT status in Settings first',
   'กรุณาตรวจชื่อ ที่อยู่ และเลขภาษี 13 หลักของผู้รับเงิน':'Check the recipient’s name, address and 13-digit tax ID',
@@ -5394,15 +5287,13 @@ Object.assign(I18N_EN,{
   'ต้องตรวจอัตราหัก ณ ที่จ่ายกับผู้จ่ายก่อน':'Review the withholding rate with the payer first',
   'อัตราขึ้นกับประเภทเงินได้และผู้จ่าย ไม่ใช่สกุลเงิน':'The rate depends on income and payer, not currency',
   'ใช้จัดหมวดรายได้ ไม่เปลี่ยนอัตราหัก ณ ที่จ่าย':'Classification does not change the withholding rate',
-  'ยืนยันออกเอกสาร เก็บต้นฉบับและแก้ไขไม่ได้':'Finalize document: retain the original; it cannot be edited',
-  'บันทึกร่าง หรือเลือกยืนยันออกเอกสาร':'Save a draft, or select finalization',
   'เลขเอกสารซ้ำ กรุณาตรวจเอกสารที่เก็บไว้':'Duplicate document number; review retained documents',
   'บันทึกไม่สำเร็จ ยังไม่ได้ออกเอกสาร':'Save failed; the document has not been issued',
   'ต้องมีใบแจ้งหนี้ที่ยืนยันรับเงินเต็มจำนวนแล้ว':'A fully paid invoice with confirmed payment facts is required',
   'วันที่รับเงินจริง (YYYY-MM-DD)':'Actual payment date (YYYY-MM-DD)',
   'ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?':'Issue a full-payment receipt for this payment?',
   'เอกสารนี้ต้องตรวจประวัติก่อนเปลี่ยนสถานะ':'Review this document’s history before changing status'
-  ,'รุ่นนี้ยังไม่รองรับการรับเงินมัดจำหรือแบ่งจ่าย':'Deposit and installment payment recording is unavailable in this release'
+  ,'ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย':'Receipts are issued for full payment only, not deposits or instalments'
 });
 let issuanceBusy=false;
 // Keep other UI mutations from racing a staged document write/rollback.
@@ -5592,11 +5483,11 @@ async function confirmNonVatInline(){
   const b=DB.business;
   if(b.vatStatus==='non_registered') return true;
   if(b.vatStatus==='registered'){
-    toast(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'),'err',{label:tr('ตั้งค่าสถานะ VAT'),run:openReceiptSettings});
+    toast(tr('ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'),'err',{label:tr('ตั้งค่าสถานะ VAT'),run:openReceiptSettings});
     return false;
   }
   if(!await askConfirm(tr('ธุรกิจของคุณไม่ได้จดทะเบียน VAT ใช่ไหม?'),{
-    detail:tr('ใบเสร็จในรุ่นนี้สำหรับผู้ไม่จด VAT เท่านั้น เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี'),
+    detail:tr('ใบเสร็จออกได้เฉพาะผู้ไม่จด VAT — เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี'),
     confirmLabel:tr('ยืนยันว่าไม่ได้จด VAT')})) return false;
   const previous={vatStatus:b.vatStatus,isVatRegistered:b.isVatRegistered,vatStatusConfirmedAt:b.vatStatusConfirmedAt,updatedAt:b.updatedAt};
   applyVatStatus(b,'non_registered'); touch(b);
@@ -5614,7 +5505,7 @@ function drawDocEditor(){
   const isNew = !d.id;
   if(d.type==='receipt'&&b.vatStatus!=='non_registered'){
     m.innerHTML=`<div class="modal-head"><h3>${tr('ก่อนสร้างใบเสร็จ')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
-      <div class="modal-body"><p>${tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</p><p>${tr('กรุณายืนยันสถานะ VAT ของธุรกิจในตั้งค่าก่อน')}</p></div>
+      <div class="modal-body"><p>${tr('ใบเสร็จออกได้เฉพาะเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน')}</p><p>${tr('กรุณายืนยันสถานะ VAT ของธุรกิจในตั้งค่าก่อน')}</p></div>
       <div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button>${b.vatStatus==='registered'
         ?`<button class="btn btn-primary" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button>`
         :`<button class="btn" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button><button class="btn btn-primary" onclick="confirmReceiptPrerequisite()">${tr('ยืนยันว่าไม่ได้จด VAT')}</button>`}</div>`;return;
@@ -5630,7 +5521,7 @@ function drawDocEditor(){
         <button class="btn btn-sm" onclick="discardEditorDraft()">${tr('ทิ้ง')}</button><button class="btn btn-sm btn-primary" onclick="restoreEditorDraft()">${tr('กู้คืน')}</button></div>`:''}
       ${d.type==='receipt'?`<div class="hint">${tr('ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น')}</div>`:''}
       ${d.type==='receipt'&&docCurrency(d)!=='THB'?`<div class="banner">${tr('ร่างเดิมใช้สกุลเงินที่ไม่รองรับ กรุณาตรวจยอดก่อนเปลี่ยนเป็นบาท')}</div>`:''}
-      ${Number(d.vatRate)!==0?`<div class="banner"><span>${tr('ร่างเดิมมี VAT รุ่นนี้ไม่รองรับ กรุณาตรวจแล้วเลือกสร้างร่างไม่รวม VAT')}</span><button class="btn btn-sm" onclick="clearDraftVat()">${tr('เปลี่ยนร่างเป็นไม่รวม VAT')}</button></div>`:''}
+      ${Number(d.vatRate)!==0?`<div class="banner"><span>${tr('ร่างนี้มี VAT — ใบเสร็จออกได้เฉพาะไม่รวม VAT ตรวจยอดก่อนเปลี่ยนร่าง')}</span><button class="btn btn-sm" onclick="clearDraftVat()">${tr('เปลี่ยนร่างเป็นไม่รวม VAT')}</button></div>`:''}
       <div class="grid-3">
         <div class="field"><label>${tr('ประเภท')}</label>
           <select id="d_type" ${!isNew?'disabled':''} onchange="editField('type',this.value);refreshTaxPath()">
@@ -5780,10 +5671,10 @@ async function saveDraft(){
 Object.assign(I18N_EN,{
   'ไม่มีใบ 50 ทวิค้างรับ':'No 50 tawi certificates pending',
   'บิลค้างรับจะถูกหักอีก {x}':'unpaid invoices will have {x} withheld',
-  'ต้องยืนยันก่อนออกใบเสร็จ — รุ่นนี้รองรับใบเสร็จสำหรับผู้ไม่จด VAT':'Required before issuing receipts — this version supports receipts for businesses not registered for VAT',
+  'ต้องยืนยันก่อนออกใบเสร็จ':'Required before issuing receipts',
   'อัตราหัก':'Rate',
   'ธุรกิจของคุณไม่ได้จดทะเบียน VAT ใช่ไหม?':'Is your business not registered for VAT?',
-  'ใบเสร็จในรุ่นนี้สำหรับผู้ไม่จด VAT เท่านั้น เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี':'Receipts in this version are only for businesses not registered for VAT. You can change this later in Settings → Documents & tax.',
+  'ใบเสร็จออกได้เฉพาะผู้ไม่จด VAT — เปลี่ยนภายหลังได้ที่ ตั้งค่า → เอกสารและภาษี':'Receipts are for businesses not registered for VAT — change this later in Settings → Documents & tax',
   'ยืนยันว่าไม่ได้จด VAT':'Confirm not VAT-registered',
   'เลือกลูกค้า':'Choose a client',
   'ตรวจวันที่ออกและวันครบกำหนด':'Check the issue and due dates',
@@ -5817,9 +5708,9 @@ Object.assign(I18N_EN,{
   'ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ':'Use the same data across your devices. Drafts work offline; issuing a document needs internet so numbers never repeat.',
   'ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก':'Documents are stored in your own Google Drive · attached evidence files are exported separately · if two devices change the same record, both versions are kept for you to choose',
   'ซิงก์ Google Drive ใช้ได้กับ BillNgai Pro ที่ใช้งานได้':'Google Drive sync needs an active BillNgai Pro licence',
-  'รหัส Pro นี้ใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ':'This Pro key is already used with the maximum number of Google accounts. Please contact support.',
+  'Pro ของคุณใช้กับบัญชี Google ครบจำนวนแล้ว ติดต่อฝ่ายช่วยเหลือ':'Your Pro purchase is already used with the maximum number of Google accounts. Contact support.',
   'ยังไม่ได้อนุญาต Google Drive — ลองใหม่และติ๊กช่อง Google Drive ในหน้าลงชื่อเข้าใช้':'Google Drive access was not granted — try again and tick the Google Drive box on the sign-in page',
-  'ข้อมูลมีมากเกินกว่าที่รุ่นนี้เชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ':'This workspace is too large for this version to connect in one step. Please contact support.',
+  'ข้อมูลมีมากเกินกว่าจะเชื่อมต่อได้ในครั้งเดียว กรุณาติดต่อฝ่ายช่วยเหลือ':'This workspace is too large to connect in one step. Contact support.',
   'ย้ายข้อมูลกลับมาเก็บในแอปก่อน แล้วจึงเชื่อมต่อ Google Drive':'Move your data back to in-app storage first, then connect Google Drive',
   'เครื่องนี้ยังเก็บรหัสเข้าสู่ระบบอย่างปลอดภัยไม่ได้':'This Mac cannot store the sign-in securely yet',
   'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
@@ -5965,7 +5856,6 @@ Object.assign(I18N_EN,{
   'ส่งออกคลังเพื่อทบทวน':'Export archive for review',
   'คลังนี้ไม่ใช่เอกสารสำหรับยื่นภาษี':'This archive is not a tax-filing document',
   'ไม่มีเอกสารในคลัง':'No archived documents',
-  'ดูข้อมูลต้นฉบับ':'Review retained data',
   'ยกเลิกแล้ว':'Voided',
   'รอตรวจสอบประวัติ':'Historical review required',
   'เก็บจากการลบเดิม':'Retained legacy deletion',
@@ -6006,7 +5896,7 @@ function restoreRecord(target,original){for(const k of Object.keys(target))if(!(
 Object.assign(I18N_EN,{
   'ใบกำกับภาษีเดิมต้องให้ผู้เชี่ยวชาญตรวจสอบ':'Historical tax invoices need professional review',
   'กรุณายืนยันวันที่และการรับเงินเต็มจำนวน':'Confirm a valid payment date and full payment',
-  'เก็บเข้าคลังโดยไม่ยกเลิก':'Archive without voiding','เก็บเข้าคลัง':'Archive',
+  'เก็บเข้าคลัง':'Archive',
   'นำกลับจากคลัง':'Restore from archive',
   'ข้อมูลที่เก็บไว้ ไม่ใช่เอกสารต้นฉบับ':'Retained facts — not an original document',
   'ไม่ทราบข้อมูลเดิม':'Original information unknown',
@@ -6264,7 +6154,6 @@ Object.assign(I18N_EN,{
   'ข้อมูลไม่ครบหรือมีข้อขัดแย้ง ต้องตรวจแยก':'Incomplete or conflicting facts — review separately',
   'ข้อมูลผู้รับเงินหรือลูกค้าไม่ครบ กรุณาตรวจในตั้งค่าและลูกค้า':'Incomplete issuer or buyer details — check Settings and Clients',
   'ไม่มีรายการที่พร้อมออกฉบับแก้ไข':'No records are ready for corrected receipts',
-  'เลือกใบเสร็จที่ต้องการออกฉบับแก้ไข':'Select receipts to correct',
   'ใช้เลขใบเสร็จใหม่และวันที่ออกวันนี้ เก็บวันรับเงินและยอดเดิม':'Uses new receipt numbers and today’s issue date; keeps the recorded payment dates and amounts',
   'ใบเดิมยังเก็บไว้ รายรับและคำตอบข้อมูลเดิมไม่เปลี่ยน':'Originals are retained; income totals and historical answers stay unchanged',
   'ตรวจชื่อและที่อยู่ในตัวอย่าง ข้อมูลนี้ยืนยันสำหรับฉบับแก้ไข ไม่ใช่ภาพต้นฉบับเดิม':'Check names and addresses in each preview; these details are confirmed for the corrected receipt, not reconstructed originals',
@@ -6279,9 +6168,7 @@ Object.assign(I18N_EN,{
   'ยังไม่ออกฉบับแก้ไข สำรองหรือบันทึกไม่สำเร็จ':'No corrected receipt issued: backup or save failed',
   'กลับไปเลือกรายการ':'Back to selection',
   'ตัวอย่างก่อนออก เลขจริงจะกำหนดเมื่อยืนยัน':'Preview before issuance; the final number is assigned on confirmation',
-  'ฉบับแก้ไขชื่อเอกสาร อ้างอิง {n} ลงวันที่ {d}':'Document-title correction referring to {n}, dated {d}',
   'สำหรับเงินรับเดิมตามรายการ ไม่ใช่การรับเงินใหม่':'For the recorded payment shown; this is not an additional payment',
-  'ข้อมูล ณ วันออกฉบับแก้ไข':'Details confirmed for this corrected receipt',
   'ก่อนออกใบเสร็จฉบับแก้ไข':'Before corrected receipt issuance'
 });
 let receiptReissuePreview=null;
@@ -6870,7 +6757,7 @@ async function setStatus(id,st,facts){
   const d=JSON.parse(JSON.stringify(source));
   const error=issuanceError(d,true,d.issuedSnapshot); if(error){toast(error,'err');return;}
   if(st==='paid'){
-    if(source.milestone){toast(tr('รุ่นนี้ยังไม่รองรับการรับเงินมัดจำหรือแบ่งจ่าย'),'err');return;}
+    if(source.milestone){toast(tr('ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย'),'err');return;}
     if(!isIssuedDocument(source)){toast(tr('ต้องมีใบแจ้งหนี้ที่ยืนยันรับเงินเต็มจำนวนแล้ว'),'err');return;}
     if(!facts){openPaymentDialog(id);return false;}
     const paidDate=facts.paidDate;
@@ -7352,7 +7239,6 @@ Object.assign(I18N_EN,{
   'ข้อมูลปัจจุบันจะถูกสำรองไว้ให้ก่อนโดยอัตโนมัติ':'Your current data is backed up automatically first',
   'เปลี่ยนร่างเป็นไม่รวม VAT แล้ว (ยังไม่บันทึก)':'Draft changed to non-VAT (not saved yet)',
   'ลบร่างนี้?':'Delete this draft?',
-  'ปิดเอกสารที่ยังไม่บันทึกแล้ว':'Unsaved document closed',
   'เปิดกลับ':'Reopen'
 });
 /* ---------- accessibility: labels, keyboard access, menus ----------
@@ -7456,8 +7342,7 @@ Object.assign(I18N_EN,{
   "ตั้งค่าสถานะ VAT": "Set VAT status",
   "หยุดบันทึกเพื่อป้องกันข้อมูลเดิม": "Saving paused to protect existing data",
   "หยุดบันทึกเพื่อป้องกันข้อมูลเดิม ตรวจไฟล์ที่เชื่อมไว้ หรือกู้จากสำรอง": "Saving is paused. Check the linked file or restore a backup.",
-  "หยุดบันทึกเพื่อป้องกันข้อมูลเดิม กู้ข้อมูลจากสำรองหรือนำเข้าไฟล์สำรอง": "Saving is paused. Restore a local backup or import a backup file.",
-  "สุทธิตามรายการรับเงิน": "Net from recorded payments"
+  "หยุดบันทึกเพื่อป้องกันข้อมูลเดิม กู้ข้อมูลจากสำรองหรือนำเข้าไฟล์สำรอง": "Saving is paused. Restore a local backup or import a backup file."
 });
 
 /* ============================================================

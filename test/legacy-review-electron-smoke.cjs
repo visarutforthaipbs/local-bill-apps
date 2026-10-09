@@ -28,9 +28,11 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     await page.getByRole('button',{name:'สำรองและเปิดใช้',exact:true}).click();
     await page.waitForFunction(()=>!pendingDataUpgrade&&!dirty);
     const originals=await page.evaluate(()=>JSON.stringify(DB.documents));
-    // Conflicting live receipt amounts remain visible when simple pairs are unavailable.
-    assert.match(await page.locator('#unresolvedReceipts').innerText(),/1,040/);
-    assert.match(await page.locator('#unresolvedReceipts').innerText(),/ยังไม่รวมในรับแล้ว/);
+    // Conflicting live receipt amounts remain visible when simple pairs are unavailable — on the single to-do row (2.0.15: no second banner).
+    const legacyRow=page.locator('.todo-row').filter({hasText:'ข้อมูลเดิมรอตรวจ'});
+    assert.match(await legacyRow.innerText(),/1,040/);
+    assert.match(await legacyRow.innerText(),/ยังไม่รวมในรับแล้ว/);
+    assert.equal(await page.locator('#unresolvedReceipts').count(),0);
     assert.equal(await page.evaluate(()=>unresolvedReceiptSummary().receiptCount),1);
     // Dashboard: no empty pair card; one to-do line leads to the review.
     assert.equal(await page.locator('#pendingPayments').count(),0);

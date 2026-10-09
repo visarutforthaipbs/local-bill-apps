@@ -55,8 +55,9 @@ input,select,textarea{font-size:16px!important}
  #breadcrumb:empty{display:none}
  #breadcrumb:not(:empty){grid-column:1 / -1;overflow-wrap:anywhere}
  .topbar h2{min-width:0;overflow-wrap:anywhere;font-size:24px}
- .settings-grid>.tabs{flex-wrap:nowrap;overflow-x:auto}
- .settings-grid>.tabs button{white-space:nowrap}
+ /* Three Settings tabs fit a 390px phone as equal-width segments (HIG segmented controls) — no horizontal scroll. */
+ .settings-grid>.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;box-sizing:border-box;overflow:visible}
+ .settings-grid>.tabs button{white-space:nowrap;min-width:0;padding:0 4px}
  .content{padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
  .mobile-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:fixed;bottom:0;left:0;right:0;z-index:50;padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:8px;background:var(--surface);border-top:1px solid var(--border)}
  .overlay{padding-left:8px;padding-right:8px;align-items:flex-end}
@@ -86,7 +87,6 @@ input,select,textarea{font-size:16px!important}
  .asset-btns{flex-wrap:wrap}
  .btn{min-height:48px}
  .toast{bottom:calc(96px + env(safe-area-inset-bottom));max-width:calc(100% - 32px);width:max-content;box-sizing:border-box}
- .settings-tabs{overflow-x:auto;flex-wrap:nowrap}
  .settings-savebar{bottom:calc(96px + env(safe-area-inset-bottom));padding:16px}
 }
 @media screen and (min-width:768px) and (min-height:500px){
