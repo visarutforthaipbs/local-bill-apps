@@ -3,8 +3,7 @@
 Source: `PRD-SIMPLIFY-2026-10.md` §4.3 (owner-only actions) and §8 (verification gates).
 Agents prepare drafts, commands and evidence; every step marked **owner runs this** needs the
 owner's hands, signing identities, Apple account or judgement. Do the steps in order; a red gate
-stops everything after it. Nothing below has been done yet; tick a box only after the command ran
-or the screen was completed on this Mac.
+stops everything after it. Use `review/2026-10-10/RELEASE-PREP-2.0.15.md` for completed local build evidence and remaining Apple-account steps. Tick a box only after its full gate passes or the screen was completed on this Mac.
 
 Paths are relative to the repo root on `codex/simplify-2.0.15` after streams A–G are merged.
 If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every path and in
@@ -26,10 +25,11 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
   for t in fintech-ui pdf-output brand-color payment-match bulk-correction design-fixes stabilization option-a receipt-reissue prepublish; do node "test/$t-electron-smoke.cjs" || break; done
   node test/migration-electron-smoke.cjs      # new in stream E
   ```
-- [ ] 0.4 Retired strings are gone from the tree (expect no output)
+- [ ] 0.4 Retired purchase, sound and invoice-conversion strings are gone from the tree (expect no output)
   ```sh
-  grep -rn "lin\.ee\|Early Bird\|ซื้อ Pro\|TOR → Invoice\|playAppSfx\|e-Tax" billing.html main.js preload.js mobile/web mobile/scripts scripts test || echo "clean"
+  grep -rn "lin\.ee\|Early Bird\|ซื้อ Pro\|TOR → Invoice\|playAppSfx" billing.html main.js preload.js mobile/web mobile/scripts scripts test || echo "clean"
   ```
+  Two `e-Tax` source references are intentionally retained: a bookkeeping disclaimer and an inert `exportETaxXML` containment stub with its error text. `test/containment.test.cjs` exercises the stub. Confirm no e-Tax UI entry point is exposed; a blanket grep for `e-Tax` is not a clean gate.
 - [ ] 0.5 iOS builds
   ```sh
   cd mobile && npm ci && npm run build:simulator && npm run build:device && cd ..
@@ -49,12 +49,12 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
   codesign -dvv --entitlements :- "dist/mas-universal/BillNgai.app" 2>&1 | grep -E "app-sandbox|network.server|network.client|Authority"
   pkgutil --check-signature "dist/mas-universal/BillNgai-2.0.15-universal.pkg"
   ```
-- [ ] 1.3 Packaged bundle contains none of the retired strings (expect "clean")
+- [ ] 1.3 Packaged bundle contains none of the retired purchase, sound or invoice-conversion strings (expect "clean")
   ```sh
   rm -rf "$TMPDIR/asar" && npx --yes @electron/asar extract "dist/mas-universal/BillNgai.app/Contents/Resources/app.asar" "$TMPDIR/asar"
-  grep -rln "lin\.ee\|Early Bird\|ซื้อ Pro\|TOR → Invoice\|playAppSfx\|e-Tax" "$TMPDIR/asar" || echo "clean"
-  node test/packaged-electron-smoke.cjs
+  grep -rln "lin\.ee\|Early Bird\|ซื้อ Pro\|TOR → Invoice\|playAppSfx" "$TMPDIR/asar" || echo "clean"
   ```
+  The intentional `e-Tax` disclaimer/stub exception from 0.4 also applies here. The signed MAS app cannot be runtime-smoked outside App Store distribution on this Mac; complete the packaged runtime check on the processed TestFlight build in Phase 3.
 - [ ] 1.4 Packaged source matches the release commit
   ```sh
   node scripts/verify-packaged-source.cjs "dist/mas-universal/BillNgai.app/Contents/Resources/app.asar" .git "$(git rev-parse HEAD)"
@@ -84,7 +84,7 @@ All text is drafted in `review/2026-10-09/design/RELEASE-NOTES-2.0.15-UI.md` (ad
 - [ ] 4.1 App Store Connect → My Apps → BillNgai (`6789503350`) → **macOS App** → "+" version → `2.0.15` (or 2.1.0).
 - [ ] 4.2 Same for **iOS App** → "+" version.
 - [ ] 4.3 For each platform: **What's New** (Thai primary, English) → paste the "App Store — What's New, simplified 2.0.15" copy.
-- [ ] 4.4 **Screenshots** retaken on the final UI (PRD §8.5): Mac, iPhone 6.9"/6.5", iPad 13"; light set plus one dark set; upload per platform. Source folder: `review/2026-10-10/design/screens/` (agent) → owner-approved sample content only.
+- [ ] 4.4 **Screenshots** retaken on the final UI (PRD §8.5): Mac, iPhone 6.9"/6.5", iPad 13"; light set plus one dark set; upload per platform. Prepared candidates: `review/2026-10-10/design/store-screens/` → owner-approved synthetic sample content only. Compare Mac captures with the processed TestFlight build before upload.
 - [ ] 4.5 **App Review Information**: paste the "Review Notes — draft" block; put the test Google account email in "Sign-in required" with its password there, not in the note. Contact phone/email = owner.
 - [ ] 4.6 **App Privacy**: answers unchanged from `APP-STORE-SUBMISSION-2.0.14.md` (User ID, Purchase history, Other user content; none for tracking).
 - [ ] 4.7 **Build**: select the processed 2.0.15 build on each platform. Export compliance: `ITSAppUsesNonExemptEncryption=false` is already in both Info.plists.

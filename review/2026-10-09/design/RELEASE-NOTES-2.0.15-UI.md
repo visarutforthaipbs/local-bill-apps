@@ -115,7 +115,7 @@ Your data stays on your device. No account is required.
 ## Review Notes — draft for App Store Connect → App Review Information → Notes
 
 Paste the block below as one note on both the macOS and the iOS version. Keep it under 4,000
-characters (current draft: 2,276 characters). The owner fills in
+characters. The owner verifies and fills in
 the test account from `APP-STORE-SUBMISSION-2.0.14.md` and enters the password only in the
 App Review Information sign-in fields, never in the note.
 
@@ -145,16 +145,14 @@ App Review Information sign-in fields, never in the note.
 >
 > TEST DATA. The free tier needs no sign-in. To see Pro, buy it with a sandbox Apple account or
 > use Restore Purchases on an account that owns it. To test Google Drive sync, sign in with the
-> test Google account below on two devices; it already contains sample documents. The account is a
-> test account owned by the developer; it has 2-Step Verification turned off for review.
+> developer-owned test Google account below on two devices and create a sample document.
 >
 > Test Google account: (owner fills in) — password in the sign-in fields, not here.
 > Sandbox Apple account: the reviewer's own.
 >
 > Support: https://billiong-landing.pages.dev/support (contact and privacy policy).
 
-Character count of the quoted block (without the `> ` prefixes): 2,276 — within the 4,000-char
-limit, so the owner can add the account line without trimming.
+Before submission, verify that the test Google account can sign in without owner intervention, add its address above, and keep the final note within the 4,000-character limit.
 
 Checklist for the note (`.claude/skills/apple-platform-design/SKILL.md` §5):
 - [x] `com.apple.security.network.server` justified (OAuth loopback) — `build/entitlements.mas.plist`
