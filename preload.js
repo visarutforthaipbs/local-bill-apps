@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('billingAPI', {
   linkExisting:   ()       => ipcRenderer.invoke('data:linkExisting'),
   createExternal: (text)   => ipcRenderer.invoke('data:createExternal', text),
   useDefault:     (text)   => ipcRenderer.invoke('data:useDefault', text),
-  exportData:     (text)   => ipcRenderer.invoke('data:export', text),
+  exportData:     (text, name) => ipcRenderer.invoke('data:export', text, name),
   exportPDF:      (name)   => ipcRenderer.invoke('doc:pdf', name),
   printDocument:  ()       => ipcRenderer.invoke('doc:print'),
   importData:     ()       => ipcRenderer.invoke('data:import'),

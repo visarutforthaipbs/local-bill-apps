@@ -673,6 +673,7 @@
   .banner .banner-text{flex:1}
   .banner.info{background:var(--blue-bg);color:var(--blue)}
   .banner.danger{background:var(--red-bg);color:var(--red)}
+  .step-list{margin:0;padding-left:22px;line-height:1.7}
 
   /* ============================================================
      PRINT
@@ -929,6 +930,8 @@ const IS_ELECTRON = !!(window.billingAPI && window.billingAPI.isElectron);
 /* Mac App Store build: Pro ผ่าน In-App Purchase เท่านั้น (ห้ามลิงก์ซื้อภายนอก/ช่องวางรหัส — กติกา 3.1.1)
    ไม่มีไฟล์ข้อมูลภายนอก (รอ security-scoped bookmarks) */
 const IS_MAS = !!(window.billingAPI && window.billingAPI.isMas);
+// Store flavours (Mac App Store, iPhone/iPad) offer "import from the previous version"; the direct build offers the move export instead.
+const IS_STORE_BUILD = IS_MAS || !!(window.billingAPI && window.billingAPI.isMobile);
 let dataLoc = { mode:'app', path:'' };            // Electron: 'app' folder vs 'external' file
 const baseName = p => String(p||'').split(/[\\/]/).pop();
 
@@ -1644,17 +1647,41 @@ async function elExport(){
     if(p){ markBackup(); await persist(true); render(); toast(tr('สำรองข้อมูลแล้ว'),'ok',null,'backup'); } }
   catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
 }
+// Resolves true once the selected file has replaced the store as one set (main backs up existing data first).
 async function elImport(){
-  try{ const t = await window.billingAPI.importData(); if(!t) return;
+  try{ const t = await window.billingAPI.importData(); if(!t) return false;
     const parsed=JSON.parse(t); delete parsed.syncV3;   // a backup never re-binds sync
     const recovered = migrate(parsed);
     // Main validates the original schema; an unrelated JSON file must not become blankDB().
     await window.billingAPI.recoverData(t);
     adoptDatabase(parsed); loadFailed=false;
-    if(pendingDataUpgrade){render();return;}
-    if(!await persist(true)) return;
-    render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok');
-  }catch(e){ toast(String(e.message).includes('SYNC_DISCONNECT_REQUIRED')?tr('เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้'):tr('ไฟล์ไม่ถูกต้อง'),'err'); }
+    if(pendingDataUpgrade){render();return true;}
+    if(!await persist(true)) return false;
+    render(); toast(tr('นำเข้าข้อมูลแล้ว'),'ok'); return true;
+  }catch(e){ toast(String(e.message).includes('SYNC_DISCONNECT_REQUIRED')?tr('เครื่องนี้เชื่อมต่อ Google Drive อยู่ จึงยังนำเข้าหรือกู้คืนข้อมูลไม่ได้'):tr('ไฟล์ไม่ถูกต้อง'),'err'); return false; }
+}
+/* ---------- direct build → App Store build (PRD-SIMPLIFY-2026-10 §5) ---------- */
+// Direct build: the same backup JSON (main strips the sync binding) under a move-specific name, then the next steps.
+async function elMoveExport(){
+  try{ const p = await window.billingAPI.exportData(JSON.stringify(exportableDB(),null,2),'billngai-move-'+todayISO()+'.json');
+    if(!p) return;
+    markBackup(); await persist(true); render();
+    document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ส่งออกไฟล์สำหรับย้ายแล้ว')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
+      <div class="modal-body" style="max-width:520px"><p>${tr('เก็บไฟล์ {f} ไว้ในที่ที่เครื่องใหม่เปิดได้ (เช่น iCloud Drive) แล้วทำตามนี้').replace('{f}',`<code>${escapeHtml(baseName(p))}</code>`)}</p>
+        <ol class="step-list"><li>${tr('ติดตั้งบิลง่ายจาก App Store')}</li><li>${tr('เปิดแอป')}</li><li>${tr('เลือก “นำเข้าจากเวอร์ชันเดิม…” แล้วเลือกไฟล์นี้')}</li></ol></div>
+      <div class="modal-foot"><button class="btn btn-primary" onclick="closeModal()">${tr('เข้าใจแล้ว')}</button></div>`;
+    openModal();
+  }catch(e){ toast(tr('สำรองข้อมูลไม่สำเร็จ'),'err'); }
+}
+// Store build: a full export from the direct build replaces this store as one set — never a merge.
+// The iPhone/iPad import asks its own confirmation; the desktop one confirms whenever existing records would be replaced.
+function storeIsEmpty(){ return !activeDocs().length && !activeClients().length && !(DB.reviewEvents||[]).length; }
+async function importFromPreviousVersion(fromSetup){
+  if(!window.billingAPI.isMobile && !(fromSetup && storeIsEmpty()) &&
+     !await askConfirm(tr('นำเข้าข้อมูลจากเวอร์ชันเดิม?'),{detail:tr('ข้อมูลในเครื่องนี้จะถูกสำรองไว้ก่อน แล้วแทนที่ทั้งชุดด้วยข้อมูลในไฟล์ที่เลือก ไม่มีการรวมข้อมูลสองชุดเข้าด้วยกัน'),confirmLabel:tr('เลือกไฟล์แล้วแทนที่'),danger:true})) return false;
+  if(!await elImport()) return false;
+  if(fromSetup && modalIsOpen()) closeModal();   // the setup sheet is finished once the previous version's data is in
+  applyTheme(); return true;
 }
 function elReveal(){ window.billingAPI.reveal(); }
 function elRevealBackups(){ if(window.billingAPI.revealBackups) window.billingAPI.revealBackups(); }
@@ -2843,7 +2870,26 @@ const I18N_EN = {
   'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
   'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
   'ซื้อผ่าน App Store แล้ว':'Purchased via the App Store',
-  'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)'
+  'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)',
+  // direct build → App Store build (PRD-SIMPLIFY-2026-10 §5)
+  'รุ่นต่อไปจะมีใน App Store เท่านั้น':'Future versions are available only on the App Store',
+  'ย้ายไป App Store':'Move to the App Store',
+  'ไฟล์สำหรับย้ายมีเอกสารทุกใบ รายชื่อลูกค้า ประวัติการตรวจ เลขรันเอกสาร การตั้งค่า และโลโก้/ลายเซ็น':'The move file carries every document, your clients, review history, document numbering, settings and logo/signature',
+  'ไม่รวมการเชื่อมต่อ Google Drive และรหัส Pro — ถ้าเคยได้รหัส Pro มาแล้ว ขอ promo code จากเจ้าของแอปเพื่อปลดล็อก Pro ในรุ่น App Store ได้โดยไม่ต้องจ่ายซ้ำ':'It does not carry the Google Drive connection or the Pro key — if you already bought Pro, ask the app owner for a promo code to unlock Pro in the App Store version without paying again',
+  'ส่งออกไฟล์สำหรับย้าย…':'Export Move File…',
+  'จากนั้น ติดตั้งจาก App Store → เปิดแอป → เลือก “นำเข้าจากเวอร์ชันเดิม…”':'Then install from the App Store → open the app → choose “Import from Previous Version…”',
+  'ส่งออกไฟล์สำหรับย้ายแล้ว':'Move file exported',
+  'เก็บไฟล์ {f} ไว้ในที่ที่เครื่องใหม่เปิดได้ (เช่น iCloud Drive) แล้วทำตามนี้':'Keep {f} somewhere the new device can open (iCloud Drive, for example), then:',
+  'ติดตั้งบิลง่ายจาก App Store':'Install BillNgai from the App Store',
+  'เปิดแอป':'Open the app',
+  'เลือก “นำเข้าจากเวอร์ชันเดิม…” แล้วเลือกไฟล์นี้':'Choose “Import from Previous Version…” and pick this file',
+  'เข้าใจแล้ว':'Got It',
+  'ย้ายมาจากเวอร์ชันเดิม':'Moving from the previous version',
+  'เลือกไฟล์ที่ส่งออกจากเวอร์ชันดาวน์โหลดตรง (billngai-move-…json) ข้อมูลทั้งชุดจะมาแทนที่ข้อมูลในเครื่องนี้ ไม่ใช่รวมเข้าด้วยกัน':'Pick the file exported by the direct-download version (billngai-move-…json). The whole set replaces the data on this device; nothing is merged',
+  'นำเข้าจากเวอร์ชันเดิม…':'Import from Previous Version…',
+  'นำเข้าข้อมูลจากเวอร์ชันเดิม?':'Import data from the previous version?',
+  'ข้อมูลในเครื่องนี้จะถูกสำรองไว้ก่อน แล้วแทนที่ทั้งชุดด้วยข้อมูลในไฟล์ที่เลือก ไม่มีการรวมข้อมูลสองชุดเข้าด้วยกัน':'The data on this device is backed up first, then replaced as a whole by the selected file. The two sets are never merged',
+  'เลือกไฟล์แล้วแทนที่':'Choose File and Replace'
 };
 
 /* ---------- BillNgai rounded outline icons — bundled, works offline ---------- */
@@ -3596,6 +3642,7 @@ function drawWizard(){
       <div class="spacer"></div><button class="x" onclick="wizDone(true)">${ic('close')}</button></div>
     <div class="modal-body wizard-step" style="max-width:640px">${wizStep===0?`<div class="setup-art" aria-hidden="true">${brandImg('assetDesk','','fintech-art')}</div>`:''}${bodies[wizStep]}</div>
     <div class="modal-foot">
+      ${wizStep===0 && IS_STORE_BUILD && storeIsEmpty()?`<button class="btn" onclick="importFromPreviousVersion(true)">${ic('upload',13)} ${tr('นำเข้าจากเวอร์ชันเดิม…')}</button>`:''}
       <button class="btn btn-ghost" style="margin-right:auto" onclick="wizDone(true)">${tr('ข้ามไปก่อน')}</button>
       ${wizStep>0?`<button class="btn" onclick="wizBack()">${ic('arrowLeft')} ${tr('ย้อนกลับ')}</button>`:''}
       ${wizStep<2?`<button class="btn btn-primary" onclick="wizNext()">${tr('ถัดไป')} ${ic('arrowRight')}</button>`
@@ -4912,6 +4959,13 @@ function renderSettings(c,ta){
     ${saveBar}`;
 
   const dataCards = ()=> IS_ELECTRON ? `
+    ${!IS_STORE_BUILD?`<div class="banner info"><span class="banner-text">${tr('รุ่นต่อไปจะมีใน App Store เท่านั้น')}</span></div>
+    <div class="card-block">
+      <h4>${ic('arrowRight')} ${tr('ย้ายไป App Store')}</h4>
+      <div class="desc">${tr('ไฟล์สำหรับย้ายมีเอกสารทุกใบ รายชื่อลูกค้า ประวัติการตรวจ เลขรันเอกสาร การตั้งค่า และโลโก้/ลายเซ็น')}<br>${tr('ไม่รวมการเชื่อมต่อ Google Drive และรหัส Pro — ถ้าเคยได้รหัส Pro มาแล้ว ขอ promo code จากเจ้าของแอปเพื่อปลดล็อก Pro ในรุ่น App Store ได้โดยไม่ต้องจ่ายซ้ำ')}</div>
+      <button class="btn btn-primary" onclick="elMoveExport()">${ic('download')} ${tr('ส่งออกไฟล์สำหรับย้าย…')}</button>
+      <div class="hint" style="margin-top:10px">${tr('จากนั้น ติดตั้งจาก App Store → เปิดแอป → เลือก “นำเข้าจากเวอร์ชันเดิม…”')}</div>
+    </div>`:''}
     ${syncV3Info.configured?`<div class="card-block"><h4>${tr('ซิงก์ Google Drive')} · Pro</h4>
       <p>${tr('ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ')}</p>
       <p class="hint">${tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก')}</p>
@@ -4932,6 +4986,12 @@ function renderSettings(c,ta){
       <div id="backupHist"><div class="muted" style="font-size:12px">…</div></div>
       <div class="hint" style="margin-top:12px">${ic('check')} ${tr('แอปเก็บสำเนาย้อนหลังอัตโนมัติทุก 30 นาที (เก็บ 30 ชุดล่าสุด)')} · ${lastBackupLine()}</div>
     </div>
+
+    ${IS_STORE_BUILD?`<div class="card-block">
+      <h4>${ic('upload')} ${tr('ย้ายมาจากเวอร์ชันเดิม')}</h4>
+      <div class="desc">${tr('เลือกไฟล์ที่ส่งออกจากเวอร์ชันดาวน์โหลดตรง (billngai-move-…json) ข้อมูลทั้งชุดจะมาแทนที่ข้อมูลในเครื่องนี้ ไม่ใช่รวมเข้าด้วยกัน')}</div>
+      <button class="btn" onclick="importFromPreviousVersion(false)">${ic('upload')} ${tr('นำเข้าจากเวอร์ชันเดิม…')}</button>
+    </div>`:''}
 
     ${dataLoc.storageFormat==='sqlite'?`<details class="card-block"><summary>${tr('ที่เก็บข้อมูลในเครื่อง')}</summary>
       <p class="desc">${tr('เก็บข้อมูลในเครื่องด้วย SQLite — ใช้ Google Drive เพื่อซิงก์ และใช้ JSON เพื่อสำรองหรือนำเข้า')}</p>

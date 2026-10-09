@@ -1239,11 +1239,13 @@ async function moveDataStore(file, text) {
 handleIPC('data:useDefault', (_e, text) => withDataLock(() => moveDataStore(DEFAULT_DATA, text)));
 
 // Export a backup copy (does NOT change the active store).
-handleIPC('data:export', async (_e, text) => {
+// The direct build's move export names the file for the App Store import; any other name keeps the backup name.
+handleIPC('data:export', async (_e, text, suggestedName) => {
   validateData(text);
+  const name = /^[A-Za-z0-9._-]{1,80}\.json$/.test(String(suggestedName || '')) ? suggestedName : 'billing-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   const r = await dialog.showSaveDialog(win, {
     title: 'สำรองข้อมูล',
-    defaultPath: path.join(app.getPath('documents'), 'billing-backup-' + new Date().toISOString().slice(0, 10) + '.json'),
+    defaultPath: path.join(app.getPath('documents'), name),
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
   if (r.canceled || !r.filePath) return false;
