@@ -1833,9 +1833,9 @@ function buildClientsCSV(){
   return '﻿'+[head.map(csvCell).join(','),...rows].join('\r\n');
 }
 
-// RD e-Tax Invoice draft (XML, ETDA / UN-CEFACT style). Starting point for an e-Tax service / accountant.
+// Contained stub kept for test/containment.test.cjs: the app has no e-Tax XML export and nothing in the UI calls this.
 function exportETaxXML(){
-  toast(tr('พักส่งออก e-Tax XML — ยังไม่ใช่ช่องทาง e-Tax ที่ตรวจสอบแล้ว'),'err');
+  toast(tr('แอปนี้ไม่มีการส่งออก e-Tax XML'),'err');
 }
 
 function importJSON(){
@@ -2072,31 +2072,9 @@ const I18N_EN = {
   'สรุปภาษี':'Tax summary',
   'ตั้งค่า':'Settings',
   // --- ยื่นภาษี (ภ.ง.ด. 90/94) & ชุดส่งออกให้บัญชี ---
-  'ยื่นภาษี':'Tax filing',
-  'ยื่นภาษี (ภ.ง.ด. 90/94)':'Tax filing (PND 90/94)',
-  'งวดครึ่งปี ม.ค.–มิ.ย. {y}':'Half-year Jan–Jun {y}',
-  'ทั้งปี ม.ค.–ธ.ค. {y}':'Full year Jan–Dec {y}',
   'กำหนดยื่น':'Filing deadline',
-  'อีก {d} วัน':'{d} days left',
-  'เงินได้พึงประเมิน (ก่อน VAT, รวมเทียบเท่าบาท)':'Assessable income (pre-VAT, incl. THB equivalent)',
-  'หักค่าใช้จ่ายเหมา 50% (ไม่เกิน 100,000)':'Standard expense deduction 50% (max 100,000)',
-  'ลดหย่อนส่วนตัว':'Personal allowance',
-  'เงินได้สุทธิ':'Net taxable income',
-  'ภาษีตามขั้นบันได':'Tax per progressive brackets',
-  'ถูกหัก ณ ที่จ่ายแล้ว (เครดิตภาษี)':'Withholding already deducted (tax credit)',
-  'ประมาณการภาษีที่ต้องชำระเพิ่ม':'Estimated additional tax due',
-  'ถูกหักไว้มากกว่าภาษีที่ประมาณการ — อาจขอคืนได้ประมาณ {x}':'Withheld more than the estimated tax — a refund of about {x} may be claimable',
   '{n} ใบยังไม่ระบุอัตราแลกเปลี่ยน — ยอดข้างต้นยังไม่รวมรายรับเหล่านั้น':'{n} document(s) missing an FX rate — the figures above exclude that income',
   'จากเอกสารรายรับ':'From income documents',
-  '(คิดจากใบเสร็จ/ใบกำกับภาษีที่ออกแล้ว — ภ.ง.ด.94 นับเฉพาะรายรับ ม.ค.–มิ.ย.)':'(based on issued receipts/tax invoices — PND 94 counts Jan–Jun income only)',
-  'สมมติฐานที่ใช้ประมาณการ':'Assumptions used',
-  'เงินได้ตามมาตรา 40(2) หักค่าใช้จ่ายเหมา 50% ไม่เกิน 100,000 บาท และลดหย่อนส่วนตัว 60,000 บาท (ภ.ง.ด.94 ใช้ 30,000 บาท) ยังไม่รวมลดหย่อนอื่น เช่น ประกัน กองทุน บุตร':'Section 40(2) income with the 50% standard expense deduction (max 100,000 THB) and the 60,000 THB personal allowance (30,000 for PND 94); other allowances (insurance, funds, children) are not included',
-  'ภ.ง.ด.94 ใช้กับเงินได้ตามมาตรา 40(5)–(8) เท่านั้น — ฟรีแลนซ์ที่มีแต่เงินได้ 40(2) ยื่นเฉพาะ ภ.ง.ด.90 ปลายปี':'PND 94 applies to section 40(5)–(8) income only — freelancers with only 40(2) income file just PND 90 at year end',
-  'ตัวเลขทั้งหมดเป็นการประมาณการเบื้องต้น ไม่ใช่คำแนะนำทางภาษี — โปรดตรวจกับนักบัญชีหรือระบบ RD e-Filing ก่อนยื่นจริง':'All figures are rough estimates, not tax advice — verify with your accountant or RD e-Filing before actually filing',
-  'วันนี้เป็นวันสุดท้ายของการยื่น {f}':'Today is the last day to file {f}',
-  'อีก {d} วันถึงกำหนดยื่น {f}':'{f} is due in {d} days',
-  '(ยื่นออนไลน์ผ่าน RD e-Filing ได้ถึงประมาณ 8 วันหลังกำหนด)':'(online filing via RD e-Filing runs roughly 8 days past the deadline)',
-  'ดูตัวเลขสำหรับยื่น':'View filing numbers',
   'ส่งออกชุดให้บัญชี':'Export for accountant',
   'ยังไม่มีรายรับสำหรับยื่นภาษีปีนี้':'No income to file for this tax year yet',
   'เมื่อออกใบเสร็จหรือใบกำกับภาษี ตัวเลขสำหรับ ภ.ง.ด.90/94 จะสรุปให้ที่นี่โดยอัตโนมัติ':'Once receipts or tax invoices are issued, PND 90/94 numbers will summarize here automatically',
@@ -2195,7 +2173,7 @@ const I18N_EN = {
   'ไม่ได้รับอนุญาตให้เข้าถึงไฟล์':'File access was not granted',
   'เชื่อมไฟล์ไม่สำเร็จ:':'Could not link file:',
   'ยกเลิกการเชื่อมไฟล์แล้ว (ข้อมูลยังอยู่ในเบราว์เซอร์)':'File unlinked (data is still in the browser)',
-  // --- exports (CSV / e-Tax) ---
+  // --- exports (CSV) ---
   'ยังไม่มีเอกสาร':'No documents yet',
   'เลขที่':'No.',
   'ประเภท':'Type',
@@ -2223,9 +2201,6 @@ const I18N_EN = {
   'ยังไม่ได้รับ':'Not received',
   'ส่งออก CSV (50 ทวิ) แล้ว':'WHT CSV exported',
   'ส่งออก CSV (50 ทวิ)':'Export WHT CSV',
-  'ยังไม่มีใบกำกับภาษี':'No tax invoices yet',
-  'กรอกเลขประจำตัวผู้เสียภาษีของคุณในตั้งค่าก่อน':'Enter your tax ID in Settings first',
-  'ส่งออกร่าง e-Tax XML แล้ว':'e-Tax XML draft exported',
   // --- banners ---
   'อ่านไฟล์ข้อมูลเดิมไม่ได้':'Could not read the existing data file',
   '— ระงับการบันทึกไว้ก่อนเพื่อไม่ให้ทับข้อมูลเดิม กู้ข้อมูลจากสำรองอัตโนมัติ (ทุก 30 นาที) หรือนำเข้าไฟล์ที่เคยสำรองไว้':'— saving is paused so the old data is not overwritten. Restore from the automatic backups (every 30 min) or import a saved backup',
@@ -2448,7 +2423,6 @@ const I18N_EN = {
   'CSV เปิดใน Excel/Sheets ได้ทันที':'CSV opens directly in Excel/Sheets',
   'CSV เอกสารทั้งหมด':'CSV — all documents',
   'CSV ภาษีหัก ณ ที่จ่าย':'CSV — withholding tax',
-  'ร่าง e-Tax Invoice (XML)':'e-Tax Invoice draft (XML)',
   'ข้อมูลธุรกิจ (ผู้ออกเอกสาร)':'Business info (document issuer)',
   'แสดงบนหัวเอกสารทุกฉบับ':'Shown on every document header',
   'ชื่อ (ไทย)':'Name (Thai)',
@@ -2653,9 +2627,7 @@ const I18N_EN = {
   'ใช้ได้ถึง {d}':'Valid until {d}',
   'ปิดการใช้งานรหัสนี้':'Deactivate this key',
   'ไม่ทราบสกุลเงิน':'Unknown currency',
-  'ดูข้อจำกัด 2.0.4':'See 2.0.4 limitations',
   'ปิด':'Close',
-  '2.0.4: ใบเสร็จธรรมดาเท่านั้น — อ่านข้อจำกัดก่อนใช้งาน':'2.0.4: ordinary receipts only — read limitations before use',
   'ยอดยังไม่ครบ':'Amount incomplete',
   'ยอดที่รวมได้ตอนนี้':'Total currently available',
   'ยอดสุทธิตามรายการรับเงิน ไม่ใช่เครดิตภาษีที่ตรวจแล้ว':'Net amount from payment records — not a verified tax credit',
@@ -2704,7 +2676,7 @@ const I18N_EN = {
   'รายการที่ยังจัดเข้าปีไม่ได้':'Records not yet assigned to a year',
   'รายการไม่ทราบประเภทไม่รวมในสรุปครึ่งปี':'Unknown-category records excluded from half-year summary',
   'รายการนอกประเภท 40(5)–(8) ไม่รวมในสรุปครึ่งปี':'Records outside section 40(5)–(8) excluded from half-year summary',
-  'ยังไม่คำนวณภาษีที่ต้องจ่ายหรือขอคืน':'Tax payable/refund not yet calculated',
+  'สรุปนี้ไม่คำนวณภาษีที่ต้องจ่ายหรือขอคืน':'This summary does not calculate tax payable or refunds',
   'ต้องตรวจเงินได้อื่น ค่าใช้จ่าย ค่าลดหย่อน เครดิตจริง และวิธีคำนวณภาษีร่วมกัน':'Requires checking other income, expenses, deductions, actual credits and combined tax calculation',
   'การมีรายการในสรุปไม่ได้ยืนยันหน้าที่ยื่นแบบ':'Having records in the summary does not confirm a filing obligation',
   'ตรวจคำแนะนำและกำหนดยื่นจากกรมสรรพากร':'Check filing guidance and deadlines from the Revenue Department',
@@ -2719,7 +2691,7 @@ const I18N_EN = {
   'ข้อมูลเปลี่ยนระหว่างเลือกไฟล์ กรุณาเลือกใหม่':'Data changed while selecting a file — please try again',
   'บันทึกการเปลี่ยนแปลงไม่สำเร็จ':'Failed to save changes',
   'อ่านไฟล์รูปภาพไม่สำเร็จ':'Failed to read image file',
-  'รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี':'This release does not support tax invoice issuance',
+  'แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี':'This app issues ordinary receipts only, not tax invoices',
   'กรุณาตรวจชื่อ ที่อยู่ และเลขภาษี 13 หลักของผู้รับเงิน':'Please check the issuer name, address and 13-digit tax ID',
   'ต้องตรวจอัตราหัก ณ ที่จ่ายกับผู้จ่ายก่อน':'Must verify withholding rate with the payer first',
   'กรุณายืนยันว่าไม่ได้จด VAT ในตั้งค่าก่อน':'Please confirm non-VAT status in Settings first',
@@ -2824,11 +2796,9 @@ const I18N_EN = {
   'ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง':'Cloud sync paused in this release — use local backups',
   'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'This version supports THB receipts for non-VAT issuers receiving full payment only',
   'สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี':'Summary for bookkeeping review — not a tax return',
-  'พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์':'New tax invoices, tax estimates, e-Tax and cloud sync are paused',
   'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน':'This is a version limitation — not a legal prohibition for all freelancers',
   'ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว':'Withholding shown is expected — not a verified tax credit',
   'วันที่รับเงินไม่ชัดเจน':'Payment date is unclear',
-  'พักส่งออก e-Tax XML — ยังไม่ใช่ช่องทาง e-Tax ที่ตรวจสอบแล้ว':'e-Tax XML export paused — not a validated e-Tax channel',
   'ยอดหักคาดหมาย':'Expected withholding',
   'ยอดยังไม่ครบหรือมีรายการต้องทบทวน':'Amount incomplete or items need review',
   'สถานะข้อมูล':'Data status',
@@ -3310,11 +3280,8 @@ Object.assign(I18N_EN, {
   'เปลี่ยนร่างเป็นไม่รวม VAT':'Change draft to non-VAT',
   'ยืนยันลบ VAT จากร่างนี้? ยังไม่เปลี่ยนเอกสารที่ออกแล้ว':'Remove VAT from this draft? Issued documents are not changed.',
   'ซิงก์คลาวด์พักไว้ในรุ่นนี้ — ใช้สำรองข้อมูลในเครื่อง':'Cloud sync is paused in this release — use local backups.',
-  'พักส่งออก e-Tax XML — ยังไม่ใช่ช่องทาง e-Tax ที่ตรวจสอบแล้ว':'e-Tax XML export is paused — the authorized workflow is not validated.',
-  '2.0.4: ใบเสร็จธรรมดาเท่านั้น — อ่านข้อจำกัดก่อนใช้งาน':'2.0.4: ordinary receipts only — review the limits before use.',
-  'ดูข้อจำกัด 2.0.4':'2.0.4 limits',
+  'แอปนี้ไม่มีการส่งออก e-Tax XML':'This app has no e-Tax XML export.',
   'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'This release supports full-payment THB ordinary receipts for confirmed non-VAT issuers.',
-  'พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์':'New tax invoices, tax-payable estimates, e-Tax and cloud sync are paused.',
   'ข้อมูลเก่ายังอยู่ ไม่แก้ใบเดิมอัตโนมัติ โปรดให้ผู้ทำบัญชีตรวจ':'Existing records are retained, not automatically corrected. Ask your tax practitioner to review them.',
   'สำรองไฟล์ในเครื่องได้ อย่าแก้ไฟล์เดียวพร้อมกันหลายเครื่อง':'Local backup is available. Do not edit the same file on multiple devices concurrently.',
   'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน':'These are release limits, not legal prohibitions applying to all freelancers.'
@@ -3324,7 +3291,7 @@ function openSafetyLimits(){
   document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('ข้อจำกัดการใช้งาน')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">${[
       'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน',
-      'พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์',
+      'แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี',
       'ข้อมูลเก่ายังอยู่ ไม่แก้ใบเดิมอัตโนมัติ โปรดให้ผู้ทำบัญชีตรวจ',
       'สำรองไฟล์ในเครื่องได้ อย่าแก้ไฟล์เดียวพร้อมกันหลายเครื่อง',
       'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน'
@@ -4097,7 +4064,6 @@ Object.assign(I18N_EN, {
   'สรุปรายรับทั้งปี':'Full-year income summary',
   'รายการนอกประเภท 40(5)–(8) ไม่รวมในสรุปครึ่งปี':'Categories outside 40(5)–(8) are excluded from the half-year summary',
   'รายการไม่ทราบประเภทไม่รวมในสรุปครึ่งปี':'Unclassified records are excluded from the half-year summary',
-  'ยังไม่คำนวณภาษีที่ต้องจ่ายหรือขอคืน':'Tax payable or refund calculation is unavailable',
   'ต้องตรวจเงินได้อื่น ค่าใช้จ่าย ค่าลดหย่อน เครดิตจริง และวิธีคำนวณภาษีร่วมกัน':'Other income, expenses, deductions, actual credits and applicable tax methods require joint review',
   'การมีรายการในสรุปไม่ได้ยืนยันหน้าที่ยื่นแบบ':'A summary entry does not establish a filing obligation',
   'ตรวจคำแนะนำและกำหนดยื่นจากกรมสรรพากร':'Check Revenue Department instructions and filing deadlines',
@@ -4768,12 +4734,11 @@ function renderFiling(c,ta){
       (p.half?'<p class="hint">'+tr('รายการไม่ทราบประเภทไม่รวมในสรุปครึ่งปี')+' · '+tr('รายการนอกประเภท 40(5)–(8) ไม่รวมในสรุปครึ่งปี')+'</p>':'')+
       '</div>';
   }).join('');
-  c.innerHTML=incomeTabs(true)+'<div class="banner info"><span><b>'+tr('ยังไม่คำนวณภาษีที่ต้องจ่ายหรือขอคืน')+'</b><br>'+
-    tr('ต้องตรวจเงินได้อื่น ค่าใช้จ่าย ค่าลดหย่อน เครดิตจริง และวิธีคำนวณภาษีร่วมกัน')+'</span></div>'+
-    '<div class="report-head"><div class="year-pick"><span>'+tr('ปีภาษี')+'</span>'+
+  c.innerHTML=incomeTabs(true)+'<div class="report-head"><div class="year-pick"><span>'+tr('ปีภาษี')+'</span>'+
     '<select onchange="setReportYear(this.value)">'+reportYears().map(y=>'<option value="'+y+'" '+(y===reportYear?'selected':'')+'>'+displayYear(y)+'</option>').join('')+'</select></div></div>'+
     '<div class="filing-grid">'+cards+'</div>'+
-    '<div class="filing-note">'+tr('การมีรายการในสรุปไม่ได้ยืนยันหน้าที่ยื่นแบบ')+'<br>'+
+    '<div class="filing-note">'+tr('สรุปนี้ไม่คำนวณภาษีที่ต้องจ่ายหรือขอคืน')+' · '+tr('ต้องตรวจเงินได้อื่น ค่าใช้จ่าย ค่าลดหย่อน เครดิตจริง และวิธีคำนวณภาษีร่วมกัน')+'<br>'+
+    tr('การมีรายการในสรุปไม่ได้ยืนยันหน้าที่ยื่นแบบ')+'<br>'+
     tr('ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว')+'<br>'+
     tr('ตรวจคำแนะนำและกำหนดยื่นจากกรมสรรพากร')+' · '+
     '<a href="https://www.rd.go.th/68191.html" target="_blank" rel="noopener noreferrer">'+tr('แบบและคำแนะนำกรมสรรพากร')+'</a>'+
@@ -5245,7 +5210,7 @@ async function saveSettings(silent){
   set('s_year',el=>b.yearMode=el.value); set('s_lang',el=>b.lang=el.value);
   set('s_uiLang',el=>{ langChanged = b.uiLang !== el.value; b.uiLang=el.value; });
   set('s_fmt_q',el=>b.numberFormats.quotation=el.value); set('s_fmt_i',el=>b.numberFormats.invoice=el.value);
-  set('s_fmt_r',el=>b.numberFormats.receipt=el.value); set('s_fmt_t',el=>b.numberFormats.tax_invoice=el.value);
+  set('s_fmt_r',el=>b.numberFormats.receipt=el.value);
   if(!touched) return true;
   // Leaving Settings re-reads every field; an unchanged profile must not become a new
   // version, or every synced Mac would see a change nobody made.
@@ -5358,7 +5323,6 @@ Object.assign(I18N_EN,{
   'ยืนยันว่าไม่ได้จดทะเบียน VAT':'I confirm I am not VAT registered',
   'จดทะเบียน VAT แล้ว':'VAT registered',
   'รุ่นนี้รองรับใบเสร็จธรรมดาสำหรับผู้ไม่จด VAT เท่านั้น':'This release supports ordinary receipts for confirmed non-VAT sellers only',
-  'รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี':'Tax-invoice issuance is unavailable in this release',
   'เอกสารออกแล้ว แก้ไขไม่ได้':'Issued documents cannot be edited',
   'กรุณายืนยันว่าไม่ได้จด VAT ในตั้งค่าก่อน':'Confirm non-VAT status in Settings first',
   'กรุณาตรวจชื่อ ที่อยู่ และเลขภาษี 13 หลักของผู้รับเงิน':'Check the recipient’s name, address and 13-digit tax ID',
@@ -5394,7 +5358,7 @@ function validDocumentDate(value){
   const parsed=parseDate(value); return Number.isFinite(parsed.getTime()) && isoLocal(parsed)===value;
 }
 function issuanceError(d,finalize,parties){
-  if(!d || !['quotation','invoice','receipt'].includes(d.type)) return tr('รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี');
+  if(!d || !['quotation','invoice','receipt'].includes(d.type)) return tr('แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี');
   const b=parties?.business||DB.business, cl=parties?.buyer||clientById(d.clientId);
   if(!cl || cl.deletedAt || !String(cl.name||'').trim() || !validDocumentDate(d.issueDate) ||
       (d.dueDate && !validDocumentDate(d.dueDate)) || !['THB','USD','EUR'].includes(d.currency) ||
@@ -5483,7 +5447,7 @@ function markDirty(){
   if(typeof queueMicrotask==='function') queueMicrotask(()=>autoSaveDraft());
 }
 function openDocEditor(type, existingId, presetItems, parentId, presetMeta){
-  if(type==='tax_invoice'){toast(tr('รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี'),'err');return;}
+  if(type==='tax_invoice'){toast(tr('แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี'),'err');return;}
   if(!activeClients().length){
     pendingNewDocType=type;setView('clients');openClientEditor();return;
   }
@@ -5515,7 +5479,7 @@ function openDocEditor(type, existingId, presetItems, parentId, presetMeta){
   }
   if(saved && saved.doc && (saved.doc.id||null)===(editDoc.id||null) &&
       (!editDoc.id||draftSourceMatches(editDoc,saved.sourceJSON)) && !presetItems&&!presetMeta) pendingEditorDraft=saved;
-  if(editDoc.type==='tax_invoice'){editDoc=null;toast(tr('รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี'),'err');return;}
+  if(editDoc.type==='tax_invoice'){editDoc=null;toast(tr('แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี'),'err');return;}
   drawDocEditor();
   openModal();
 }
@@ -5595,7 +5559,7 @@ function drawDocEditor(){
         ?`<button class="btn btn-primary" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button>`
         :`<button class="btn" onclick="openReceiptSettings()">${tr('ตั้งค่าสถานะ VAT')}</button><button class="btn btn-primary" onclick="confirmReceiptPrerequisite()">${tr('ยืนยันว่าไม่ได้จด VAT')}</button>`}</div>`;return;
   }
-  const typeOpts = {quotation:tr('ใบเสนอราคา'),invoice:tr('ใบแจ้งหนี้'),receipt:tr('ใบเสร็จรับเงิน'),tax_invoice:tr('ใบเสร็จรับเงิน / ใบกำกับภาษี')};
+  const typeOpts = {quotation:tr('ใบเสนอราคา'),invoice:tr('ใบแจ้งหนี้'),receipt:tr('ใบเสร็จรับเงิน')};
   m.innerHTML = `
     <div class="modal-head"><h3>${tr(isNew?'สร้าง':'แก้ไข')} ${typeOpts[d.type]}</h3>
       ${d.number?`<span class="muted" style="margin-left:10px;font-size:13px">${escapeHtml(d.number)}</span>`:''}
@@ -5610,7 +5574,7 @@ function drawDocEditor(){
       <div class="grid-3">
         <div class="field"><label>${tr('ประเภท')}</label>
           <select id="d_type" ${!isNew?'disabled':''} onchange="editField('type',this.value);refreshTaxPath()">
-            ${Object.entries(typeOpts).filter(([k])=>k!=='tax_invoice').map(([k,l])=>`<option value="${k}" ${d.type===k?'selected':''}>${l}</option>`).join('')}
+            ${Object.entries(typeOpts).map(([k,l])=>`<option value="${k}" ${d.type===k?'selected':''}>${l}</option>`).join('')}
           </select></div>
         <div class="field"><label>${tr('ลูกค้า')}</label>
           <select id="d_client" onchange="editField('clientId',this.value);onClientChange()">
@@ -6895,7 +6859,7 @@ async function createReceipt(id){
 function duplicateDoc(id){
   const src=DB.documents.find(x=>x.id===id);
   if(!src) return;
-  if(src.type==='tax_invoice'){toast(tr('รุ่นนี้ยังไม่รองรับการออกใบกำกับภาษี'),'err');return;}
+  if(src.type==='tax_invoice'){toast(tr('แอปนี้ออกใบเสร็จธรรมดาเท่านั้น ไม่ออกใบกำกับภาษี'),'err');return;}
   // Whitelist commercial content: never carry legal, payment or certificate identity.
   openDocEditor(src.type,null,JSON.parse(JSON.stringify(src.items)),null,{
     clientId:src.clientId,project:src.project,notes:src.notes,currency:docCurrency(src),docLang:docLangOf(src),
