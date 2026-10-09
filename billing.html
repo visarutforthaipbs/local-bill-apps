@@ -1478,8 +1478,8 @@ function resolveConflict(i, useRemote){
 }
 
 /* ---------- Channel-specific Pro purchase paths ---------- */
-function openUpgradeModal(){ return IS_MAS ? openMasUpgradeModal() : openDirectUpgradeModal(); }
-/* ---------- MAS: ซื้อ Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
+function openUpgradeModal(){ return IS_MAS ? openMasUpgradeModal() : openStoreOnlyModal(); }
+/* ---------- MAS: Pro ผ่าน In-App Purchase (กติกา 3.1.1 — ไม่มีลิงก์ซื้อภายนอก/ช่องวางรหัส)
    รายการขายไม่มี AI (sandbox ห้าม spawn llama-cli) — อย่าเพิ่มกลับโดยไม่แก้ข้อจำกัดนั้นก่อน */
 let iapBusy=false;
 let iapProduct=null;
@@ -1611,65 +1611,14 @@ async function handleIapChanged(status={state:'idle'}){
   updateIapControls();
 }
 
-function openDirectUpgradeModal(){
-  if(IS_MAS) return openMasUpgradeModal();
-  const m = document.getElementById('modal');
-  const li = s => `<div style="padding:4px 0;font-size:13px">${ic('check',14)} ${s}</div>`;
-  m.innerHTML = `
-    <div class="modal-head"><h3>${tr('อัปเกรดเป็น BillNgai Pro')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
+/* ---------- รุ่นดาวน์โหลดตรง: ไม่มีการซื้อในแอปแล้ว — Pro มีเฉพาะใน App Store (ย้ายข้อมูลได้ที่ ตั้งค่า → ข้อมูลและสำรอง) */
+function openStoreOnlyModal(){
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('BillNgai Pro มีใน App Store เท่านั้น')}</h3><div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
-      <div class="grid-2" style="align-items:start">
-        <div class="card-block" style="margin-bottom:0">
-          <h4>${tr('BillNgai Local — ของคุณตลอดไป')}</h4>
-          <div class="desc">${tr('ฟรี ใช้ทำเอกสารได้ตลอด ข้อมูลอยู่ในเครื่องคุณ')}</div>
-          ${li(tr('รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน'))}
-          ${li(tr('สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี'))}
-          ${li(tr('ข้อมูลอยู่ในเครื่องคุณ 100%'))}
-          ${li(tr('สำรอง/กู้คืนในเครื่อง'))}
-        </div>
-        <div class="card-block" style="margin-bottom:0;border-color:var(--accent);background:var(--accent-tint)">
-          <h4>BillNgai Pro</h4>
-          <div class="desc">${tr('ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง')}</div>
-          ${li(tr('ทุกอย่างที่มีใน Local'))}
-          ${li(tr('AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ'))}
-          ${li(tr('ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)'))}
-          ${li(tr('ประเภทเงินได้ใช้ได้ทุกแพ็กเกจ'))}
-          <div style="font-weight:700;margin-top:12px;color:var(--accent-ink)">${tr('จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน')}</div>
-        </div>
-      </div>
-      <div class="banner" style="margin:16px 0 0">${ic('alert')} ${tr('เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน')}</div>
-      <div class="field" style="margin-top:16px;margin-bottom:0">
-        <label>${tr('มีรหัส Pro แล้ว? วางที่นี่')}</label>
-        <div style="display:flex;gap:9px">
-          <input id="lic_key" spellcheck="false" placeholder="eyJsaWNlbnNlIjo…" style="flex:1">
-          <button class="btn btn-primary" onclick="activateLicense()">${tr('เปิดใช้งานรหัส')}</button>
-        </div>
-        <div class="hint">${tr('ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย')}
-          <a href="https://lin.ee/pSl8nEH" target="_blank" rel="noopener" style="font-weight:700;margin-left:4px">${tr('ทักทาง LINE')} ${ic('arrowRight',14)}</a></div>
-      </div>
-    </div>`;
+      <p>${tr('ตอนนี้ BillNgai Pro ซื้อได้เฉพาะใน App Store (Mac, iPhone และ iPad) — รุ่นดาวน์โหลดตรงนี้ไม่มีการซื้อในแอปแล้ว')}</p>
+      <p>${tr('ย้ายข้อมูลไปใช้กับแอปจาก App Store ได้ที่ ตั้งค่า → ข้อมูลและสำรอง')}</p>
+    </div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ปิด')}</button></div>`;
   openModal();
-}
-// Direct-purchase dialog copy. Lives in the region the Apple renderer omits; registered once I18N_EN exists.
-function registerDirectPurchaseCopy(){ Object.assign(I18N_EN,{
-  'AI แปลง TOR เป็นใบเสนอราคา — ออฟไลน์ 100% ในเครื่องคุณ':'AI turns a TOR into a quotation — 100% offline on your Mac',
-  'จ่ายครั้งเดียว — Early Bird ฿599 (ราคาเต็ม ฿1,900) ไม่มีค่ารายเดือน':'One-time payment — Early Bird ฿599 (full price ฿1,900), no subscription',
-  'มีรหัส Pro แล้ว? วางที่นี่':'Already have a Pro key? Paste it here',
-  'เปิดใช้งานรหัส':'Activate key',
-  'ซื้อ Pro: สแกนจ่ายผ่าน PromptPay แล้วส่งสลิปทาง LINE — รับรหัสตอบกลับทางแชทได้เลย':'Buy Pro: pay by PromptPay, send the slip on LINE and get your key back in the chat',
-  'ทักทาง LINE':'Message us on LINE'}); }
-async function activateLicense(){
-  if(IS_MAS) return;
-  const key = (document.getElementById('lic_key')||{value:''}).value.trim();
-  if(!key) return;
-  try{
-    PRO = await window.billingAPI.licenseActivate(key);
-    closeModal();
-    await refreshSyncInfo();
-    await refreshAiAddonStatus();
-    render();
-    toast(tr('เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!'),'ok');
-  }catch(e){ toast(tr('รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง'),'err'); }
 }
 async function deactivateLicense(){
   if(!await askConfirm(tr('ปิดการใช้งานรหัส Pro บนเครื่องนี้?'),{confirmLabel:tr('ปิดการใช้งานรหัสนี้'),danger:true})) return;
@@ -2806,11 +2755,12 @@ const I18N_EN = {
   'ประเภทเงินได้ (มาตรา 40) + สรุปภาษีตามประเภท':'Income categories (Section 40) + tax summary by category',
   'ปกป้องข้อมูลการเงินเมื่อแก้ไขชนกันระหว่างเครื่อง':'Financial data protected when devices edit the same document',
   'TOR → Invoice — ฟีเจอร์ของ BillNgai Pro':'TOR → Invoice — a BillNgai Pro feature',
-  'เปิดใช้งาน Pro แล้ว — ขอบคุณที่สนับสนุน!':'Pro activated — thank you for the support!',
-  'รหัสไม่ถูกต้อง — ตรวจสอบแล้วลองอีกครั้ง':'Invalid key — please check and try again',
   'ปิดการใช้งานรหัส Pro บนเครื่องนี้?':'Deactivate the Pro key on this device?',
   'ฟีเจอร์ Pro — ดูแพ็กเกจ':'Pro feature — see plans',
   'สถานะ Pro':'Pro status',
+  'BillNgai Pro มีใน App Store เท่านั้น':'BillNgai Pro is only on the App Store',
+  'ตอนนี้ BillNgai Pro ซื้อได้เฉพาะใน App Store (Mac, iPhone และ iPad) — รุ่นดาวน์โหลดตรงนี้ไม่มีการซื้อในแอปแล้ว':'BillNgai Pro is now sold only through the App Store (Mac, iPhone and iPad) — this direct-download version no longer sells Pro.',
+  'ย้ายข้อมูลไปใช้กับแอปจาก App Store ได้ที่ ตั้งค่า → ข้อมูลและสำรอง':'Move your data to the App Store version from Settings → Data & backup.',
   'ตลอดชีพ':'Lifetime',
   'ใช้ได้ถึง {d}':'Valid until {d}',
   'ปิดการใช้งานรหัสนี้':'Deactivate this key',
@@ -2987,7 +2937,6 @@ const I18N_EN = {
   'รุ่นนี้รองรับใบเสร็จเงินบาท สำหรับผู้ไม่จด VAT ที่รับชำระเต็มจำนวน':'This version supports THB receipts for non-VAT issuers receiving full payment only',
   'สรุปเพื่อทบทวนบัญชี ไม่ใช่แบบยื่นภาษี':'Summary for bookkeeping review — not a tax return',
   'พักใบกำกับภาษีใหม่ ประมาณภาษีที่ต้องจ่าย e-Tax และซิงก์คลาวด์':'New tax invoices, tax estimates, e-Tax and cloud sync are paused',
-  'ประเภทเงินได้ใช้ได้ทุกแพ็กเกจ':'Income category is available in all plans',
   'เป็นข้อจำกัดของรุ่นนี้ ไม่ใช่ข้อห้ามทางกฎหมายสำหรับฟรีแลนซ์ทุกคน':'This is a version limitation — not a legal prohibition for all freelancers',
   'ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว':'Withholding shown is expected — not a verified tax credit',
   'วันที่รับเงินไม่ชัดเจน':'Payment date is unclear',
@@ -3036,7 +2985,6 @@ const I18N_EN = {
   'ซื้อไม่สำเร็จ:':'Purchase failed:',
   'กำลังกู้คืนการซื้อจาก App Store…':'Restoring purchases from the App Store…',
   'กู้คืนการซื้อไม่สำเร็จ':'Restore failed',
-  'ไม่พบการซื้อ Pro ก่อนหน้านี้ในบัญชี Apple นี้':'No previous Pro purchase found on this Apple ID',
   'จ่ายครั้งเดียว ผูกกับ Apple ID ของคุณ — BillNgai ไม่เก็บเอกสารลูกค้าบนเซิร์ฟเวอร์เรา ข้อมูลซิงก์ผ่าน Google Drive ของคุณเองเท่านั้น':'One-time purchase tied to your Apple ID — BillNgai never stores your documents on our servers; sync uses your own Google Drive only',
   'ซื้อผ่าน App Store แล้ว':'Purchased via the App Store',
   'ข้อมูลถูกบันทึกอัตโนมัติในแอป (ปลอดภัย ไม่ต้องตั้งค่า)':'Your data is saved automatically inside the app (safe, no setup needed)'
@@ -3229,7 +3177,6 @@ function markBackup(){ DB.meta = DB.meta || {}; DB.meta.lastBackupAt = new Date(
 function backupVerb(){ return IS_ELECTRON ? 'elExport()' : 'exportJSON()'; }
 // Shown when the data file exists but couldn't be read — saving is blocked
 // until the user recovers from a snapshot or imports a backup.
-if(typeof registerDirectPurchaseCopy==='function')registerDirectPurchaseCopy();   // absent in App Store bundles
 Object.assign(I18N_EN,{'ข้อมูลนี้มาจากแอปรุ่นใหม่กว่า — อัปเดตแอปก่อนเปิด':'This data requires a newer app. Update BillNgai before opening it.','แอปรุ่นเดิมแก้ไฟล์ JSON หลังย้ายข้อมูล — ตรวจทั้งสองสำเนาก่อนนำเข้า':'An older app changed the JSON after migration. Review both copies before importing.'});
 function loadFailBanner(){
   if(!loadFailed) return '';
@@ -6226,8 +6173,6 @@ Object.assign(I18N_EN,{
   'ยังมีเอกสารที่รอยืนยันกับ Google Drive — ซิงก์ให้เสร็จก่อน':'A document is still waiting for Google Drive confirmation — finish syncing first',
   'บัญชีนี้ยังใช้ซิงก์ไม่ได้':'This account cannot use sync yet',
   'เครื่องนี้เชื่อมต่อกับบัญชี Google อื่นอยู่':'This Mac is connected to a different Google account',
-  'ซิงก์ Google Drive หลายเครื่อง และ AI ร่างใบเสนอราคาในเครื่อง':'Google Drive sync across devices, plus on-device AI quotation drafts',
-  'ซิงก์ Google Drive — ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง (สูงสุด 3 บัญชี Google ต่อรหัส)':'Google Drive sync — the same data across devices (up to 3 Google accounts per key)',
   'ซิงก์รุ่นเดิมหยุดใช้แล้ว — เชื่อมต่อ Google Drive ใหม่ได้ที่ ตั้งค่า → ข้อมูลและสำรอง':'The old sync has been retired — connect Google Drive again in Settings → Data & backup',
   'เชื่อมต่อ Google Drive ไม่ได้ตอนนี้ ข้อมูลและร่างในเครื่องยังอยู่ ลองอีกครั้งเมื่อมีอินเทอร์เน็ต':'Can\'t reach Google Drive right now. Your data and drafts are safe on this Mac — try again when you\'re online.'
 });

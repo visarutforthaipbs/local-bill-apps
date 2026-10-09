@@ -18,10 +18,9 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     const original=await page.evaluate(()=>JSON.stringify(DB.documents));
     // Stub only license / AI availability. No actual license or model is installed.
     await app.evaluate(({ipcMain})=>{
-      for(const channel of ['license:status','license:activate','license:deactivate','ai:status'])ipcMain.removeHandler(channel);
+      for(const channel of ['license:status','license:deactivate','ai:status'])ipcMain.removeHandler(channel);
       const pro={valid:true,email:'synthetic@example.invalid',validUntil:'2099-01-01'};
       ipcMain.handle('license:status',()=>pro);
-      ipcMain.handle('license:activate',()=>pro);
       ipcMain.handle('license:deactivate',()=>({valid:false}));
       globalThis.optionAAiCalls=0;
       ipcMain.handle('ai:status',async()=>{
@@ -60,16 +59,18 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
       assert.doesNotMatch(text,/e-Tax|XML|ซิงก์|sync|Workspace/i);
       assert.equal(await page.locator('button[onclick="makeManualSnapshot()"]').count(),1);
       assert.equal(await page.locator('button[onclick="exportCSV()"]').count(),1);
-      await page.locator('button[onclick="openUpgradeModal()"]').click();await page.locator('#lic_key').waitFor();await page.evaluate(()=>closeModal());
+      await page.locator('button[onclick="openUpgradeModal()"]').click();await page.locator('#modal .modal-foot button').waitFor();
+      assert.match(await page.locator('#modal').innerText(),/App Store/);assert.equal(await page.locator('#lic_key').count(),0);
+      assert.doesNotMatch(await page.locator('#modal').innerHTML(),/lin\.ee|Early Bird|PromptPay|฿/);await page.evaluate(()=>closeModal());
       await page.evaluate(()=>window.scrollTo(0,0));
       await page.screenshot({path:path.join(root,`settings-${lang}.png`),fullPage:true,animations:'disabled'});
     }
     // Availability refresh, activation, deactivation, and dated/lifetime labels.
     await page.locator('details').filter({has:page.locator('button[onclick="openAiSettings()"]')}).locator('summary').click();
     await page.locator('button[onclick="openAiSettings()"]').click();await page.waitForFunction(()=>currentView==='ai');
-    await page.locator('button[onclick="openUpgradeModal()"]').click();
-    await page.locator('#lic_key').fill('synthetic-test-key');
-    await page.locator('button[onclick="activateLicense()"]').click();await page.waitForFunction(()=>isPro()&&aiAddonStatus?.valid);
+    await page.locator('button[onclick="openUpgradeModal()"]').click();assert.equal(await page.locator('#lic_key').count(),0);await page.evaluate(()=>closeModal());
+    // No key entry remains; a key already stored in config.json (final direct build) is still honoured through license:status.
+    await page.evaluate(async()=>{PRO=await window.billingAPI.licenseStatus();await refreshAiAddonStatus();render();});await page.waitForFunction(()=>isPro()&&aiAddonStatus?.valid);
     assert.equal(await page.locator('#addonNav').isVisible(),true);
     await page.evaluate(()=>{setView('settings');settingsTab='data';render();});
     assert.match(await page.locator('#content').innerText(),/Valid until/);

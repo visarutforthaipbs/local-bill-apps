@@ -79,7 +79,7 @@
   linkExisting:unavailable,createExternal:unavailable,useDefault:unavailable,
   attachEvidence:unavailable,evidenceInfo:unavailable,exportEvidence:unavailable,
   exportEvidenceBundle:unavailable,importEvidenceBundle:unavailable,
-  licenseActivate:unavailable,licenseDeactivate:unavailable,
+  licenseDeactivate:unavailable,
   reveal:unavailable,revealBackups:unavailable,
   pathForFile:()=>'',
   drain:()=>tail

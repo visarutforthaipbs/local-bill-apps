@@ -73,7 +73,7 @@ function renderer(options={}){
       licenseStatus:async()=>({valid:owned})}},
     PRO:{valid:false},isPro:()=>owned,tr:s=>s,ic:()=>'',refreshSyncInfo:async()=>{},render(){},toast(){},
     setTimeout:fn=>{timer=fn;return 1;},clearTimeout:()=>{timer=null;}});
-  const start=html.indexOf('let iapBusy=false;'),end=html.indexOf('\nasync function activateLicense()',start);
+  const start=html.indexOf('let iapBusy=false;'),end=html.indexOf('\n/* ---------- รุ่นดาวน์โหลดตรง',start);
   vm.runInContext(html.slice(start,end),c);
   return {c,nodes,run:src=>vm.runInContext(src,c),get calls(){return buyCalls},timeout:()=>timer(),own:()=>owned=true};
 }

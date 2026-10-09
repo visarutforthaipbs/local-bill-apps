@@ -86,15 +86,6 @@
       "provisioningProfile": "build/embedded.provisionprofile",
       "target": [
         "pkg"
-      ],
-      "files": [
-        {
-          "from": "build/mas-renderer",
-          "to": ".",
-          "filter": [
-            "billing.html"
-          ]
-        }
       ]
     },
     "dmg": {

@@ -15,6 +15,3 @@ build/icon.iconset/
 .DS_Store
 secrets/
 
-# Generated Apple-only purchase renderer
-build/mas-renderer.html
-build/mas-renderer/

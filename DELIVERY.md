@@ -1,5 +1,7 @@
 # BillNgai 2.0 — Delivery & Fulfillment
 
+> **2026-10-09:** the in-app direct purchase flow (PromptPay/LINE dialog, licence-key entry) is removed from 2.0.15; Pro is sold only through the App Store (`PRD-SIMPLIFY-2026-10.md` §4). Existing keys still unlock the final direct build. Everything below is historical evidence.
+
 ## Current override — 2026-09-24, Direct macOS 2.0.3 released
 
 The containment release is public; see `RELEASE-2.0.3.md` for verified artifact evidence.
