@@ -8,8 +8,6 @@
     "release:check": "node scripts/validate-release-config.cjs",
     "start": "electron .",
     "assets": "node prepare-brand-assets.js",
-    "ai:addon:dev": "node scripts/create-dev-ai-addon.js",
-    "ai:addon:build": "node scripts/build-ai-addon.js",
     "pro:license": "node scripts/make-license.js",
     "icon": "electron make-icon.js",
     "predist": "electron make-icon.js",
