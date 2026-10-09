@@ -1,6 +1,60 @@
 # BillNgai — SKU & Channel Design (ร่างเพื่อตัดสินใจ)
 
-## Current override — 2026-09-24, Direct macOS 2.0.3 released
+## Current override — 2026-10-09, App Store only
+
+บล็อกลงวันที่นี้มีผลเหนือทุกส่วนด้านล่าง (override 2026-09-24 และ §1–§7) และเหนือ `PRD-2.0-LOCAL-PRO.md`
+**ที่มาของการตัดสินใจคือ `PRD-SIMPLIFY-2026-10.md` §4** — ถ้าข้อความในไฟล์นี้ขัดกับ PRD ให้ยึด PRD เสมอ
+เจ้าของอนุมัติทิศทางเมื่อ 2026-10-09 ("agree") รุ่นเป้าหมายคือ 2.0.15 บน Mac App Store + iOS App Store
+(เจ้าของอาจเปลี่ยนเลขเป็น 2.1.0 ก่อนส่งรีวิว โดยไม่มีอะไรอื่นเปลี่ยน)
+
+สถานะ: ยังไม่มีรุ่นใดเผยแพร่ภายใต้ override นี้ ทุกอย่างด้านล่างคือแผน ไม่ใช่สิ่งที่เกิดขึ้นแล้ว
+
+### SKU ที่เหลือ (2 ตัว)
+
+| SKU | สินค้า | ช่องทาง | ราคา | การปลดล็อก |
+|---|---|---|---|---|
+| `BN-LOCAL-AS` | BillNgai (แพ็กเกจฟรี) | Mac App Store · iOS App Store (iPhone/iPad) | **ฟรี** | ดาวน์โหลด = ใช้ได้เลย ไม่ต้องมีบัญชี |
+| `BN-PRO-AS` | BillNgai Pro | In-app purchase `com.visarut.billngai.pro` (non-consumable, universal ซื้อครั้งเดียวใช้ได้ทั้ง Mac/iPhone/iPad) | ฿599 Early Bird → ฿1,900 (Apple tier, **ไม่เปลี่ยน**) | StoreKit · กู้คืนการซื้อได้ทุกเครื่องที่ใช้ Apple ID เดียวกัน |
+
+ทั้งสอง SKU อยู่บน record Apple เดิม: app `6789503350`, Apple SKU `billngai-mas`, bundle `com.visarut.billngai`,
+team `79QFYKTJMN` — ไม่มี record หรือสินค้าใหม่ (`BN-LOCAL-MAS`/`BN-PRO-MAS` ในตาราง §2 เดิมคือของชิ้นเดียวกัน
+แค่เปลี่ยนรหัสเรียกเป็น `-AS` เพราะตอนนี้ครอบคลุม iOS ด้วย)
+
+### SKU ที่เลิกแล้ว
+
+| SKU เดิม | สถานะ | หมายเหตุ |
+|---|---|---|
+| `BN-LOCAL-MAC` (DMG จาก R2) | เลิก หลัง DMG รุ่นสุดท้าย 2.0.15 | DMG รุ่นสุดท้ายมีแค่ปุ่มส่งออกเพื่อย้ายไป App Store (PRD §5) |
+| `BN-LOCAL-WIN` (Windows beta) | เลิกทันที | ไม่เคยออกจาก beta ไม่มีบิลด์ Windows อีก |
+| `BN-PRO-KEY` (รหัส Ed25519 ขายผ่านเว็บ/LINE) | เลิกขาย | รหัสเดิมยังใช้กับ DMG รุ่นสุดท้ายได้ ผู้ถือรหัสย้ายไป App Store ด้วย promo code (ด้านล่าง) |
+| `BN-AI-ADDON` (AI TOR → Quotation) | ถอดออกจากแอป | ไม่มีช่องทางไหนมีอีก โฟลเดอร์ add-on ที่ติดตั้งไว้แอปไม่ลบให้ |
+
+### ไทม์ไลน์การเปลี่ยนผ่าน (PRD §4.2)
+
+1. **2.0.15 store release** — แอปที่ตัดฟีเจอร์แล้ว + HIG restyle ส่ง Mac App Store และ TestFlight → App Store (iOS)
+2. **2.0.15 final direct DMG** — source เดียวกัน build แบบตรง มีการ์ด "ย้ายไป App Store" ใน ตั้งค่า → ข้อมูลและสำรอง
+   และข้อความ "รุ่นต่อไปจะมีใน App Store เท่านั้น" อัปโหลดลิงก์ R2/Pages เดิมครั้งเดียว แล้วไม่มีบิลด์ตรงอีก
+3. **Retirement release (2.0.16 ขึ้นไป, store เท่านั้น)** — ถอดการตรวจ `licenseKey`, สคริปต์ `dist`/`dist:unsigned`/`dist:win`
+   และ notarisation, ย้าย `DELIVERY.md`/`WINDOWS-*.md` ไป `review/archive/` หน้าเว็บเหลือปุ่ม "Download on the App Store" ปุ่มเดียว
+   (วันปิดลิงก์ดาวน์โหลดตรง: รอเจ้าของกำหนด — PRD §9 เสนอ 60 วันหลัง store release)
+
+### นโยบาย promo code (PRD §0 "Existing lifetime-key holders", §4.3)
+
+- ลูกค้าที่ถือรหัส Pro ช่องทางตรง (`BN-PRO-KEY`) ได้ **App Store promo code สำหรับ IAP Pro** ฟรี 1 รหัสต่อคน
+  ไม่คืนเงิน ไม่ให้จ่ายซ้ำ — Apple ให้สร้างได้สูงสุด 100 รหัสต่อเวอร์ชัน ซึ่งพอสำหรับฐานลูกค้าปัจจุบัน
+- Pro ที่ซื้อผ่าน App Store อยู่แล้ว ไม่ต้องทำอะไร กู้คืนการซื้อบน iPhone/iPad ได้เลย
+- การสร้าง promo code ใน App Store Connect, การตรวจหลักฐานการซื้อเดิม และการส่งรหัสให้ลูกค้า **เป็นของเจ้าของเท่านั้น**
+  agent เตรียมได้แค่รายชื่อผู้มีสิทธิ์ (จาก sales log) และร่างข้อความ — ดู `review/2026-10-09/SIMPLIFY-OWNER-CHECKLIST.md`
+- นโยบายเดิม "MAS Pro ขอรหัสตรงฟรีเพื่อใช้ AI" (§5, §6.C) **ยกเลิก** เพราะ AI add-on ถูกถอดแล้ว
+
+### สิ่งที่ไม่เปลี่ยนใน override นี้
+
+ราคา Pro, record Apple เดิม, สิทธิ์ Pro ของผู้ที่ซื้อผ่าน App Store ไปแล้ว, กติกา 3.1.1 (ห้ามพูดราคา/ช่องทางอื่นใน
+store build และ metadata) การตัดสินใจเรื่องเงิน การคืนเงิน และข้อความถึงลูกค้ายังเป็นของเจ้าของทั้งหมด
+
+---
+
+## Superseded override — 2026-09-24, Direct macOS 2.0.3 released (replaced by the 2026-10-09 block above)
 
 This dated containment scope takes precedence over older feature promises below
 and the 2.0 PRD. Published installer evidence is in `RELEASE-2.0.3.md`.
@@ -29,6 +83,9 @@ policy and new MAS build numbers when subsequently porting; preserve StoreKit an
 sandbox differences. Follow `DEPLOYMENT.md` for exact-artifact checks before upload.
 No cross-channel new-feature announcement or MAS submission is authorized here.
 
+> **[ประวัติ — superseded 2026-10-09]** ส่วนที่ 1–7 ด้านล่างเก็บไว้เป็นบันทึกการตัดสินใจเดิม ไม่ใช่ source of truth อีกต่อไป
+> ให้ยึด override 2026-10-09 ด้านบนและ `PRD-SIMPLIFY-2026-10.md` §4
+>
 > เพิ่มช่องทาง Mac App Store แล้ว โครงสินค้าเปลี่ยนจาก "2 แพ็กเกจ 1 ช่องทาง"
 > เป็น "2 แพ็กเกจ × 3 ช่องทาง" — ไฟล์นี้คือ source of truth ของ SKU ทั้งหมด
 > คู่กับ `PRD-2.0-LOCAL-PRO.md` (สินค้า) และ `DELIVERY.md` (ปฏิบัติการช่องทางตรง)
@@ -36,7 +93,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 1. หลักการตั้งต้น (อ่านก่อนดูตาราง)
+## 1. หลักการตั้งต้น (อ่านก่อนดูตาราง) — superseded 2026-10-09
 
 1. **สอง branch แยกกันจริง ไม่ใช่โค้ดเดียว+flag** (แก้ไขคำอธิบาย 2026-07-12 ให้ตรงความจริง) —
    `main` (Direct) และ `mas-pilot` (App Store) เป็นคนละ git branch/worktree ที่มี `billing.html`
@@ -57,7 +114,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 2. ตาราง SKU (ทั้งหมด 6 ตัว)
+## 2. ตาราง SKU (ทั้งหมด 6 ตัว) — superseded 2026-10-09, เหลือ 2 ตัวตาม override ด้านบน
 
 | SKU code | สินค้า | ช่องทาง | ราคา (Early Bird → เต็ม) | รูปแบบ | การปลดล็อก |
 |---|---|---|---|---|---|
@@ -72,7 +129,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 3. ราคาและความสอดคล้องระหว่างช่องทาง
+## 3. ราคาและความสอดคล้องระหว่างช่องทาง — superseded 2026-10-09 (ราคาเดิม แต่เหลือช่องทางเดียว)
 
 **ตัดสินใจแล้ว 2026-07-12 (คำถาม B):** เลิกใช้ตัวเลขคนละชุดต่อช่องทาง — ทั้งสองช่องทางใช้ราคา
 เดียวกันเป๊ะ ชนตามเลข MAS tier (Apple บังคับ price tier อยู่แล้ว เลขนี้ใกล้ ฿590/฿1,990 เดิมที่สุด):
@@ -92,7 +149,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 4. Historical 2.0 feature matrix (superseded for Direct 2.0.3 by the override above)
+## 4. Historical 2.0 feature matrix — superseded 2026-10-09 (AI/Windows/ช่องทางตรงถูกถอด)
 
 | ฟีเจอร์ | Local (ทุกช่อง) | Pro MAS | Pro ตรง (mac) | Pro ตรง (win) |
 |---|---|---|---|---|
@@ -111,7 +168,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 5. กลไก license และนโยบายข้ามช่องทาง
+## 5. กลไก license และนโยบายข้ามช่องทาง — superseded 2026-10-09 (ดูนโยบาย promo code ด้านบน)
 
 - **ตรง:** `npm run pro:license -- --email <buyer>` → รหัส Ed25519 → ส่งทาง LINE
   (โฟลว์เดิมตาม `DELIVERY.md` ไม่เปลี่ยน)
@@ -125,7 +182,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 6. คำถามที่ตัดสินใจแล้ว (เจ้าของ, 2026-07-12)
+## 6. คำถามที่ตัดสินใจแล้ว (เจ้าของ, 2026-07-12) — superseded 2026-10-09
 
 ที่มา: biz-analyst weekly numbers + chief-of-staff decision memo
 (`reviews/2026-W28-decision-memo.md`) — เจ้าของตัดสินใจทั้ง 4 ข้อพร้อมกัน
@@ -144,7 +201,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
    รอ Windows AI end-to-end test บนเครื่องจริงให้ผ่านก่อน (ยังเป็น P1 todo ใน BACKLOG.md)
    ค่อยพิจารณาขึ้นเป็นหน้า download ทางการ
 
-## 7. Release discipline ต่อรีลีส (สรุปสั้น)
+## 7. Release discipline ต่อรีลีส (สรุปสั้น) — superseded 2026-10-09 (เหลือ store build เดียว)
 
 1. แก้โค้ดบน `main` → merge เข้า `mas-pilot`
 2. Version เดียวกันทุกช่องทาง (SemVer ใน package.json) · MAS bump `buildVersion` ทุกครั้งที่อัปโหลด

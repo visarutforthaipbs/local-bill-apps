@@ -10,6 +10,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 ### Changed
 - App interface restyled to Apple's Human Interface Guidelines (macOS and iOS/iPadOS) while keeping the orange accent: system font for Latin and figures with LINE Seed Sans TH for Thai, light and dark appearance following the OS, capsule controls, grouped 12 px containers, hidden title bar with a translucent sidebar on macOS, iOS text sizes and switch rows on iPhone/iPad. Printed documents and PDFs are unchanged.
 - The receipt-correction dialog's three confirmation checkboxes render inline with their labels (they were styled as text fields).
+- Distribution: App Store only (Mac, iPhone, iPad); final direct DMG carries the guided export.
+
+### Removed
+- Local AI add-on ("TOR → Invoice"): sidebar item, AI view, AI settings and add-on install/verify. Installed add-on folders are left on disk.
+- Sound effects: the Sounds settings tab and task cues. Reduce Motion is still honoured.
+- Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
+- e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
+- Windows beta: discontinued; no further Windows builds.
 
 ### Added
 - Atomic SQLite storage on desktop and iOS, with verified backups, guarded recovery and older-writer protection.
