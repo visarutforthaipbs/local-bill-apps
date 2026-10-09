@@ -37,10 +37,12 @@ test('mobile package preserves existing identity and has no remote executable UI
  assert.equal(fs.existsSync(path.join(root,'www/mobile-qa.js')),false);
  assert.equal(fs.existsSync(path.join(root,'www/mobile-ui-audit.js')),false);
  assert.equal(fs.existsSync(path.join(root,'www/mobile-recovery-qa.js')),false);
- assert.equal(fs.existsSync(path.join(root,'www/assets/audio')),false);
  assert.doesNotMatch(html,/https:\/\/lin\.ee\/pSl8nEH|Early Bird|ซื้อ Pro: สแกนจ่ายผ่าน PromptPay/);
  const colors=JSON.parse(fs.readFileSync(path.join(root,'ios/App/App/Assets.xcassets/BillNgaiCanvas.colorset/Contents.json'))).colors[0].color.components;
- assert.equal(colors.red,'1.000000');assert.equal(colors.alpha,'1.000000');
+ // Expected components come from the shared --bg token exactly as prepare-web.cjs derives them.
+ const canvas=fs.readFileSync(path.join(root,'../billing.html'),'utf8').match(/--bg:\s*#([0-9a-f]{6})\s*;/i)?.[1];assert.ok(canvas,'approved background token');
+ const expected=Object.fromEntries(['red','green','blue'].map((key,index)=>[key,(parseInt(canvas.slice(index*2,index*2+2),16)/255).toFixed(6)]));
+ assert.deepEqual(colors,{...expected,alpha:'1.000000'});
  assert.match(html,/mobile-iphone-ui.js/);assert.match(html,/mobile-print-preview.js/);
  assert.ok(!html.includes("toast(tr('ส่งออก CSV แล้ว'),'ok');"));
  const icon=fs.readFileSync(path.join(root,'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'));

@@ -70,7 +70,6 @@
   purchasePro:async()=>native.purchasePro(),
   restorePro:async()=>native.restorePro(),
   syncV3Status:status,syncStatus:status,
-  aiStatus:()=>Promise.resolve({valid:false,installed:false}),
   // No local-number fallback, fake token, or successful cloud result in the prototype.
   syncV3Connect:options=>syncAction('connect',options),syncV3Run:options=>syncAction('run',options),syncV3Reserve:(key,parts)=>syncAction('reserve',key,parts),syncV3Resolve:(key,choice)=>syncAction('resolve',key,choice),syncV3Disconnect:()=>syncAction('disconnect'),
   syncConnect:unavailable,syncDisconnect:unavailable,syncPush:unavailable,syncPull:unavailable,

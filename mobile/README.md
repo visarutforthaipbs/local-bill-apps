@@ -39,7 +39,9 @@ and the separately signed physical QA bundle `com.visarut.billngai.qa`.
   Real Apple purchase/restore and shared entitlement verification remain untested.
 
 Unsupported cloud connection, import/restore, external file locations, evidence
-files, accountant ZIP export and AI/license-code controls are hidden or rejected.
+files and accountant ZIP export are hidden or rejected. The AI add-on and
+licence-code controls were removed from the shared renderer in 2.0.15
+(2026-10-09), so their mobile stubs are gone too.
 The app labels this stage as a prototype. Local JSON export is available.
 
 ## Local setup
@@ -160,7 +162,9 @@ The native mobile host keeps orange/cream, replaces familiar utility actions wit
 named 48-point icons, retains Save/Issue/destructive labels, and collapses optional
 client contact/defaults and recurring notes. Existing inputs stay connected for
 native scratch recovery. Built-in guides/SFX and the Sounds tab/audio asset bundle
-are omitted on mobile; OS VoiceOver remains supported but manual acceptance is open.
+were omitted on mobile (2.0.15, 2026-10-09: the audio feature left the shared
+renderer entirely, so the mobile overrides are gone); OS VoiceOver remains
+supported but manual acceptance is open.
 
 Documents retain their authored A4-width layout, with uniform screen scaling and
 A4 minimum proportions. Long HTML previews are continuous; use the PDF button for

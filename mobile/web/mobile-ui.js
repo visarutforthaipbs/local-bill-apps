@@ -38,7 +38,7 @@ const desktopRender=render,desktopSettings=renderSettings;
 const desktopOpenModal=openModal;
 function hideMobileUnavailable(container){
  // elImport is the reviewed mobile JSON backup import; importJSON/restoreLocalBackup stay unavailable.
- const selectors=['elCreate','elLink','elReveal','elRevealBackups','elUseDefault','importJSON','restoreLocalBackup','openAiSettings','deactivateLicense','attachReviewEvidence','exportReviewEvidence','evidenceBundle','exportAccountantZip','printDocument'];
+ const selectors=['elCreate','elLink','elReveal','elRevealBackups','elUseDefault','importJSON','restoreLocalBackup','deactivateLicense','attachReviewEvidence','exportReviewEvidence','evidenceBundle','exportAccountantZip','printDocument'];
  container.querySelectorAll('button[onclick]').forEach(button=>{if(selectors.some(name=>button.getAttribute('onclick').includes(name+'(')))button.hidden=true;});
 }
 function enhanceMobileForm(container){
@@ -147,12 +147,10 @@ render=function(){
  document.querySelectorAll('[onclick="savePDF()"]')?.forEach(button=>{button.innerHTML=ic('download')+' '+tr('แชร์ PDF');});
  if(currentView==='documents'){
   document.querySelectorAll('#topActions button').forEach(button=>{button.hidden=button.getAttribute('onclick')!=='newDocumentFromList()';});
-  document.querySelectorAll('#content .audio-guide').forEach(guide=>guide.hidden=true);
   if(!activeDocs().some(d=>d.type==='tax_invoice')){const receipts=document.querySelector('#docTabs [data-f="receipt"]');if(receipts)receipts.textContent=tr('ใบเสร็จรับเงิน');}
  }
  if(mobileMore)renderMobileMore();
  prepareMobilePaper();containMobileTables(document.getElementById('content'));
- if(currentView==='docview'){const guide=document.querySelector('#content>.audio-guide');if(guide)document.getElementById('content').append(guide);}
  hideMobileUnavailable(document.getElementById('content'));
  hideMobileUnavailable(document.getElementById('topActions'));
  updateMobileNav();
@@ -164,7 +162,7 @@ function renderMobileMore(){
  document.getElementById('topActions').innerHTML='';
  const actions=[['settings','ตั้งค่า','settings'],['report','สรุปรายรับ','barChart'],['wht','หัก ณ ที่จ่าย (50 ทวิ)','receipt'],['recurring','รายการประจำ','fileText']];
  if((paymentReview().unansweredGroups||[]).length)actions.push(['legacy','ตรวจข้อมูลเดิม','fileText']);
- document.getElementById('content').innerHTML=`<div class="mobile-status">${ic(loadFailed||dirty?'alert':'check',16)} ${loadFailed||dirty?tr('หยุดบันทึกเพื่อป้องกันข้อมูลเดิม'):tr('บันทึกในเครื่องนี้')}</div><div class="card-block mobile-more">${actions.map(([v,label,icon])=>`<button class="btn" onclick="navTo('${v}')">${ic(icon)} ${tr(label)}</button>`).join('')}<button class="btn" onclick="openMobileArchive()">${ic('fileText')} ${tr('คลังเอกสาร')}</button><button class="btn" onclick="openUpgradeModal()">${tr('ใช้ Pro เดิมจาก App Store')}</button></div>${renderAudioGuide('first-bill')}<p class="mobile-stage">${mobileSyncNote()}</p>`;
+ document.getElementById('content').innerHTML=`<div class="mobile-status">${ic(loadFailed||dirty?'alert':'check',16)} ${loadFailed||dirty?tr('หยุดบันทึกเพื่อป้องกันข้อมูลเดิม'):tr('บันทึกในเครื่องนี้')}</div><div class="card-block mobile-more">${actions.map(([v,label,icon])=>`<button class="btn" onclick="navTo('${v}')">${ic(icon)} ${tr(label)}</button>`).join('')}<button class="btn" onclick="openMobileArchive()">${ic('fileText')} ${tr('คลังเอกสาร')}</button><button class="btn" onclick="openUpgradeModal()">${tr('ใช้ Pro เดิมจาก App Store')}</button></div><p class="mobile-stage">${mobileSyncNote()}</p>`;
 }
 function openMobileArchive(){setView('documents');openDocumentArchive();}
 async function openMobileMore(){
@@ -279,7 +277,7 @@ document.addEventListener('input',e=>{
  clearTimeout(mobileDraftTimer);
  mobileDraftTimer=setTimeout(()=>{if(typeof autoSaveDraft==='function')autoSaveDraft();},400);
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopAppAudio();autoSaveDraft();captureLegacyDraft();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){autoSaveDraft();captureLegacyDraft();}});
 const nav=document.createElement('nav');nav.id='mobileNav';nav.className='mobile-nav';nav.setAttribute('aria-label',tr('เมนู'));
 nav.innerHTML='<div class="mobile-nav-brand"><img src="logo.svg" width="32" height="32" alt=""><strong>BillNgai</strong></div>'+[['dashboard','หน้าหลัก','dashboard'],['documents','เอกสาร','fileText'],['clients','ลูกค้า','users'],['more','เพิ่มเติม','settings']].map(([v,label,icon])=>`<button type="button" data-mobile-view="${v}" data-label="${label}" onclick="${v==='more'?'openMobileMore()':`navTo('${v}')`}">${ic(icon,20)}<span>${tr(label)}</span></button>`).join('');
 document.body.append(nav);

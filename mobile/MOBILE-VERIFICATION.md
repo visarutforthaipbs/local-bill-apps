@@ -257,7 +257,8 @@ print output. Dynamic Type excludes all paper, including its preview wrapper.
 Familiar utility icons retain translated accessible names and 48-point targets;
 Save/Issue/delete stay explicit. Contact/default/notes disclosure preserves input
 IDs and native draft capture. Mobile voice guides/SFX, Sounds tab and audio assets
-are removed; this does not disable iOS VoiceOver.
+are removed; this does not disable iOS VoiceOver. (2.0.15, 2026-10-09: the audio
+feature left the shared renderer, so the mobile overrides noted here no longer exist.)
 
 Both MiMo Pro UI packets (`20261003-222921-_txtsqix`,
 `20261003-224604-a8ekl0cp`) timed out at 900s, exit 143, no changes/observed model.
@@ -285,7 +286,8 @@ and 31 draft assertions; 33 shared financial tests. 50 simulator cases passed:
 phone cases (AXXXL), 6 small-phone cases and 2 native PDF presentation cases.
 Exact evidence index: `review/iphone-ui-current-summary.json`. Signed physical QA
 and unsigned normal Release/simulator Debug compiled. Normal app bundles contain
-root PrivacyInfo.xcprivacy, omit all three QA scripts and omit audio assets. Shared
+root PrivacyInfo.xcprivacy, omit all three QA scripts and omit audio assets (no
+audio bundle exists anywhere since 2.0.15, 2026-10-09). Shared
 `billing.html` SHA256 remains
 `459c7c1792270d0d56dd7a025760c7ac07b1a08567813a9c072a1071f8aef018`.
 

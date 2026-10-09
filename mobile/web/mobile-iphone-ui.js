@@ -3,10 +3,6 @@
 (()=>{
  if(!window.billingAPI?.isMobile)return;
  Object.assign(I18N_EN,{'ข้อมูลติดต่อและบันทึก':'Contact & notes','ภาษาเอกสาร':'Document language','ประเภทเงินได้':'Income category','ตัวเลือกเพิ่มเติม':'Options','ดูเอกสาร PDF':'View PDF','เอกสารใหม่':'New document'});
- stopAppAudio();
- renderAudioGuide=()=>'';renderAudioSettings=()=>'';
- sfxEnabled=()=>false;startAppAudio=()=>false;playAppSfx=()=>false;toggleAudioGuide=()=>false;setSfxEnabled=()=>false;
- document.removeEventListener('click',buttonTapClick,true);
  function reveal(control){for(let details=control?.closest('details');details;details=details.parentElement?.closest('details'))if(!details.matches('.doc-more'))details.open=true;}
  document.addEventListener('focusin',event=>reveal(event.target));
  // Keep a pop-up menu inside the screen when its button sits at the left edge.
@@ -32,10 +28,8 @@
   button.dataset.mobileUtility=label;button.classList.add('mobile-utility');button.setAttribute('aria-label',tr(label));button.title=tr(label);button.innerHTML=markup;
  }
  function decorate(){
-  document.querySelectorAll('.audio-guide,.audio-settings').forEach(node=>node.remove());
   document.querySelectorAll('button[onclick]').forEach(button=>{
    const action=button.getAttribute('onclick').trim();
-   if(/setSettingsTab\(["']sounds["']\)/.test(action)){button.remove();return;}
    if(button.closest('.paper,.doc-more-menu,.mobile-nav'))return;
    if(action==='savePDF()')utility(button,'แชร์ PDF','upload');
    else if(action==="setView('documents')"&&button.closest('#topActions'))utility(button,'กลับ','arrowLeft');
@@ -50,8 +44,6 @@
    const span=button.querySelector('span');if(span&&button.dataset.mobileView==='documents'){const text=DB?.business?.uiLang==='en'?'Docs':tr('เอกสาร');if(span.textContent!==text)span.textContent=text;}
   });}
  }
- const settings=renderSettings;
- renderSettings=function(c,ta){if(settingsTab==='sounds')settingsTab='business';return settings(c,ta);};
  let queued=false;
  function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorate();});}
  Promise.resolve(window.BillNgaiMobileBoot).then(()=>{
