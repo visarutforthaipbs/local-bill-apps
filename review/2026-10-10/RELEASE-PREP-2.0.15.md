@@ -28,7 +28,7 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 
 - Store What's New and Review Notes drafts: `review/2026-10-09/design/RELEASE-NOTES-2.0.15-UI.md`, simplified 2.0.15 addendum. The Review Notes still need owner verification of the test Google account, with its password entered only in App Review sign-in fields.
 - `https://billiong-landing.pages.dev/support` returned HTML on 2026-10-10 and contained contact and privacy text.
-- Notion `BillNgai Sales Log` currently has **one completed Pro Early Bird sale**. Verify eligibility against the original purchase record before allocating one IAP Pro code. No customer identity, licence key, or future code was copied into this repository. No customer was contacted.
+- Notion `BillNgai Sales Log` currently has **one completed Pro Early Bird sale**. Verify eligibility against the original purchase record before allocating one free IAP Pro **offer code**. Apple stopped IAP promo-code creation on 2026-03-26; a custom code limited to one redemption avoids the 500-code minimum for random one-time-use batches. No customer identity, licence key, or future code was copied into this repository. No customer was contacted.
 - The final direct DMG and R2/Pages update follow approval and release of both store builds, per `SIMPLIFY-OWNER-CHECKLIST.md`; the existing 2026-10-09 `dist/BillNgai-2.0.15-universal.dmg` predates this final check and must not be published.
 
 ## Next required actions
@@ -37,6 +37,6 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 2. Deliver the verified Mac `.pkg` through Transporter and wait for its Delivered/processed state. Record Apple-side build IDs and times.
 3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Compare Mac screenshot candidates with the processed store build and approve all synthetic listing content.
 4. Enter both platforms' metadata and Review Notes, attach the existing Pro IAP, select processed builds, then submit for review with manual release.
-5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then generate and deliver one IAP Pro code per verified lifetime-key holder.
+5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then create and deliver one free IAP Pro offer code per verified lifetime-key holder.
 
 Current Apple references: [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications), [upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/), [IAP offer codes](https://developer.apple.com/help/app-store-connect/manage-in-app-purchases/create-offer-codes-for-in-app-purchases).

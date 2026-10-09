@@ -127,14 +127,14 @@ direct user who exports lands on a store build that can import.
   ```
   Check the live page and the actual download before announcing anything.
 
-## Phase 7 — promo codes for lifetime-key holders (owner runs this)
+## Phase 7 — free IAP Pro offer codes for lifetime-key holders (owner runs this)
 
-Plan and message draft: `RELEASE-NOTES-2.0.15-UI.md` addendum, "Promo codes" section; policy: `SKU.md` override 2026-10-09.
+Apple stopped creating IAP promo codes on 2026-03-26. Use an IAP Offer Code; see `SKU.md` correction 2026-10-10 and `review/2026-10-10/PRO-OFFER-MIGRATION-MESSAGE.md`.
 
-- [ ] 7.1 Agent hands over the list of `BN-PRO-KEY` buyers from the Notion sales log (no contact made).
-- [ ] 7.2 **Owner runs this:** App Store Connect → My Apps → BillNgai → **Promo Codes** → In-App Purchases → BillNgai Pro → Request codes → quantity ≤ 100 → Download `.txt` (keep outside the repo).
-- [ ] 7.3 **Owner runs this:** send one code per customer with the drafted Thai message; log code + date in the sales log.
-- [ ] 7.4 **Owner runs this:** review unredeemed codes after 30 days.
+- [ ] 7.1 Verify the completed direct Pro buyer(s) in the private Notion BillNgai Sales Log against original purchase evidence. As of 2026-10-10 it has one completed Pro Early Bird row. No customer identity or code goes in this repo.
+- [ ] 7.2 **Owner runs this after the app is Ready for Distribution and BillNgai Pro IAP is Approved:** App Store Connect → BillNgai → In-App Purchases → BillNgai Pro → Offer Codes → Create Offer → Free Offer. Set suitable customer eligibility and storefronts. Keep the Pro price unchanged.
+- [ ] 7.3 **Owner runs this:** create a random custom code for each verified buyer with redemption limit 1; send that buyer the App Store Connect redemption URL with the drafted Thai message. Record code, recipient and date in the private sales log. Apple's one-time-use code batches require at least 500 codes, so do not request a one-code batch.
+- [ ] 7.4 **Owner runs this:** check redemption after 30 days and replace an expired unredeemed code if needed. No customer contact before both store builds are live.
 
 ## Phase 8 — customer messages and announcements (owner runs this)
 

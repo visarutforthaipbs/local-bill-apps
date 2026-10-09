@@ -26,7 +26,7 @@ team `79QFYKTJMN` — ไม่มี record หรือสินค้าใ�
 |---|---|---|
 | `BN-LOCAL-MAC` (DMG จาก R2) | เลิก หลัง DMG รุ่นสุดท้าย 2.0.15 | DMG รุ่นสุดท้ายมีแค่ปุ่มส่งออกเพื่อย้ายไป App Store (PRD §5) |
 | `BN-LOCAL-WIN` (Windows beta) | เลิกทันที | ไม่เคยออกจาก beta ไม่มีบิลด์ Windows อีก |
-| `BN-PRO-KEY` (รหัส Ed25519 ขายผ่านเว็บ/LINE) | เลิกขาย | รหัสเดิมยังใช้กับ DMG รุ่นสุดท้ายได้ ผู้ถือรหัสย้ายไป App Store ด้วย promo code (ด้านล่าง) |
+| `BN-PRO-KEY` (รหัส Ed25519 ขายผ่านเว็บ/LINE) | เลิกขาย | รหัสเดิมยังใช้กับ DMG รุ่นสุดท้ายได้ ผู้ถือรหัสย้ายไป App Store ด้วยโค้ดข้อเสนอฟรีสำหรับ IAP Pro (ด้านล่าง) |
 | `BN-AI-ADDON` (AI TOR → Quotation) | ถอดออกจากแอป | ไม่มีช่องทางไหนมีอีก โฟลเดอร์ add-on ที่ติดตั้งไว้แอปไม่ลบให้ |
 
 ### ไทม์ไลน์การเปลี่ยนผ่าน (PRD §4.2)
@@ -38,13 +38,14 @@ team `79QFYKTJMN` — ไม่มี record หรือสินค้าใ�
    และ notarisation, ย้าย `DELIVERY.md`/`WINDOWS-*.md` ไป `review/archive/` หน้าเว็บเหลือปุ่ม "Download on the App Store" ปุ่มเดียว
    (วันปิดลิงก์ดาวน์โหลดตรง: รอเจ้าของกำหนด — PRD §9 เสนอ 60 วันหลัง store release)
 
-### นโยบาย promo code (PRD §0 "Existing lifetime-key holders", §4.3)
+### นโยบายโค้ดข้อเสนอ IAP Pro (แก้ไข 2026-10-10)
 
-- ลูกค้าที่ถือรหัส Pro ช่องทางตรง (`BN-PRO-KEY`) ได้ **App Store promo code สำหรับ IAP Pro** ฟรี 1 รหัสต่อคน
-  ไม่คืนเงิน ไม่ให้จ่ายซ้ำ — Apple ให้สร้างได้สูงสุด 100 รหัสต่อเวอร์ชัน ซึ่งพอสำหรับฐานลูกค้าปัจจุบัน
+- ลูกค้าที่ถือรหัส Pro ช่องทางตรง (`BN-PRO-KEY`) ได้ **โค้ดข้อเสนอฟรีสำหรับ IAP Pro** 1 รหัสต่อคน ไม่ต้องจ่ายซ้ำ
+- Apple หยุดสร้าง promo code สำหรับ In-App Purchase ตั้งแต่ 26 มีนาคม 2026; ให้ใช้ Offer Codes ของ IAP แทน เมื่อแอปพร้อมจำหน่ายและ IAP อนุมัติแล้ว
+- สำหรับฐานลูกค้าปัจจุบันที่มีผู้ซื้อ Pro เสร็จสิ้น 1 ราย แนะนำ custom code แบบสุ่มยาว จำกัดการแลก 1 ครั้ง และส่ง redemption URL เฉพาะราย; one-time-use code แบบสุ่มจาก Apple ต้องสร้างขั้นต่ำ 500 รหัสต่อชุด
 - Pro ที่ซื้อผ่าน App Store อยู่แล้ว ไม่ต้องทำอะไร กู้คืนการซื้อบน iPhone/iPad ได้เลย
-- การสร้าง promo code ใน App Store Connect, การตรวจหลักฐานการซื้อเดิม และการส่งรหัสให้ลูกค้า **เป็นของเจ้าของเท่านั้น**
-  agent เตรียมได้แค่รายชื่อผู้มีสิทธิ์ (จาก sales log) และร่างข้อความ — ดู `review/2026-10-09/SIMPLIFY-OWNER-CHECKLIST.md`
+- การสร้างโค้ด การตรวจหลักฐานการซื้อเดิม และการส่งให้ลูกค้า **เป็นของเจ้าของเท่านั้น**; ไม่เก็บรหัสหรือข้อมูลลูกค้าใน repo
+- แหล่งอ้างอิง: https://developer.apple.com/news/?id=gf6mgrs6 และ https://developer.apple.com/help/app-store-connect/manage-in-app-purchases/create-offer-codes-for-in-app-purchases
 - นโยบายเดิม "MAS Pro ขอรหัสตรงฟรีเพื่อใช้ AI" (§5, §6.C) **ยกเลิก** เพราะ AI add-on ถูกถอดแล้ว
 
 ### สิ่งที่ไม่เปลี่ยนใน override นี้
@@ -168,7 +169,7 @@ No cross-channel new-feature announcement or MAS submission is authorized here.
 
 ---
 
-## 5. กลไก license และนโยบายข้ามช่องทาง — superseded 2026-10-09 (ดูนโยบาย promo code ด้านบน)
+## 5. กลไก license และนโยบายข้ามช่องทาง — superseded 2026-10-10 (ดูนโยบายโค้ดข้อเสนอด้านบน)
 
 - **ตรง:** `npm run pro:license -- --email <buyer>` → รหัส Ed25519 → ส่งทาง LINE
   (โฟลว์เดิมตาม `DELIVERY.md` ไม่เปลี่ยน)

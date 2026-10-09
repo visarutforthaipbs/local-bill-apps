@@ -164,28 +164,13 @@ Checklist for the note (`.claude/skills/apple-platform-design/SKILL.md` §5):
 - [x] Test-data note ≤ 4,000 chars; password not in the note
 - [ ] Owner: support URL loads and shows contact + privacy on the day of submission
 
-## Promo codes for existing lifetime-key holders — plan (owner-only step)
+## Free IAP Pro offer codes for existing lifetime-key holders — corrected 2026-10-10
 
-Decision (PRD §0): every holder of a direct Pro key (`BN-PRO-KEY`) receives one App Store promo
-code for the Pro in-app purchase. No refund, no second payment. Apple allows up to 100 promo
-codes per version of an in-app purchase; codes expire a few weeks after they are generated
-(App Store Connect shows the exact date), so generate them only when ready to send.
+The business promise remains: each verified direct Pro key holder receives Pro on the App Store without paying again. Apple's IAP promo-code creation ended on 2026-03-26, so create a **Free Offer** for the existing non-consumable `com.visarut.billngai.pro` after the app is Ready for Distribution and the IAP is Approved. For the one completed Pro sale currently in the private sales log, use a random custom code limited to one redemption and share its redemption URL privately. Apple's random one-time-use code batches start at 500. Keep actual codes and customer details outside the repository.
 
-1. **Agent prepares (no customer contact):** list of key holders from the sales log (Notion
-   "BillNgai Sales Log"), one row per buyer with purchase date and the email or name used; a Thai
-   message draft that explains the export → import path (FAQ "ย้ายจากเวอร์ชันดาวน์โหลดตรงไป App
-   Store") and how to redeem a code on Mac and on iPhone/iPad. The draft lives in the repo; it is
-   not sent.
-2. **Owner runs this:** App Store Connect → My Apps → BillNgai → Promo Codes (left sidebar) →
-   In-App Purchases → "BillNgai Pro" → Request codes → quantity = number of key holders (+ a few
-   spare, ≤ 100) → Download the `.txt`. Keep the file outside the repo.
-3. **Owner runs this:** send one code per customer through the channel the customer already uses,
-   with the drafted message. Log the code and the date next to the customer in the sales log so a
-   code is never sent twice.
-4. **Owner runs this:** after 30 days, review unredeemed codes; regenerate for anyone whose code
-   expired before they moved.
-5. The direct key keeps working in the final 2.0.15 DMG until the customer moves; nothing is
-   revoked.
+Owner route: App Store Connect → BillNgai → In-App Purchases → BillNgai Pro → Offer Codes → Create Offer → Free Offer → set customer eligibility and storefronts → create custom code with redemption limit 1. The existing IAP price does not change. Wait for activation before sending. Check redemption and the app's Restore Purchases flow with a suitable sandbox test before customer delivery.
+
+The Thai customer draft is `review/2026-10-10/PRO-OFFER-MIGRATION-MESSAGE.md`; nobody has been contacted. Apple references: https://developer.apple.com/news/?id=gf6mgrs6 and https://developer.apple.com/help/app-store-connect/manage-in-app-purchases/create-offer-codes-for-in-app-purchases.
 
 ## Build numbers — superseded by the App Store-only decision
 

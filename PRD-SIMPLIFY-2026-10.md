@@ -14,7 +14,7 @@ Companion docs: `SKU.md` (superseded by §4 of this file), `TEAM.md`, `BRAND.md`
 | Channels | **App Store only** — Mac App Store (Electron MAS build), iPhone/iPad (Capacitor). Same bundle id `com.visarut.billngai` on both, so Pro is one universal purchase. | One signing path, one review path, no R2/Pages/licence-key/notarisation/Windows upkeep. |
 | Direct DMG / Windows | One final direct macOS build whose only new feature is the guided export; then retired. Windows beta ends now (never left beta). | Existing direct users keep working and get a path into the store build. |
 | Pro | In-app purchase `com.visarut.billngai.pro`, non-consumable, universal. Price unchanged (฿599 Early Bird → ฿1,900). | Already live on the Mac App Store record. |
-| Existing lifetime-key holders | Owner issues App Store promo codes for the Pro IAP (up to 100 per version). No refunds, no second payment. | Small base; cheapest honest path. |
+| Existing lifetime-key holders | Owner issues free IAP Pro offer codes after approval (2026-10-10 correction). No refunds, no second payment. | Small base; one code per verified buyer. |
 | Removed | Local AI add-on, sound effects, direct-purchase/licence screens, paused e-Tax and new-tax-invoice remnants. | §2. |
 | Kept | Quotation/invoice/receipt, WHT 50 ทวิ, income summary, corrected historical receipts, backups, Google Drive sync (Pro), foreign-currency/English documents, recurring (watch). | §3. |
 
@@ -64,7 +64,9 @@ Retired: `BN-LOCAL-MAC` (DMG), `BN-LOCAL-WIN`, `BN-PRO-KEY`, `BN-AI-ADDON`.
 3. **Retirement release (2.0.16 or later, store only)** — remove `licenseKey` validation, `dist`, `dist:unsigned`, `dist:win`, notarisation scripts, `DELIVERY.md`/`WINDOWS-*.md` moved to `review/archive/`. Landing page keeps a single "Download on the App Store" button.
 
 ### 4.3 Owner-only actions (agents prepare, never execute)
-Create promo codes; publish the landing-page change; final DMG signing/notarisation/upload; MAS and iOS submission; App Store Connect metadata and screenshots; customer messages.
+Create IAP offer codes after approval; publish the landing-page change; final DMG signing/notarisation/upload; MAS and iOS submission; App Store Connect metadata and screenshots; customer messages.
+
+**Implementation correction (2026-10-10):** Apple stopped creating promo codes for in-app purchases on 2026-03-26. The existing-customer promise is fulfilled with free IAP Pro Offer Codes after the app is Ready for Distribution and the IAP is Approved. See the corrected owner checklist and `SKU.md`; the original promo-code route is obsolete.
 
 ## 5. Migration path: direct → App Store build
 
