@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Google Drive workspace access across desktop and mobile with native Google authorization and server-verified Pro access.
 
 ### Removed
-- Local AI add-on ("TOR → Invoice"): sidebar item, AI view, AI settings and add-on install/verify. Installed add-on folders are left on disk.
+- The local AI add-on ("TOR → Invoice"): sidebar entry, add-on verification, local inference runner, TOR import and its settings and strings. Existing profiles still load; add-on folders already on disk are left untouched (see PRD-SIMPLIFY-2026-10.md §2).
 - Sound effects and Thai voice guides: the Settings → Sounds tab, task and button cues, the bundled audio files and the device-local sound preference. Feedback stays visual (toasts, status badges) and Reduce Motion is still honoured; a sound preference left on a device by an older version is ignored.
 - Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
 - e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
@@ -33,9 +33,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Listen immediately for StoreKit transaction delivery and retain verified ownership when an optional proof cache fails.
 - Connect workspaces with more than 512 records in one atomic first upload, send larger change sets in whole linked groups, transfer several files at a time and save far less often while syncing.
 - Show "Archive" instead of Thai text in the English document menu.
-
-### Removed
-- The local AI add-on ("TOR → Invoice"): sidebar entry, add-on verification, local inference runner, TOR import and its settings and strings. Existing profiles still load; add-on folders already on disk are left untouched (see PRD-SIMPLIFY-2026-10.md §2).
 
 Candidate only. Live Apple server verification, remaining physical-device checks and final distribution/release gates are recorded in docs/INTEGRATED-DATA-ACCEPTANCE-2026-10-04.md. This entry does not claim publication or App Store approval.
 
