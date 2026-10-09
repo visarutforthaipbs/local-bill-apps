@@ -1,6 +1,7 @@
 # บิลง่าย / BillNgai — agent hand-off
 
-**Current source (2026-09-30):** signed/notarized 2.0.12 (Google Drive sync for Pro) installed locally (branch `release/2.0.10`).
+**Current direction (2026-10-09):** `PRD-SIMPLIFY-2026-10.md` on branch `codex/simplify-2.0.15` — App Store only (Mac App Store + iPhone/iPad, universal Pro IAP); local AI, sounds, direct-purchase/licence screens and e-Tax remnants removed; one final direct DMG carries the guided export; Windows ended. Installed locally: unsigned direct 2.0.15 from `codex/hig-restyle` (see `HIG-UI-VERIFICATION.md`).
+Historical line: signed/notarized 2.0.12 (Google Drive sync for Pro) on branch `release/2.0.10`.
 Read `INSTALL-2.0.12.md`, `SYNC-V3-PILOT.md` and `INSTALL-2.0.11.md` for actual build, notarization and installation status, and
 `PREPUBLISH-FIXES-VERIFICATION.md` for what changed since 2.0.9. Sync v3 ships in 2.0.12; production coordinator `billngai-sync-coordinator` (Cloudflare).
 Start with `FINTECH-UI-VERIFICATION.md`, `AUDIT-FIXES-VERIFICATION.md`, `BRAND.md`, and `INSTALL-2.0.8.md`.
@@ -72,8 +73,9 @@ Two independent systems:
   3. Bump `version` in `package.json` (SemVer — it names the DMG)
   4. Stage only reviewed release files and commit; tag the verified release commit as `v<version>`.
   5. Release packaging:
-     - Unsigned releases (local testing): `npm run dist:unsigned` → `dist/BillNgai-<version>-universal.dmg`
-     - Signed & Notarized releases (production): use the existing Keychain identity or CI certificate, validate packaged OAuth configuration, and follow `DEPLOYMENT.md`. `APPLE_API_KEY` is the .p8 path; verify notarization, stapling and final downloaded bytes.
+     - Store release (the normal path): `npm run dist:mas` → Transporter → App Store Connect; iOS via Xcode archive from `mobile/ios/App`. Review Notes template in `review/2026-10-09/design/RELEASE-NOTES-2.0.15-UI.md`.
+     - Unsigned direct build (local testing, and the one final direct DMG): `npm run dist:unsigned` → `dist/BillNgai-<version>-universal.dmg`
+     - Signed & Notarized direct DMG (final direct release only): use the existing Keychain identity or CI certificate, validate packaged OAuth configuration, and follow `DEPLOYMENT.md`. `APPLE_API_KEY` is the .p8 path; verify notarization, stapling and final downloaded bytes.
   6. Push the reviewed release branch and its specific tag after verification.
   7. Optionally attach the DMG to a GitHub Release on the tag (`gh release create`)
 - Don't commit without being asked; the owner drives releases.

@@ -5,7 +5,7 @@ description: Apple Human Interface Guidelines and App Review best practice for B
 
 # Apple platform design for BillNgai
 
-BillNgai is one `billing.html` renderer shipped three ways: Electron on macOS (and Windows),
+BillNgai is one `billing.html` renderer shipped two ways since 2026-10-09: Electron on macOS (Mac App Store; one final direct DMG),
 and Capacitor on iPhone/iPad. The owner decided on 2026-10-09 that the UI follows Apple's
 Human Interface Guidelines while keeping the orange accent. `BRAND.md` records the contract;
 `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` records the decisions; this skill is the

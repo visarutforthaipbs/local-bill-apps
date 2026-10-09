@@ -30,7 +30,7 @@ invoice-to-receipt regression; see `VERIFICATION-2.0.3.md` for exact test eviden
 
 | วันที่ | ที่มา | รายการ | กระทบ | P | สถานะ |
 |---|---|---|---|---|---|
-| 2026-07-12 | DELIVERY.md §6 | Windows AI TOR→Quotation end-to-end test บนเครื่องจริง (ตัวปลดล็อกคำถาม D ใน SKU.md) | Windows SKU ทั้งก้อน | P1 | todo |
+| 2026-07-12 | DELIVERY.md §6 | ~~Windows AI TOR→Quotation end-to-end test~~ — superseded 2026-10-09: Windows and the AI add-on are removed (`PRD-SIMPLIFY-2026-10.md`) | — | — | ปิด |
 | 2026-07-12 | DELIVERY.md §3 | LINE OA rich menu / auto-reply "ซื้อ Pro" (ลูกค้านอกเวลาตื่นไม่ติดค้าง) | ทุก Pro sale | P1 | todo |
 | 2026-07-12 | TEAM.md sprint | ไล่ launch checklist DELIVERY.md §4 ที่เหลือ: Drive API enabled? two-device test? signing/notarization? dogfood ครบสัปดาห์? (OAuth production + Pro dialog = ✅ แล้ว) | Pro launch | P1 | todo |
 | 2026-07-15 | Apple reject (1.5 + 2.4.5(i) + G4) | **รอเจ้าของ resubmit — build 2.0.7** (2.0.6 ไม่ได้ส่ง external review เจอบั๊ก): Developer Reject → upload `dist/mas-universal/BillNgai-2.0.1-universal.pkg` (CFBundleVersion 2.0.7) → paste 3 คำตอบ + Review Notes. verify แล้วทั้ง artifact + human test | MAS launch | P0 | รอเจ้าของ |
