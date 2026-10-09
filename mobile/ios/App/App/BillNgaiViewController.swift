@@ -4,7 +4,7 @@ import UIKit
 final class BillNgaiViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(BillNgaiNative())
-        overrideUserInterfaceStyle = .light
+        // Appearance follows the system (HIG dark mode, 2026-10-09); the renderer's tokens handle both schemes.
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--billngai-qa") || ProcessInfo.processInfo.arguments.contains("--billngai-ui-audit") || ProcessInfo.processInfo.arguments.contains("--billngai-recovery-qa") {
             waitForSyntheticRenderer(remaining: 60)

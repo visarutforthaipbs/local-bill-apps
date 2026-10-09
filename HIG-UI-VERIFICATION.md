@@ -46,6 +46,7 @@ Decision and token contract: `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` (HIG
 | Real macOS window captures (`screencapture` of the Playwright-driven Electron window) in light and dark | vibrancy sidebar, inset traffic lights, dark canvas — `screens/real-*.png` |
 | Playwright screenshots: dashboard, documents, clients, report, WHT, settings, editor sheet, old-records review, confirm alert, document view — light and dark | no page errors — `screens/*.png` |
 | Chrome previews of the iOS layer at 390 × 844 and 1024 × 768, light and dark | tab bar, sheets, switch rows, segmented tabs — `screens/phone-*.png`, `screens/tablet-*.png` |
+| **iOS Simulator (iPhone 17, iOS 27.0), Debug build from `npm run build:simulator`** | Setup wizard sheet, dashboard with demo data, Documents list (light) and dashboard in Dark appearance render as designed — `screens/ios-sim-*.png`. Note: the debug simulator's first WebView paint takes ~40–70 s; a blank screen before that is not a failure. |
 | Printed paper | `.paper` rules unchanged; `.paper` assertions in the fintech smoke (white background, `--accent #ff6b00`, ink `rgb(31, 28, 23)`) pass in both schemes |
 
 ### Electron smoke suite status
@@ -81,5 +82,8 @@ smoke test waits for that class. A real OS appearance switch goes through the sa
   verb `confirmLabel`; only the generic fallback is ยืนยัน.
 - Illustrations sit on white plates in dark mode (the PNGs have white backgrounds); re-export with
   transparent backgrounds when convenient.
+- The iOS shell forced light appearance (`UIUserInterfaceStyle = Light` in Info.plist and
+  `overrideUserInterfaceStyle = .light` in `BillNgaiViewController`); both removed so the app follows the
+  system, which the Dark-appearance simulator capture confirms. The native PDF preview stays light (paper).
 - Windows has no vibrancy or hidden title bar; it gets the opaque `--surface-2` sidebar and the native frame.
 - The installed TestFlight/App Store builds are unchanged; this is source only.
