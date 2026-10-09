@@ -204,7 +204,10 @@ Use ease-out; avoid bouncing or counting financial amounts through intermediate 
 
 ---
 
-## In-app audio — owner revision 2026-10-03
+## In-app audio — owner revision 2026-10-03 (removed in 2.0.15)
+
+> Removed by PRD-SIMPLIFY-2026-10 §2: no voice guides, sound effects, audio assets or Sounds
+> tab remain in any build. Feedback is visual only. The rules below are kept as history.
 
 Use the approved female Onnie Thai voice only. Six bundled Thai guides provide
 optional, contextual help with visible translated transcripts. English UI labels

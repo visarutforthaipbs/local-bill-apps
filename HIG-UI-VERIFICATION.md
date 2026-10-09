@@ -53,8 +53,8 @@ Decision and token contract: `review/2026-10-09/design/HIG-RESTYLE-PLAN.md` (HIG
 
 ### Electron smoke suite status (2026-10-09, after test maintenance)
 
-All smoke tests pass except two that need tooling this Mac lacks: `audio` (dev Electron under
-`~/.local/share/billngai-dev/43.7.3`) and `upgrade-2.0.4` (needs a 2.0.4 checkout argument).
+All smoke tests pass except `upgrade-2.0.4`, which needs a 2.0.4 checkout argument. The `audio`
+smoke was removed together with the sound feature (PRD-SIMPLIFY-2026-10 stream B, 2.0.15).
 What had to change, and why — none of it was the restyle:
 
 - Fixtures predate 2.0.14's data-upgrade gate → they now declare `meta.reviewSemanticsVersion:3`.
@@ -62,7 +62,7 @@ What had to change, and why — none of it was the restyle:
   Tests that read the JSON file now read the persisted store through `billingAPI.load()` (or the
   SQLite payload after the window is closed).
 - Review events are append-only since 2.0.14; `design-fixes` no longer clears them in memory.
-- Settings has four tabs (Sounds was added); receipts issue straight after the VAT confirmation;
+- Settings has three tabs (the Sounds tab was removed in 2.0.15; `option-a` expects 3); receipts issue straight after the VAT confirmation;
   `prepublish` clicks the visible switch instead of force-checking the 1 px hidden input.
 - Real gap found by the i18n checks: six direct-purchase dialog strings had no English. They are
   registered by `registerDirectPurchaseCopy()` inside the region the Apple renderer strips, so the

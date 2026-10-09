@@ -3,22 +3,15 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const html=fs.readFileSync(path.join(__dirname,'../billing.html'),'utf8');
 const script=html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1].replace(/\bboot\(\);\s*$/,'');
 function harness(){
- const store=new Map(),clips=[],messages=[];
+ const store=new Map(),messages=[];
  function element(){return {textContent:'',innerHTML:'',checked:false,isConnected:true,setAttribute(k,v){this[k]=v;},addEventListener(){},classList:{add(){},remove(){}},closest(){return null;}};}
  const elements=new Map();
- class Clip{
-  constructor(src){this.src=src;this.currentTime=0;this.listeners={};clips.push(this);}
-  play(){this.paused=false;return new Promise((resolve,reject)=>{this.resolve=resolve;this.reject=reject;});}
-  pause(){this.paused=true;}
-  addEventListener(k,fn){this.listeners[k]=fn;}
-  removeEventListener(k,fn){if(this.listeners[k]===fn)delete this.listeners[k];}
- }
- const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),Audio:Clip,window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Test'},confirm(){return true;},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},localStorage:{getItem(k){return store.get(k)||null;},setItem(k,v){store.set(k,v);}}});
+ const ctx=vm.createContext({BillingData:require('../lib/billing-data.cjs'),window:{addEventListener(){},matchMedia(){return {matches:false};}},document:{getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelectorAll(){return [];},addEventListener(){}},navigator:{platform:'Test'},confirm(){return true;},console,TextEncoder,TextDecoder,setTimeout(){return 0;},clearTimeout(){},setInterval(){return 0;},localStorage:{getItem(k){return store.get(k)||null;},setItem(k,v){store.set(k,v);}}});
  vm.runInContext(script,ctx);vm.runInContext(`DB=blankDB();toast=(msg,kind,action,outcome)=>messages.push({msg,kind,outcome});`,Object.assign(ctx,{messages}));
- return {ctx,run:s=>vm.runInContext(s,ctx),clips,store,messages,element};
+ return {ctx,run:s=>vm.runInContext(s,ctx),store,messages,element};
 }
 
-function workflow(h){h.run(`DEVICE_ID='motion-test';Object.assign(DB.business,{businessName:'Synthetic seller',address:'Sample',taxId:'1234567890123',vatStatus:'non_registered'});DB.clients=[{id:'client',name:'Synthetic buyer',address:'Sample'}];render=()=>{};viewDoc=()=>{};closeModal=()=>{};playAppSfx=()=>{};persist=async()=>true;
+function workflow(h){h.run(`DEVICE_ID='motion-test';Object.assign(DB.business,{businessName:'Synthetic seller',address:'Sample',taxId:'1234567890123',vatStatus:'non_registered'});DB.clients=[{id:'client',name:'Synthetic buyer',address:'Sample'}];render=()=>{};viewDoc=()=>{};closeModal=()=>{};persist=async()=>true;
 function fixture(extra={}){return {id:null,type:'invoice',number:null,clientId:'client',issueDate:todayISO(),paidDate:null,status:'draft',currency:'THB',vatRate:0,whtRate:0,whtReviewed:true,items:[{description:'Synthetic work',qty:1,price:1000}],...extra};}`);}
 test('document and payment outcome artwork waits for persistence and stays absent on failure',async()=>{
  const h=harness();workflow(h);h.run(`editDoc=fixture();persist=()=>new Promise(resolve=>{finish=resolve});`);const saving=h.run('saveDraft()');await Promise.resolve();assert.equal(h.messages.length,0);h.run('finish(false)');await saving;assert.equal(h.messages.filter(m=>m.outcome).length,0);

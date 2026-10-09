@@ -18,6 +18,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Native iPhone/iPad host using the existing Apple app and Pro product, recoverable client/recurring drafts and an A4 document preview with native zoom.
 - Google Drive workspace access across desktop and mobile with native Google authorization and server-verified Pro access.
 
+### Removed
+- Sound effects and Thai voice guides: the Settings → Sounds tab, task and button cues, the bundled audio files and the device-local sound preference. Feedback stays visual (toasts, status badges) and Reduce Motion is still honoured; a sound preference left on a device by an older version is ignored.
+
 ### Fixed
 - Preserve both concurrent payment-review answers until an explicit successor resolves them; keep unresolved amounts separate from received income.
 - Retain correct receipt titles, immutable originals and separate installments during historical corrections.

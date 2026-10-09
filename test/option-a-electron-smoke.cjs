@@ -51,7 +51,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
     assert.equal(JSON.parse(await page.evaluate(()=>window.billingAPI.load())).business.businessName,'Saved through tab switch');
     for(const lang of ['th','en']){
       await page.evaluate(lang=>{DB.business.uiLang=lang;settingsTab='docs';render();},lang);
-      assert.equal(await page.locator('.tabs button').count(),4);   // business, documents & tax, data & backup, sounds
+      assert.equal(await page.locator('.tabs button').count(),3);   // business, documents & tax, data & backup
       await page.locator('button[onclick="openSafetyLimits()"]').click();
       assert.doesNotMatch(await page.locator('#modal').innerText(),/2\.0\.4/);
       await page.evaluate(()=>closeModal());

@@ -53,7 +53,6 @@
       "assets/brand/fintech/freelancer-desk.png",
       "assets/brand/fintech/certificate-envelope.png",
       "assets/brand/fintech/document-folder.png",
-      "assets/audio/**/*.mp3",
       "fonts/**/*",
       "secrets/gdrive-oauth.json",
       "package.json"

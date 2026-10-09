@@ -690,14 +690,14 @@
   .outcome-check{position:absolute;right:-2px;bottom:-2px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:var(--radius-pill);background:var(--accent);color:var(--on-accent);animation:outcomeCheck .2s ease-out both}
   .outcome-file{position:absolute;top:0;left:6px;background:var(--text);animation:outcomeFile .2s ease-out both}
   .motion-enter,.settings-panel,.wizard-step{animation:panelEnter .2s ease-out both}
-  .tax-details[open] > :not(summary),.audio-guide[open] > :not(summary){animation:panelEnter .2s ease-out both}
+  .tax-details[open] > :not(summary){animation:panelEnter .2s ease-out both}
   @keyframes outcomeSettle{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:none}}
   @keyframes outcomeCheck{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   @keyframes outcomeFile{from{opacity:0;transform:translate(-8px,-8px)}to{opacity:1;transform:none}}
   @keyframes panelEnter{from{opacity:.6;transform:translateY(4px)}to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){
     .outcome-base,.outcome-check,.outcome-file,.motion-enter,.settings-panel,.wizard-step,
-    .tax-details[open] > :not(summary),.audio-guide[open] > :not(summary){animation:none!important;transform:none!important}
+    .tax-details[open] > :not(summary){animation:none!important;transform:none!important}
     .tax-details summary .ic{transition:none}
     .toast{transition:none}
   }
@@ -873,12 +873,6 @@
     .grid-2,.grid-3{grid-template-columns:minmax(0,1fr)}
     .overlay{padding:16px}
   }
-  .audio-guide{margin:16px 0;padding:16px;border:1px solid var(--border-soft);border-radius:var(--radius)}
-  .audio-guide summary{cursor:pointer;color:var(--text-dim);font-weight:600;padding:8px 0;min-height:44px;box-sizing:border-box}
-  .audio-guide p{margin:16px 0;color:var(--text-dim)}
-  .audio-guide .btn{min-height:44px}
-  .audio-settings .toolbar{flex-wrap:wrap;gap:16px}
-  @media print{.audio-guide,.audio-settings{display:none!important}}
 </style>
 </head>
 <body>
@@ -2751,7 +2745,6 @@ const I18N_EN = {
   'ธุรกิจของฉัน':'My business',
   'เอกสารและภาษี':'Documents & tax',
   'ข้อมูลและสำรอง':'Data & backup',
-  'เสียง':'Sounds',
   'พื้นที่ทำงาน':'Workspace',
   'รุ่นนี้ยังไม่ได้ฝังค่า Google OAuth client — สำหรับนักพัฒนา: วางไฟล์ secrets/gdrive-oauth.json หรือตั้งค่า BILLNGAI_GDRIVE_CLIENT_ID':'This build has no Google OAuth client embedded — for developers: add secrets/gdrive-oauth.json or set BILLNGAI_GDRIVE_CLIENT_ID',
   'เชื่อมต่อ Google Drive':'Connect Google Drive',
@@ -3406,148 +3399,6 @@ function hasReviewedPayment(doc){return (DB.reviewEvents||[]).some(e=>reviewedPa
 function effectiveStatus(doc){ return doc.voidedAt||doc.status==='void' ? 'void' : doc.deletedAt ? 'deleted' : hasReviewedPayment(doc) ? 'paid' : isOverdue(doc) ? 'overdue' : doc.status; }
 
 // Errors stay long enough to read (click to dismiss); an optional action offers Undo.
-/* ---------- optional offline audio (female Thai guides only) ---------- */
-Object.assign(I18N_EN, {
-  "เสียงและคำอธิบาย": "Sounds and explanations",
-  "เสียงแจ้งผลการทำงาน": "Button and task sounds",
-  "ลองเสียงปุ่ม": "Preview button sound",
-  "ปิดเป็นค่าเริ่มต้น บันทึกเฉพาะเครื่องนี้": "Off by default. Saved on this device only.",
-  "ลองเสียงออกเอกสาร": "Preview document sound",
-  "ลองเสียงบันทึกรับเงิน": "Preview payment sound",
-  "ลองเสียงส่งออก": "Preview export sound",
-  "ลองเสียงแจ้งเตือน": "Preview attention sound",
-  "คำอธิบายเสียงผู้หญิงภาษาไทย เล่นเมื่อกดฟังเท่านั้น": "Female Thai voice guides. Play only when requested.",
-  "ฟังเสียงภาษาไทย": "Listen in Thai",
-  "หยุดเสียง": "Stop audio",
-  "บันทึกการตั้งค่าเสียงไม่ได้": "Could not save sound preference",
-  "เล่นเสียงไม่ได้ ลองกดฟังอีกครั้ง": "Could not play audio. Try listening again.",
-  "สร้างบิลแรก": "Create your first bill",
-  "เพิ่มลูกค้าก่อน แล้วสร้างใบแจ้งหนี้ เลือกลูกค้า ใส่รายการงานและราคา ตรวจรายละเอียดให้ครบ ก่อนกดออกเอกสาร ยังไม่พร้อมออก ก็บันทึกร่างไว้ก่อนได้": "Add a client, then create an invoice. Select the client and enter the work items and prices. Review the details before issuing. You can save a draft if you are not ready.",
-  "ส่งบิลให้ลูกค้า": "Send a bill to your client",
-  "เปิดเอกสารที่ออกแล้ว แล้วกดบันทึก PDF หากต้องการส่งทางไลน์ ให้คัดลอกข้อความ ไปวางในแชตลูกค้า แล้วแนบไฟล์ PDF ตรวจผู้รับก่อนส่ง": "Open the issued document and save the PDF. To send through LINE, copy the message, paste it into the client chat, and attach the PDF. Check the recipient before sending.",
-  "ติดตามใบ 50 ทวิ": "Track withholding certificates",
-  "หน้านี้ช่วยติดตามใบห้าสิบทวิ เมื่อได้รับใบแล้ว กดบันทึกรับใบ ใส่เลขที่และวันที่ตามเอกสาร การบันทึกรับใบ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิตภาษี": "Track withholding certificates here. When one arrives, record receipt and enter its number and date. Recording receipt does not verify the amount or tax-credit eligibility.",
-  "สำรองและกู้คืนข้อมูล": "Back up and restore data",
-  "กดส่งออกไฟล์สำรอง เพื่อเก็บข้อมูลบิล ไฟล์ JSON ไม่รวมไฟล์หลักฐาน ให้ส่งออกชุดหลักฐานแยกไว้ด้วย การกู้คืนจะแทนที่ข้อมูลบิลปัจจุบัน แอปจะสำรองข้อมูลปัจจุบันก่อนกู้คืน": "Export a backup to keep your billing data. JSON excludes evidence attachments; export the evidence bundle separately. Restoring replaces current billing data. The desktop app backs up current data before restoring.",
-  "ร่างกับเอกสารที่ออกแล้ว": "Drafts and issued documents",
-  "บันทึกร่างไว้แก้ไขต่อได้ เมื่อออกเอกสารแล้ว จะแก้ไขหรือลบไม่ได้": "Save a draft to edit later. Once issued, the document cannot be edited or deleted.",
-  "บันทึกการรับเงิน": "Record a payment",
-  "บันทึกรับเงินเมื่อได้รับเงินเต็มจำนวนแล้ว เลือกวันที่รับเงินจริง แล้วกดยืนยัน": "Record a payment once you have received full payment. Select the actual payment date, then confirm."
-});
-const APP_AUDIO_GUIDES = {
-  "first-bill": {
-    "title": "สร้างบิลแรก",
-    "text": "เพิ่มลูกค้าก่อน แล้วสร้างใบแจ้งหนี้ เลือกลูกค้า ใส่รายการงานและราคา ตรวจรายละเอียดให้ครบ ก่อนกดออกเอกสาร ยังไม่พร้อมออก ก็บันทึกร่างไว้ก่อนได้",
-    "path": "assets/audio/voice/help-first-bill-th.mp3"
-  },
-  "send-bill": {
-    "title": "ส่งบิลให้ลูกค้า",
-    "text": "เปิดเอกสารที่ออกแล้ว แล้วกดบันทึก PDF หากต้องการส่งทางไลน์ ให้คัดลอกข้อความ ไปวางในแชตลูกค้า แล้วแนบไฟล์ PDF ตรวจผู้รับก่อนส่ง",
-    "path": "assets/audio/voice/help-send-bill-th.mp3"
-  },
-  "wht": {
-    "title": "ติดตามใบ 50 ทวิ",
-    "text": "หน้านี้ช่วยติดตามใบห้าสิบทวิ เมื่อได้รับใบแล้ว กดบันทึกรับใบ ใส่เลขที่และวันที่ตามเอกสาร การบันทึกรับใบ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิตภาษี",
-    "path": "assets/audio/voice/help-wht-th.mp3"
-  },
-  "backup": {
-    "title": "สำรองและกู้คืนข้อมูล",
-    "text": "กดส่งออกไฟล์สำรอง เพื่อเก็บข้อมูลบิล ไฟล์ JSON ไม่รวมไฟล์หลักฐาน ให้ส่งออกชุดหลักฐานแยกไว้ด้วย การกู้คืนจะแทนที่ข้อมูลบิลปัจจุบัน แอปจะสำรองข้อมูลปัจจุบันก่อนกู้คืน",
-    "path": "assets/audio/voice/help-backup-th.mp3"
-  },
-  "draft-issued": {
-    "title": "ร่างกับเอกสารที่ออกแล้ว",
-    "text": "บันทึกร่างไว้แก้ไขต่อได้ เมื่อออกเอกสารแล้ว จะแก้ไขหรือลบไม่ได้",
-    "path": "assets/audio/voice/help-draft-issued-th.mp3"
-  },
-  "payment": {
-    "title": "บันทึกการรับเงิน",
-    "text": "บันทึกรับเงินเมื่อได้รับเงินเต็มจำนวนแล้ว เลือกวันที่รับเงินจริง แล้วกดยืนยัน",
-    "path": "assets/audio/voice/help-payment-th.mp3"
-  }
-};
-
-const APP_SFX = {tap:'assets/audio/sfx/button-tap.mp3',issued:'assets/audio/sfx/document-issued.mp3',payment:'assets/audio/sfx/payment-recorded.mp3',export:'assets/audio/sfx/export-complete.mp3',attention:'assets/audio/sfx/needs-attention.mp3'};
-const AUDIO_SFX_KEY = 'billngai.audio.sfx.v1';
-let activeAppAudio=null, activeGuideButton=null, activeGuideId=null, audioEpoch=0;
-function sfxEnabled(){try{return localStorage.getItem(AUDIO_SFX_KEY)==='true';}catch(e){return false;}}
-function setSfxEnabled(enabled){
-  let failed=false;
-  try{localStorage.setItem(AUDIO_SFX_KEY,enabled?'true':'false');}catch(e){failed=true;}
-  const actual=sfxEnabled(), checkbox=document.getElementById('audioSfxToggle');
-  if(checkbox) checkbox.checked=actual;
-  if(!actual&&!activeGuideId) stopAppAudio();
-  if(failed||actual!==!!enabled) toast(tr('บันทึกการตั้งค่าเสียงไม่ได้'),'err');
-}
-function stopAppAudio(){
-  audioEpoch++;
-  const media=activeAppAudio, button=activeGuideButton;
-  activeAppAudio=null;activeGuideButton=null;activeGuideId=null;
-  if(media){media.onended=null;media.onerror=null;try{media.pause();media.currentTime=0;}catch(e){}}
-  if(button){button.textContent=tr('ฟังเสียงภาษาไทย');button.setAttribute('aria-pressed','false');}
-}
-function startAppAudio(path,button=null,guideId=null,volume=null){
-  stopAppAudio();
-  const epoch=audioEpoch;
-  const failed=()=>{if(epoch!==audioEpoch)return;stopAppAudio();if(guideId)toast(tr('เล่นเสียงไม่ได้ ลองกดฟังอีกครั้ง'),'err');};
-  try{
-    const media=new Audio(path);activeAppAudio=media;activeGuideButton=button;activeGuideId=guideId;
-    media.volume=volume ?? (guideId ? .8 : .55);
-    if(button){button.textContent=tr('หยุดเสียง');button.setAttribute('aria-pressed','true');}
-    media.onended=()=>{if(epoch===audioEpoch)stopAppAudio();};media.onerror=failed;
-    const playing=media.play();
-    if(playing&&typeof playing.then==='function') playing.then(()=>{
-      if(epoch!==audioEpoch){try{media.pause();media.currentTime=0;}catch(e){}}
-    }).catch(failed);
-  }catch(e){failed();}
-}
-function playAppSfx(key,preview=false){
-  if(activeGuideId||(!preview&&!sfxEnabled())||!Object.prototype.hasOwnProperty.call(APP_SFX,key))return;
-  if(key==='tap'&&activeAppAudio)return;
-  startAppAudio(APP_SFX[key],null,null,key==='tap' ? .25 : null);
-}
-// Tiny acknowledgement for deliberate controls, after their handlers finish rendering.
-let lastButtonTapAt=-Infinity;
-function buttonTapClick(event){
-  if(!event.isTrusted||!sfxEnabled()||activeAppAudio)return;
-  const target=event.target, control=target&&target.closest&&target.closest('button,summary,[role="button"],input[type="checkbox"],label.toggle,a[onclick]');
-  if(!control||control.disabled||control.getAttribute('aria-disabled')==='true'||control.matches(':disabled'))return;
-  if(control.closest('.audio-guide,.audio-settings,[data-audio-silent]')||control.id==='confirmOk')return;
-  // These actions already have an outcome cue; one sound is enough.
-  if(/\b(issueDoc|saveDoc|saveDraft|submitPaymentDialog|createReceipt|savePDF)\s*\(/.test(control.getAttribute('onclick')||''))return;
-  const now=Date.now();if(now-lastButtonTapAt<180)return;lastButtonTapAt=now;
-  const play=()=>{if(sfxEnabled()&&!activeAppAudio)playAppSfx('tap');};
-  if(typeof queueMicrotask==='function')queueMicrotask(play);else Promise.resolve().then(play);
-}
-document.addEventListener('click',buttonTapClick,true);
-function toggleAudioGuide(id,button){
-  if(!Object.prototype.hasOwnProperty.call(APP_AUDIO_GUIDES,id))return;
-  if(activeGuideId===id&&activeGuideButton===button){stopAppAudio();return;}
-  startAppAudio(APP_AUDIO_GUIDES[id].path,button,id);
-}
-function audioGuideCollapsed(details){
-  if(!details.open&&details.dataset.audioGuide===activeGuideId&&details.contains(activeGuideButton))stopAppAudio();
-}
-function renderAudioGuide(id){
-  if(!Object.prototype.hasOwnProperty.call(APP_AUDIO_GUIDES,id))return '';
-  const guide=APP_AUDIO_GUIDES[id];
-  return `<details class="audio-guide" data-audio-guide="${attr(id)}" ontoggle="audioGuideCollapsed(this)">
-    <summary>${escapeHtml(tr(guide.title))}</summary>
-    <p>${escapeHtml(tr(guide.text))}</p>
-    <button type="button" class="btn btn-sm" data-audio-play="${attr(id)}" aria-pressed="false" onclick="toggleAudioGuide(${jsArg(id)},this)">${tr('ฟังเสียงภาษาไทย')}</button>
-  </details>`;
-}
-function renderAudioSettings(){
-  return `<div class="card-block audio-settings"><h4>${tr('เสียงและคำอธิบาย')}</h4>
-    <label class="toggle"><input id="audioSfxToggle" type="checkbox" ${sfxEnabled()?'checked':''} oninput="event.stopPropagation()" onchange="event.stopPropagation();setSfxEnabled(this.checked)"><span class="track"></span><span>${tr('เสียงแจ้งผลการทำงาน')}</span></label>
-    <p class="hint">${tr('ปิดเป็นค่าเริ่มต้น บันทึกเฉพาะเครื่องนี้')}</p>
-    <div class="toolbar">${[['tap','ลองเสียงปุ่ม'],['issued','ลองเสียงออกเอกสาร'],['payment','ลองเสียงบันทึกรับเงิน'],['export','ลองเสียงส่งออก'],['attention','ลองเสียงแจ้งเตือน']].map(([key,label])=>`<button type="button" class="btn btn-sm" onclick="playAppSfx(${jsArg(key)},true)">${tr(label)}</button>`).join('')}</div>
-    <p class="hint">${tr('คำอธิบายเสียงผู้หญิงภาษาไทย เล่นเมื่อกดฟังเท่านั้น')}</p>
-    ${Object.keys(APP_AUDIO_GUIDES).filter(id=>id!=='backup'||IS_ELECTRON).map(renderAudioGuide).join('')}
-  </div>`;
-}
-/* ---------- end optional offline audio ---------- */
-
 function toast(msg,kind,action,outcome){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -3650,7 +3501,7 @@ function openSafetyLimits(){
   openModal();
 }
 
-function render(){ stopAppAudio(); setBreadcrumb(null);
+function render(){ setBreadcrumb(null);
   applyUiLang();
   updateAiNavigation();
   document.getElementById('pageTitle').textContent = tr(TITLES[currentView]||'');
@@ -4290,7 +4141,6 @@ function renderDocuments(c,ta){
         ${chips.map(([k,l,n])=>`<button data-s="${k}" class="${docStatusFilter===k?'on':''}" ${k==='overdue'&&n?'style="color:var(--red)"':''}>${tr(l)}${n?` (${n})`:''}</button>`).join('')}
       </div>
     </div>
-    ${renderAudioGuide('first-bill')}
     <div id="docListWrap"></div>
   `;
   c.querySelector('#docTabs').addEventListener('click',e=>{
@@ -4381,11 +4231,10 @@ function renderWht(c,ta){
   const whtReview={...paymentReview(),foreignMissing:list.filter(d=>!Number.isFinite(reportFxRate(d))).length};
   ta.innerHTML = list.length?`<button class="btn" onclick="exportWhtCSV()">${ic('download')} ${tr('ส่งออก CSV (50 ทวิ)')}</button>`:'';
   if(!list.length){
-    c.innerHTML = renderAudioGuide('wht')+reportReviewBanner(whtReview)+brandEmpty('assetEnvelope', tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย'), tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ'));
+    c.innerHTML = reportReviewBanner(whtReview)+brandEmpty('assetEnvelope', tr('ยังไม่มีรายการถูกหักภาษี ณ ที่จ่าย'), tr('เมื่อออกใบเสร็จที่มีการหัก ณ ที่จ่าย รายการจะมาแสดงที่นี่เพื่อติดตามใบ 50 ทวิ'));
     return;
   }
   c.innerHTML = `
-    ${renderAudioGuide('wht')}
     <div class="banner info">
       ${ic('receipt')} ${tr('ยอดหักตามเอกสารเป็นยอดคาดหมาย ไม่ใช่เครดิตภาษีที่ตรวจสอบแล้ว')} ${tr('บันทึกรับใบ 50 ทวิ ไม่ได้ยืนยันยอดหรือสิทธิใช้เครดิต')}
     </div>
@@ -5353,7 +5202,7 @@ function renderFiling(c,ta){
 }
 
 /* ---------- SETTINGS ---------- */
-/* ตั้งค่า 4 แท็บ: ธุรกิจของฉัน · เอกสารและภาษี · ข้อมูลและสำรอง · เสียง */
+/* ตั้งค่า 3 แท็บ: ธุรกิจของฉัน · เอกสารและภาษี · ข้อมูลและสำรอง */
 let settingsTab = 'business';
 let settingsDirty = false;   // unsaved edits on the current Settings tab
 function markSettingsDirty(dirty){
@@ -5374,7 +5223,7 @@ async function setSettingsTab(t){
 }
 function renderSettings(c,ta){
   const b = DB.business;
-  const tabs = [['business','ธุรกิจของฉัน'],['docs','เอกสารและภาษี'],['data','ข้อมูลและสำรอง'],['sounds','เสียง']];
+  const tabs = [['business','ธุรกิจของฉัน'],['docs','เอกสารและภาษี'],['data','ข้อมูลและสำรอง']];
   if(!tabs.some(([k])=>k===settingsTab)) settingsTab = 'business';
   settingsDirty = false;
   const saveBar = `<div class="settings-savebar">
@@ -5519,7 +5368,6 @@ function renderSettings(c,ta){
     ${saveBar}`;
 
   const dataCards = ()=> IS_ELECTRON ? `
-    ${renderAudioGuide('backup')}
     ${syncV3Info.configured?`<div class="card-block"><h4>${tr('ซิงก์ Google Drive')} · Pro</h4>
       <p>${tr('ใช้ข้อมูลชุดเดียวกันได้หลายเครื่อง ร่างเอกสารได้แม้ออฟไลน์ แต่ต้องเชื่อมต่ออินเทอร์เน็ตตอนออกเอกสาร เพื่อไม่ให้เลขเอกสารซ้ำ')}</p>
       <p class="hint">${tr('ข้อมูลเอกสารเก็บใน Google Drive ของคุณ · ไฟล์หลักฐานแนบต้องส่งออกแยก · ถ้าแก้ข้อมูลเดียวกันพร้อมกันหลายเครื่อง แอปจะเก็บทั้งสองฉบับให้เลือก')}</p>
@@ -5616,7 +5464,7 @@ function renderSettings(c,ta){
       </div>
     </div>`;
 
-  const groups = { business: businessCards, docs: docsCards, data: dataCards, sounds: renderAudioSettings };
+  const groups = { business: businessCards, docs: docsCards, data: dataCards };
   c.innerHTML = `<div class="settings-grid">
     <div class="tabs">
       ${tabs.map(([k,l])=>`<button class="${settingsTab===k?'active':''}" onclick="setSettingsTab(${jsArg(k)})">${tr(l)}</button>`).join('')}
@@ -6162,7 +6010,6 @@ async function confirmReceiptPrerequisite(){
   drawDocEditor();
 }
 function drawDocEditor(){
-  stopAppAudio();
   const d=editDoc; const b=DB.business;
   const m=document.getElementById('modal');
   const isNew = !d.id;
@@ -6180,7 +6027,6 @@ function drawDocEditor(){
       <div class="spacer"></div><button class="x" onclick="closeModal()">${ic('close')}</button></div>
     <div class="modal-body">
       ${issueChecklistHtml()}
-      ${renderAudioGuide('draft-issued')}
       ${pendingEditorDraft?`<div class="banner info"><span class="banner-text">${tr('พบเอกสารที่พิมพ์ค้างไว้เมื่อ {t} — กู้คืนไหม').replace('{t}',escapeHtml(fmtDate(String(pendingEditorDraft.savedAt||'').slice(0,10))))}</span>
         <button class="btn btn-sm" onclick="discardEditorDraft()">${tr('ทิ้ง')}</button><button class="btn btn-sm btn-primary" onclick="restoreEditorDraft()">${tr('กู้คืน')}</button></div>`:''}
       ${d.type==='receipt'?`<div class="hint">${tr('ใบเสร็จเงินบาท ไม่รวม VAT รับชำระเต็มจำนวนเท่านั้น')}</div>`:''}
@@ -6480,9 +6326,8 @@ async function saveDoc(){
   }
   issuanceBusy=true;
   try{
-    if(!await persistDocumentMutation(d,existing?.id)){playAppSfx('attention');return;}
+    if(!await persistDocumentMutation(d,existing?.id))return;
     editDoc=null; clearDraft(); closeModal(); viewDoc(d.id); toast(tr('บันทึกเอกสารแล้ว'),'ok',null,finalize?'issued':'saved');
-    if(finalize) playAppSfx('issued');
   }finally{issuanceBusy=false;}
 }
 async function deleteDoc(id){
@@ -6605,7 +6450,7 @@ function openPaymentDialog(id){
   const inv=DB.documents.find(x=>x.id===id), t=inv&&compute(inv);
   // Show the amount being confirmed so the owner can compare it with the actual transfer.
   const amountLine=t&&reportAmountsValid(t)?`<p>${tr('ยอดที่ควรได้รับ {net}').replace('{net}',fmtMoneyC(t.netPayable,t.currency))}${t.whtAmount?` · ${tr('หลังหัก ณ ที่จ่าย {wht}').replace('{wht}',fmtMoneyC(t.whtAmount,t.currency))}`:''}</p>`:'';
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}${renderAudioGuide('payment')}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
 }
 async function submitPaymentDialog(id){return setStatus(id,'paid',{paidDate:document.getElementById('paymentDate').value,fullPaymentConfirmed:document.getElementById('paymentFull').checked});}
 async function archiveDocument(id,archived){
@@ -7144,7 +6989,6 @@ function renderDocView(c,ta){
   }
 
   c.innerHTML = `
-    ${issued&&!blocked?renderAudioGuide('send-bill'):''}
     <div class="doc-actions">
       <span style="display:flex;align-items:center;margin-right:6px">${statusBadge(st)}</span>
       ${lifecycle}
@@ -7217,8 +7061,8 @@ async function savePDF(){
   try{
     applyPrintZoom();
     const p = await window.billingAPI.exportPDF(name);
-    if(p){toast(tr('บันทึก PDF แล้ว:')+' '+baseName(p),'ok',null,'export');playAppSfx('export');}
-  }catch(e){ toast(tr('บันทึก PDF ไม่สำเร็จ'),'err');playAppSfx('attention'); }
+    if(p){toast(tr('บันทึก PDF แล้ว:')+' '+baseName(p),'ok',null,'export');}
+  }catch(e){ toast(tr('บันทึก PDF ไม่สำเร็จ'),'err'); }
   finally{ clearPrintZoom(); }
 }
 // Ready-to-paste summary for LINE/chat: what, how much, when, where to pay.
@@ -7437,7 +7281,7 @@ async function setStatus(id,st,facts){
     d.paidDate=paidDate; d.fullPaymentConfirmed=true; d.paymentId=d.paymentId||uid();
   }
   d.status=st; issuanceBusy=true;
-  try{if(await persistDocumentMutation(d,id)){closeModal();render();if(st==='paid'){toast(tr('บันทึกรับเงินแล้ว'),'ok',null,'payment');playAppSfx('payment');}return true;}if(st==='paid')playAppSfx('attention');return false;}finally{issuanceBusy=false;}
+  try{if(await persistDocumentMutation(d,id)){closeModal();render();if(st==='paid'){toast(tr('บันทึกรับเงินแล้ว'),'ok',null,'payment');}return true;}return false;}finally{issuanceBusy=false;}
 }
 function convertToInvoice(id){
   const q=DB.documents.find(x=>x.id===id);
@@ -7471,8 +7315,8 @@ async function createReceipt(id){
   if(!await askConfirm(tr('ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?'),{confirmLabel:tr('ออกใบเสร็จรับเงิน')}) || issuanceBusy) return;
   issuanceBusy=true;
   try{
-    if(!await persistDocumentMutation(rec,null,inv.issuedSnapshot)){playAppSfx('attention');return;}
-    viewDoc(rec.id); toast(tr('ออกใบเสร็จแล้ว'),'ok',null,'issued');playAppSfx('issued');return rec;
+    if(!await persistDocumentMutation(rec,null,inv.issuedSnapshot))return;
+    viewDoc(rec.id); toast(tr('ออกใบเสร็จแล้ว'),'ok',null,'issued');return rec;
   }finally{issuanceBusy=false;}
 }
 function duplicateDoc(id){
@@ -7727,7 +7571,6 @@ function focusModal(){
   (first||m).focus({preventScroll:true});
 }
 function openModal(){
-  stopAppAudio();
   const ov=document.getElementById('overlay');
   const wasOpen=!!(ov.classList.contains && ov.classList.contains('open'));
   ov.classList.add('open');
@@ -7736,7 +7579,6 @@ function openModal(){
   focusModal();
 }
 function closeModal(){
-  stopAppAudio();
   const recoverable=editDoc&&editDocDirty?JSON.parse(JSON.stringify(editDoc)):null;
   if(recoverable&&!autoSaveDraft())return false;
   const wasEditor=!!editDoc;editDoc=null;if(wasEditor)clearDraft(!recoverable&&!pendingEditorDraft);
