@@ -21,8 +21,8 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 
 - Final release archive after the 44-point fix: `/private/tmp/BillNgai-2.0.15-b1-2026-10-10.xcarchive`, version **2.0.15 (1)**, 17 MB; no UI-audit scripts in the release bundle. App executable SHA-256 `0fb921713f663e51d0ac5b442591a8183d1ff4e1473e15d32f5bab1209f9ca2c`.
 - The archive succeeded with **Apple Development** signing. App Store export failed with `No Accounts` and `No profiles for 'com.visarut.billngai'`; Xcode has no signed-in account or iOS App Store distribution profile available to the command. **No distribution IPA, validated upload, or TestFlight build exists from this archive.**
-- 36 synthetic screenshots are under `review/2026-10-10/design/store-screens/`: Thai/English, six light and three dark per locale for each device. iPhone 18 Pro Max captures are 1320 × 2868; 13-inch iPad captures are 2064 × 2752. Every included capture passed the project UI audit. **Owner must approve the synthetic sample content before upload.**
-- Mac store screenshots remain pending. Existing `review/2026-10-10/design/screens/mac-*.png` are 1440 × 1000; Apple accepts 16:10 Mac sizes such as 1440 × 900. The previous `review/2026-10-09/screenshots-store/` set predates the simplification and is not a final source.
+- 48 synthetic screenshot candidates are under `review/2026-10-10/design/store-screens/`. iPhone 18 Pro Max captures are 1320 × 2868; 13-inch iPad captures are 2064 × 2752. All 36 mobile captures passed the project UI audit. The 12 Mac captures are real native-window screenshots at Apple's 1440 × 900 size; the desktop source UI smoke passed. **Owner must approve the synthetic sample content before upload.**
+- Mac captures came from the shared source Electron UI because the signed MAS app could not be launched locally before App Store distribution. Compare them with the processed Mac build in TestFlight before upload. The previous `review/2026-10-09/screenshots-store/` set predates the simplification and is not a final source.
 
 ## Metadata and customers
 
@@ -35,7 +35,7 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 
 1. Sign in to the developer account in Xcode Settings → Accounts, make the `com.visarut.billngai` iOS App Store distribution profile available, export/upload the final archive, and wait for processing. If Xcode re-signs during export, preserve version 2.0.15 (1) and upload symbols.
 2. Deliver the verified Mac `.pkg` through Transporter and wait for its Delivered/processed state. Record Apple-side build IDs and times.
-3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Capture final 16:10 Mac store screenshots and approve all synthetic listing content.
+3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Compare Mac screenshot candidates with the processed store build and approve all synthetic listing content.
 4. Enter both platforms' metadata and Review Notes, attach the existing Pro IAP, select processed builds, then submit for review with manual release.
 5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then generate and deliver one IAP Pro code per verified lifetime-key holder.
 
