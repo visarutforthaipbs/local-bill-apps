@@ -12,7 +12,7 @@ test('failed save does not advance revision and later calls cannot bypass stale 
 });
 test('cloud, imports and external activation fail explicitly; no fake connected result',async()=>{
  const api=bridge({});assert.equal(api.capabilities.cloudSync,false);assert.equal((await api.syncV3Status()).connected,false);
- for(const name of ['syncV3Connect','syncV3Reserve','syncV3Run','importData','licenseActivate'])await assert.rejects(api[name](),/MOBILE_CAPABILITY_NOT_READY/);
+ for(const name of ['syncV3Connect','syncV3Reserve','syncV3Run','importData'])await assert.rejects(api[name](),/MOBILE_CAPABILITY_NOT_READY/);
 });
 test('native file export preserves text and filename and distinguishes cancellation',async()=>{
  let completed=false;const api=bridge({exportFile:async args=>{assert.equal(args.text,'ภาษาไทย,970.00');assert.equal(args.name,'report.csv');return {path:completed?args.name:null};}});

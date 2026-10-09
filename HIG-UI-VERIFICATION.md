@@ -64,9 +64,9 @@ What had to change, and why — none of it was the restyle:
 - Review events are append-only since 2.0.14; `design-fixes` no longer clears them in memory.
 - Settings has three tabs (the Sounds tab was removed in 2.0.15; `option-a` expects 3); receipts issue straight after the VAT confirmation;
   `prepublish` clicks the visible switch instead of force-checking the 1 px hidden input.
-- Real gap found by the i18n checks: six direct-purchase dialog strings had no English. They are
-  registered by `registerDirectPurchaseCopy()` inside the region the Apple renderer strips, so the
-  App Store bundle still contains no purchase copy (`test/channel-renderer.test.cjs`).
+- The direct-purchase dialog, its strings and the per-channel renderer stripping were removed in
+  2.0.15 (PRD-SIMPLIFY stream C); `test/store-copy-guard.test.cjs` keeps purchase copy out of
+  `billing.html`, and `option-a` now expects the App Store-only notice instead of `#lic_key`.
 
 ### Scheme switching note
 

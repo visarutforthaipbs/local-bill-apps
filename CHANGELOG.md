@@ -22,7 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 ### Removed
 - The local AI add-on ("TOR → Invoice"): sidebar entry, add-on verification, local inference runner, TOR import and its settings and strings. Existing profiles still load; add-on folders already on disk are left untouched (see PRD-SIMPLIFY-2026-10.md §2).
 - Sound effects and Thai voice guides: the Settings → Sounds tab, task and button cues, the bundled audio files and the device-local sound preference. Feedback stays visual (toasts, status badges) and Reduce Motion is still honoured; a sound preference left on a device by an older version is ignored.
-- Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
+- Direct-purchase and licence-entry screens: the "ซื้อ Pro" dialog (PromptPay, LINE, launch price) and the "มีรหัส Pro แล้ว?" key field, plus the per-channel renderer stripping (`scripts/channel-renderer.cjs`). Store builds and the iOS bundle are now packaged from the plain `billing.html`. In the direct build, "upgrade" opens a notice that Pro is available only on the App Store and points to Settings → Data & backup; a licence key already in `config.json` is still honoured there and can still be removed from Settings.
 - e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
 - Windows beta: discontinued; no further Windows builds.
 

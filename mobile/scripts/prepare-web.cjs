@@ -8,7 +8,6 @@ fs.rmSync(out,{recursive:true,force:true});
 fs.mkdirSync(out,{recursive:true});
 let html=fs.readFileSync(path.join(desktop,'billing.html'),'utf8');
 const sourceHash=crypto.createHash('sha256').update(html).digest('hex');
-html=require(path.join(desktop,'scripts/channel-renderer.cjs')).appleRenderer(html);
 fs.mkdirSync(path.join(out,'lib'),{recursive:true});
 fs.copyFileSync(path.join(desktop,'lib/billing-data.cjs'),path.join(out,'lib/billing-data.js'));
 html=html.replace('src="lib/billing-data.cjs"','src="lib/billing-data.js"');

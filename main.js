@@ -603,14 +603,6 @@ function licenseStatusOf(cfg) {
   return { valid: !expired, expired, email: payload.email || '', plan: payload.plan || 'pro', validUntil: payload.validUntil || null };
 }
 handleIPC('license:status', async () => licenseStatusOf(await readConfig()));
-handleIPC('license:activate', (_e, key) => withDataLock(async () => {
-  if (IS_MAS) throw new Error('Use App Store purchases in this build');
-  if (!parseLicenseKey(key)) throw new Error('invalid license key');
-  const cfg = await readConfig();
-  cfg.licenseKey = String(key).trim();
-  await writeConfig(cfg);
-  return licenseStatusOf(cfg);
-}));
 handleIPC('license:deactivate', () => withDataLock(async () => {
   const cfg = await readConfig();
   delete cfg.licenseKey;
