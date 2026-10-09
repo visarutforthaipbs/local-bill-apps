@@ -23,7 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Local AI add-on ("TOR → Invoice"): sidebar item, AI view, AI settings and add-on install/verify. Installed add-on folders are left on disk.
 - Sound effects and Thai voice guides: the Settings → Sounds tab, task and button cues, the bundled audio files and the device-local sound preference. Feedback stays visual (toasts, status badges) and Reduce Motion is still honoured; a sound preference left on a device by an older version is ignored.
 - Direct-purchase and licence screens: the "ซื้อ Pro" dialog and the licence-key field. Pro is the in-app purchase.
-- e-Tax XML and new tax-invoice remnants: paused banners, menu stubs and dead branches. Existing tax-invoice records and the correction workflow are unchanged.
+- e-Tax XML and new tax-invoice remnants: the "new tax invoices, tax estimates, e-Tax and cloud sync are paused" line in Settings → ข้อจำกัดการใช้งาน (now states that the app issues ordinary receipts only), the "tax payable/refund not yet calculated" banner on the income summary, the e-Tax XML export and 2.0.4-limits strings, the tax-invoice entry in the document editor's type list and the unused tax-invoice number-format setting. Existing tax-invoice records, their legacy review and the corrected-receipt (`receipt_reissue`) workflow are unchanged.
 - Windows beta: discontinued; no further Windows builds.
 
 ### Fixed

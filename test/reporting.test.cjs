@@ -100,7 +100,7 @@ test('tax estimate, deadline and reminder entry points are disabled',()=>{
 });
 test('filing UI has no payable/refund figures, credits or universal expense formula',()=>{
   const r=run(`DB.documents=[fixture()];reportYear=2026;const c={},ta={};renderFiling(c,ta);c.innerHTML`);
-  assert.match(r,/Tax payable or refund calculation is unavailable/);
+  assert.match(r,/This summary does not calculate tax payable or refunds/);
   assert.doesNotMatch(r,/50%|100,000|Amount payable|Tax credit|8 days|2026-09-30/);
   assert.match(r,/PND94 instructions for tax year 2569/);
 });
