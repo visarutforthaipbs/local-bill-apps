@@ -1,6 +1,6 @@
 # BillNgai 2.0.15 release preparation — 2026-10-10
 
-Status: prepared locally; **nothing delivered to App Store Connect, submitted for review, notarized as the final direct DMG, published, or sent to customers** in this session. Version 2.0.15 was retained.
+Status: iOS **2.0.15 (1) uploaded to App Store Connect and processing**; the Mac package is in Transporter, with final delivery status pending. Nothing submitted for App Review, notarized as the final direct DMG, published, or sent to customers. Version 2.0.15 was retained.
 
 ## Verified source and UI
 
@@ -13,15 +13,15 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 - `npm run dist:mas` completed from the simplification source. `dist/mas-universal/BillNgai-2.0.15-universal.pkg`: **225,889,701 bytes**, SHA-256 **a006638ae9fdc7d243d9b76f7108b87c36b4164ceaa7bcafdf22d7db7895fe8e**.
 - `scripts/verify-packaged-source.cjs`: 19 packaged tracked files match the base commit; app.asar SHA-256 `6cb018f29aa239f78a2742144f5efd9ae5c9785621f0c393fbcc4846828d3acb`.
 - Installer signature is trusted by Apple certificate chain; app `codesign --verify --deep --strict` passes. The app has `app-sandbox`, `network.client`, and `network.server` entitlements.
-- The literal-string sweep is **not clean** for `e-Tax`: one bookkeeping disclaimer and the intentionally inert `exportETaxXML` containment stub (with its Thai/English error) remain. No other searched retired string appeared. The current checklist should record these explicit exceptions rather than mark its blanket command clean.
+- The literal-string sweep is **not clean** for `e-Tax`: one bookkeeping disclaimer and the intentionally inert `exportETaxXML` containment stub (with its Thai/English error) remain. No other searched retired string appeared. The owner checklist now records these explicit exceptions and checks the retired UI strings separately.
 - The signed MAS app did not launch through Playwright outside App Store distribution here, so its packaged runtime smoke is pending TestFlight. `spctl` rejected the local MAS app (Apple Distribution origin); this is not a Developer ID notarization result.
-- **Transporter delivery pending.** The package has not been uploaded or processed by Apple.
+- **Transporter delivery pending.** The verified package was opened in Transporter after the owner signed in on 2026-10-10; the app controls require the owner to click Deliver and report the result. The package has not been confirmed uploaded or processed by Apple.
 
 ## iOS archive and screenshots
 
 - Final release archive after the 44-point fix: `/private/tmp/BillNgai-2.0.15-b1-2026-10-10.xcarchive`, version **2.0.15 (1)**, 17 MB; no UI-audit scripts in the release bundle. App executable SHA-256 `0fb921713f663e51d0ac5b442591a8183d1ff4e1473e15d32f5bab1209f9ca2c`.
-- The archive succeeded with **Apple Development** signing. App Store export failed with `No Accounts` and `No profiles for 'com.visarut.billngai'`; Xcode has no signed-in account or iOS App Store distribution profile available to the command. **No distribution IPA, validated upload, or TestFlight build exists from this archive.**
-- 48 opaque RGB JPEG screenshot candidates (no alpha channel) are under `review/2026-10-10/design/store-screens/`. iPhone 18 Pro Max captures are 1320 × 2868; 13-inch iPad captures are 2064 × 2752. All 36 mobile captures passed the project UI audit. The 12 Mac captures are real native-window screenshots at Apple's 1440 × 900 size; the desktop source UI smoke passed. **Owner must approve the synthetic sample content before upload.**
+- The archive first succeeded with **Apple Development** signing. App Store export initially failed with `No Accounts` and `No profiles for 'com.visarut.billngai'`. After the owner completed Xcode sign-in, automatic provisioning downloaded an App Store distribution profile. A first export failed because Xcode invoked Apple `/usr/bin/rsync` with Homebrew `rsync` on `PATH`; retrying with `PATH=/usr/bin:/bin:/usr/sbin:/sbin` succeeded. The exported IPA is `/private/tmp/BillNgai-2.0.15-b1-ASC-export-system-rsync/BillNgai.ipa`, SHA-256 `2bb74e8b7ea00035c1f09857ec50fde4f4b6932629d417df7b01741f41c6dae2`. Its 2.0.15 (1) signature verifies for team `79QFYKTJMN`, `get-task-allow=false`, and `beta-reports-active=true`. `xcodebuild` uploaded the archive successfully on 2026-10-10 at 08:51 Asia/Bangkok; App Store Connect reported **processing**. TestFlight availability is still pending.
+- 48 opaque RGB JPEG screenshot candidates (no alpha channel) are under `review/2026-10-10/design/store-screens/`. iPhone 18 Pro Max captures are 1320 × 2868; 13-inch iPad captures are 2064 × 2752. All 36 mobile captures passed the project UI audit. The 12 Mac captures are real native-window screenshots at Apple's 1440 × 900 size; the desktop source UI smoke passed. **Owner approved the synthetic sample content on 2026-10-10.**
 - Mac captures came from the shared source Electron UI because the signed MAS app could not be launched locally before App Store distribution. Compare them with the processed Mac build in TestFlight before upload. The previous `review/2026-10-09/screenshots-store/` set predates the simplification and is not a final source.
 
 ## Metadata and customers
@@ -33,9 +33,9 @@ Status: prepared locally; **nothing delivered to App Store Connect, submitted fo
 
 ## Next required actions
 
-1. Sign in to the developer account in Xcode Settings → Accounts, make the `com.visarut.billngai` iOS App Store distribution profile available, export/upload the final archive, and wait for processing. If Xcode re-signs during export, preserve version 2.0.15 (1) and upload symbols.
-2. Deliver the verified Mac `.pkg` through Transporter and wait for its Delivered/processed state. Record Apple-side build IDs and times.
-3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Compare Mac screenshot candidates with the processed store build and approve all synthetic listing content.
+1. Wait for the uploaded iOS 2.0.15 (1) build to finish App Store Connect processing, then add it to internal TestFlight and record Apple-side build ID/time.
+2. Confirm the verified Mac `.pkg` reaches Delivered in Transporter and finishes App Store Connect processing; record Apple-side build ID/time.
+3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Compare Mac screenshot candidates with the processed store build; the synthetic listing content was approved on 2026-10-10.
 4. Enter both platforms' metadata and Review Notes, attach the existing Pro IAP, select processed builds, then submit for review with manual release.
 5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then create and deliver one free IAP Pro offer code per verified lifetime-key holder.
 
