@@ -140,7 +140,7 @@
   }
   @keyframes stampOut{to{opacity:0;transform:rotate(-12deg) scale(1.03) translateY(-10px)}}
   /* persistent on-screen mark on paid invoices (kept off the printed page) */
-  .reissue-reference{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;font-size:var(--fs-callout)}
+  .reissue-reference,.settled-reference{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;font-size:var(--fs-callout)}
   .paper{position:relative}
   .paper .paid-stamp{
     position:absolute;top:46px;right:200px;transform:rotate(-12deg);pointer-events:none;
@@ -536,7 +536,7 @@
      DOCUMENT PREVIEW (print)
      ============================================================ */
   .doc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;padding:12px 16px}
-  .doc-trail{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-6px 0 18px;font-size:var(--fs-callout);color:var(--text-faint)}
+  .doc-trail,.quotation-progress{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-6px 0 18px;font-size:var(--fs-callout);color:var(--text-faint)}
   .doc-trail .trail-l{display:inline-flex;align-items:center;gap:3px}
   .doc-trail .trail-chip{cursor:pointer;background:var(--fill-3);border-radius:var(--radius-pill);
     padding:3px 10px;color:var(--text-dim);transition:.12s;text-decoration:none}
@@ -689,7 +689,7 @@
     .sidebar,.topbar,.doc-actions,.overlay,.toast,.banner,.stamp-fx,.paper .paid-stamp{display:none!important}
     /* The document screen prints only its paper: lineage chips, instalment progress and any
        future screen-only card stay on screen. */
-    .doc-trail,.split-progress{display:none!important}
+    .doc-trail,.quotation-progress,.split-progress{display:none!important}
     #content:has(> .paper) > :not(.paper){display:none!important}
     .main,.content{padding:0;max-width:none;background:#fff}
     .paper{box-shadow:none;border:none;border-radius:0;max-width:none;margin:0;padding:24px 26px;animation:none;
@@ -2133,6 +2133,8 @@ const I18N_EN = {
   'ทุกงวดต้องมียอดมากกว่าศูนย์':'Every installment needs an amount above zero',
   'สร้างใบแจ้งหนี้ {n} งวด':'Create {n} installment invoices',
   'สร้างใบแจ้งหนี้ {n} งวดแล้ว':'Created {n} installment invoices',
+  'ยืนยันรับชำระงวดนี้เต็มจำนวนแล้ว':'Confirm this installment was paid in full',
+  'ตกลง {agreed} · รับแล้ว {received} ({count}) · ค้าง {outstanding}':'Agreed {agreed} · Received {received} ({count}) · Outstanding {outstanding}',
   // --- statuses ---
   'ร่าง':'Draft',
   'ส่งแล้ว':'Sent',
@@ -2720,7 +2722,6 @@ const I18N_EN = {
   'ส่งออกชุดหลักฐาน':'Export evidence bundle',
   'นำเข้าชุดหลักฐาน':'Import evidence bundle',
   'เอกสารนี้ต้องตรวจประวัติก่อนเปลี่ยนสถานะ':'This document requires history review before status change',
-  'ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย':'Receipts are issued for full payment only, not deposits or instalments',
   'กรุณายืนยันวันที่และการรับเงินเต็มจำนวน':'Please confirm date and full payment',
   'ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?':'Issue full-amount receipt from this payment?',
   'ยอดร่างที่วางแผนไว้':'Planned draft amount',
@@ -5293,7 +5294,6 @@ Object.assign(I18N_EN,{
   'วันที่รับเงินจริง (YYYY-MM-DD)':'Actual payment date (YYYY-MM-DD)',
   'ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?':'Issue a full-payment receipt for this payment?',
   'เอกสารนี้ต้องตรวจประวัติก่อนเปลี่ยนสถานะ':'Review this document’s history before changing status'
-  ,'ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย':'Receipts are issued for full payment only, not deposits or instalments'
 });
 let issuanceBusy=false;
 // Keep other UI mutations from racing a staged document write/rollback.
@@ -5936,8 +5936,11 @@ async function submitVoidDialog(id){return voidDocument(id,document.getElementBy
 function openPaymentDialog(id){
   const inv=DB.documents.find(x=>x.id===id), t=inv&&compute(inv);
   // Show the amount being confirmed so the owner can compare it with the actual transfer.
-  const amountLine=t&&reportAmountsValid(t)?`<p>${tr('ยอดที่ควรได้รับ {net}').replace('{net}',fmtMoneyC(t.netPayable,t.currency))}${t.whtAmount?` · ${tr('หลังหัก ณ ที่จ่าย {wht}').replace('{wht}',fmtMoneyC(t.whtAmount,t.currency))}`:''}</p>`:'';
-  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย')}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
+  const m=inv&&inv.milestone;
+  const amountLine=t&&reportAmountsValid(t)?`<p>${m?tr('งวดที่ {i}/{n}').replace('{i}',escapeHtml(m.seq)).replace('{n}',escapeHtml(m.of))+' · ':''}${tr('ยอดที่ควรได้รับ {net}').replace('{net}',fmtMoneyC(t.netPayable,t.currency))}${t.whtAmount?` · ${tr('หลังหัก ณ ที่จ่าย {wht}').replace('{wht}',fmtMoneyC(t.whtAmount,t.currency))}`:''}</p>`:'';
+  // งวดหนึ่งของโครงการคือใบแจ้งหนี้หนึ่งใบ — ยืนยันว่ารับเต็มยอดของใบนี้ ไม่ใช่เต็มทั้งโครงการ
+  const fullLabel=m?tr('ยืนยันรับชำระงวดนี้เต็มจำนวนแล้ว'):tr('ยืนยันรับชำระเต็มจำนวนแล้ว ไม่ใช่มัดจำหรือแบ่งจ่าย');
+  document.getElementById('modal').innerHTML=`<div class="modal-head"><h3>${tr('บันทึกรับชำระ')}</h3></div><div class="modal-body">${amountLine}<div class="field"><label for="paymentDate">${tr('วันที่รับเงินจริง (YYYY-MM-DD)')}</label><input type="date" id="paymentDate" max="${todayISO()}"></div><label><input type="checkbox" id="paymentFull"> ${fullLabel}</label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">${tr('ยกเลิก')}</button><button class="btn btn-primary" onclick="submitPaymentDialog(${jsArg(id)})">${tr('บันทึก')}</button></div>`;openModal();
 }
 async function submitPaymentDialog(id){return setStatus(id,'paid',{paidDate:document.getElementById('paymentDate').value,fullPaymentConfirmed:document.getElementById('paymentFull').checked});}
 async function archiveDocument(id,archived){
@@ -6493,7 +6496,7 @@ function renderDocView(c,ta){
     </div>
     ${d.voidedAt?`<div class="banner">${tr('ยกเลิกเอกสารไม่ได้แปลว่าคืนเงิน รายการรับเงินยังคงอยู่')}<br>${escapeHtml(d.voidReason||'')}</div>`:''}
     ${docTrail(d)}
-    ${d.type==='quotation' ? renderSplitProgress(d) : ''}
+    ${d.type==='quotation' ? renderQuotationProgress(d)+renderSplitProgress(d) : ''}
     ${blocked?renderHistoricalReview(d):renderPaper(d,cl,t)}
   `;
 }
@@ -6662,6 +6665,7 @@ function renderPaper(d,cl,t,issuanceContext=null){
     </div>
 
     ${d.reissueOf?`<div class="reissue-reference">${L('ฉบับแก้ไขชื่อเอกสาร','Document-title correction')} · ${L('อ้างอิง','Reference')} ${escapeHtml(d.reissueOfNumber)} · ${PD(d.reissueOfDate)}<br>${L('สำหรับเงินรับเดิมตามรายการ ไม่ใช่การรับเงินใหม่','For the recorded payment shown; not an additional payment')}</div>`:''}
+    ${d.type==='receipt'&&!d.reissueOf?settledReferenceHtml(d.settles,L):''}
     <div class="parties">
       <div class="party">
         <div class="h">${L('ลูกค้า','Bill to')}</div>
@@ -6732,6 +6736,15 @@ function renderPaper(d,cl,t,issuanceContext=null){
     </div>`:''}
   </div>`;
 }
+// "ชำระตามใบแจ้งหนี้ INV-… · งวดที่ 3/3 ของ QT-…" under the receipt title block; parts that do not exist are left out.
+function settledReferenceHtml(s,L){
+  if(!s || !s.invoiceNumber) return '';
+  const inv=escapeHtml(s.invoiceNumber), qt=s.quotationNumber?escapeHtml(s.quotationNumber):'', ins=s.installment;
+  const seq=ins?escapeHtml(ins.seq)+'/'+escapeHtml(ins.of):'';
+  const th=`ชำระตามใบแจ้งหนี้ ${inv}`+(ins?` · งวดที่ ${seq}`+(qt?` ของ ${qt}`:''):qt?` · ตามใบเสนอราคา ${qt}`:'');
+  const enTxt=`Payment for invoice ${inv}`+(ins?` · installment ${seq}`+(qt?` of ${qt}`:''):qt?` · per quotation ${qt}`:'');
+  return `<div class="settled-reference">${L(th,enTxt)}</div>`;
+}
 // Issuer signature + company stamp, overlaid above a signature line.
 function documentImageSource(value){
   // Embedded image data only: no remote tracking, attribute breakout or active URL.
@@ -6757,7 +6770,7 @@ async function setStatus(id,st,facts){
   const d=JSON.parse(JSON.stringify(source));
   const error=issuanceError(d,true,d.issuedSnapshot); if(error){toast(error,'err');return;}
   if(st==='paid'){
-    if(source.milestone){toast(tr('ออกใบเสร็จได้เฉพาะยอดที่รับชำระเต็มจำนวน ไม่ใช่มัดจำหรือแบ่งจ่าย'),'err');return;}
+    // ใบแจ้งหนี้งวด (milestone) รับชำระได้เหมือนใบปกติ — "เต็มจำนวน" หมายถึงเต็มยอดของใบนี้
     if(!isIssuedDocument(source)){toast(tr('ต้องมีใบแจ้งหนี้ที่ยืนยันรับเงินเต็มจำนวนแล้ว'),'err');return;}
     if(!facts){openPaymentDialog(id);return false;}
     const paidDate=facts.paidDate;
@@ -6783,7 +6796,7 @@ async function createReceipt(id){
   const existing=DB.documents.find(d=>(d.type==='receipt'||d.type==='tax_invoice') &&
     (d.parentId===id || (inv?.paymentId && d.paymentId===inv.paymentId)) && isIssuedDocument(d));
   if(existing){viewDoc(existing.id);return existing;}
-  if(!inv || inv.type!=='invoice' || inv.status!=='paid' || inv.deletedAt || inv.voidedAt || inv.milestone || !inv.paymentId ||
+  if(!inv || inv.type!=='invoice' || inv.status!=='paid' || inv.deletedAt || inv.voidedAt || !inv.paymentId ||
       !inv.fullPaymentConfirmed || !validDocumentDate(inv.paidDate) || !inv.whtReviewed || documentOutputBlocked(inv)){
     toast(tr('ต้องมีใบแจ้งหนี้ที่ยืนยันรับเงินเต็มจำนวนแล้ว'),'err');return;
   }
@@ -6793,7 +6806,8 @@ async function createReceipt(id){
     items:JSON.parse(JSON.stringify(original.items)),vatRate:original.vatRate,whtRate:original.whtRate,whtReviewed:true,
     fullPaymentConfirmed:true,docLang:docLangOf(inv)==='en'?'bilingual':docLangOf(inv),fxRate:original.fxRate||null,
     incomeCategory:original.incomeCategory||'',deletedAt:null,notes:original.notes,createdAt:new Date().toISOString(),
-    whtCertReceived:inv.whtCertReceived===true,whtCertNo:inv.whtCertNo||'',whtCertDate:inv.whtCertDate||''};
+    whtCertReceived:inv.whtCertReceived===true,whtCertNo:inv.whtCertNo||'',whtCertDate:inv.whtCertDate||'',
+    settles:settledReference(inv)};
   if(!await confirmNonVatInline() || issuanceBusy) return;
   const error=issuanceError(rec,true,inv.issuedSnapshot); if(error){toast(error,'err');return;}
   if(!await askConfirm(tr('ออกใบเสร็จเต็มจำนวนจากการรับเงินนี้?'),{confirmLabel:tr('ออกใบเสร็จรับเงิน')}) || issuanceBusy) return;
@@ -6802,6 +6816,17 @@ async function createReceipt(id){
     if(!await persistDocumentMutation(rec,null,inv.issuedSnapshot))return;
     viewDoc(rec.id); toast(tr('ออกใบเสร็จแล้ว'),'ok',null,'issued');return rec;
   }finally{issuanceBusy=false;}
+}
+// ใบเสร็จธรรมดาพิมพ์ว่าชำระตามใบแจ้งหนี้ใบไหน (งวดที่/ใบเสนอราคา ถ้ามี) — เก็บลงเอกสารตอนออก
+// จึงถูกแช่แข็งไปกับ issuedSnapshot ใบเสร็จที่ออกไปก่อนหน้าไม่มีช่องนี้และไม่เปลี่ยน
+function settledReference(inv){
+  const invDoc=inv.issuedSnapshot?.document||inv;
+  const q=invDoc.parentId?DB.documents.find(x=>x.id===invDoc.parentId && x.type==='quotation'):null;
+  const qDoc=q?(q.issuedSnapshot?.document||q):null, m=invDoc.milestone;
+  const seq=Number(m&&m.seq), of=Number(m&&m.of);
+  return {invoiceNumber:String(invDoc.number||inv.number||''),
+    installment:Number.isInteger(seq)&&seq>0&&Number.isInteger(of)&&of>0?{seq,of}:null,
+    quotationNumber:qDoc&&qDoc.number?String(qDoc.number):null};
 }
 function duplicateDoc(id){
   const src=DB.documents.find(x=>x.id===id);
@@ -6857,6 +6882,24 @@ function renderSplitProgress(q){
       ${p.remaining>=0.05?`<span>${tr('ยังไม่ออกบิล')} <b>${cs}${money(p.remaining)}</b></span>`:''}
     </div>
   </div>`;
+}
+
+// ความคืบหน้าของใบเสนอราคาที่แบ่งงวด — ตกลงเท่าไร รับแล้วกี่งวด ค้างเท่าไร
+// นับจากใบเสร็จของใบแจ้งหนี้งวด (สาย parentId) ใบที่ยกเลิก/ลบไม่นับ; ยอดเป็นสุทธิหลังหัก ณ ที่จ่าย
+function quotationProgress(q){
+  const kids=invoiceChildren(q); if(!kids.length) return null;
+  const ids=new Set(kids.map(k=>k.id));
+  const receipts=activeDocs().filter(r=>(r.type==='receipt'||r.type==='tax_invoice') && ids.has(r.parentId) && isIssuedDocument(r) && !r.voidedAt && r.status!=='void');
+  const agreed=compute(q).netPayable;
+  const received=round2(receipts.reduce((s,r)=>{const n=compute(r).netPayable;return s+(Number.isFinite(n)?n:0);},0));
+  return {agreed,received,outstanding:Math.max(0,round2(agreed-received)),receipts:receipts.length,installments:kids.length};
+}
+function renderQuotationProgress(q){
+  const p=quotationProgress(q); if(!p||!Number.isFinite(p.agreed)) return '';
+  const cur=docCurrency(q), amt=v=>`<b>${fmtMoneyC(v,cur)}</b>`;
+  return `<div class="quotation-progress"><span>${tr('ตกลง {agreed} · รับแล้ว {received} ({count}) · ค้าง {outstanding}')
+    .replace('{agreed}',()=>amt(p.agreed)).replace('{received}',()=>amt(p.received))
+    .replace('{count}',()=>`${p.receipts}/${p.installments}`).replace('{outstanding}',()=>amt(p.outstanding))}</span></div>`;
 }
 
 let splitState=null;   // {qid, rows:[{label, amount, due}]} — แถวสุดท้ายไม่มี amount (ยอดคงเหลืออัตโนมัติ)

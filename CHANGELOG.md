@@ -3,6 +3,16 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [Unreleased] — installment payments (PRD-INSTALLMENTS.md)
+
+### Changed
+- A paid installment invoice (one created by แบ่งงวด) can now record its payment and issue its receipt, like any other invoice. The payment dialog names the installment and asks to confirm that this invoice was paid in full; the receipt is for exactly the installment amount, withholding per payment. The "full payment only, not deposits or instalments" refusal is gone.
+- Ordinary receipts print the invoice they settle under the title block: "ชำระตามใบแจ้งหนี้ INV-… · งวดที่ 3/3 ของ QT-…" (English and bilingual wording via the document language), leaving out parts that do not exist. The reference is stored on the receipt at issue time (`settles`) and frozen with its snapshot; receipts issued earlier and corrected receipts are unchanged.
+- The quotation view shows installment progress in the lineage area: agreed, received (receipts / installments) and outstanding, counted from receipts linked to the installment invoices (voided excluded). Screen only, never printed.
+
+### Verified
+- Unpaid installment invoices already counted toward the dashboard's ยอดค้างรับ and overdue count, and document numbers were already reserved only after validation with rollback on failed storage; `test/installments.test.cjs` now pins both.
+
 ## [2.0.15] - Unreleased candidate
 
 2.0.14 reached TestFlight only (iOS builds 3–5, Mac App Store package delivered, nothing submitted for review); its changes ship in 2.0.15 together with the Apple HIG restyle.

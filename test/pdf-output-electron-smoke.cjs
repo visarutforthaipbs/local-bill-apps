@@ -4,8 +4,9 @@
 const {_electron}=require('playwright'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 const {execFileSync}=require('node:child_process');
 // macOS PDFKit text extraction (no extra dependencies).
-// PDFKit returns decomposed sara am (nikhahit + aa); normalise before matching Thai text.
-const pdfText=file=>pdfTextRaw(file).replace(/\u0E4D\u0E32/g,'\u0E33');
+// PDFKit returns decomposed sara am (nikhahit + aa) and maps some tone marks of the embedded font to U+0000;
+// normalise before matching Thai text (positive matches use base letters only).
+const pdfText=file=>pdfTextRaw(file).replace(/\u0E4D\u0E32/g,'\u0E33').replace(/\u0000/g,'');
 const pdfTextRaw=file=>execFileSync('/usr/bin/osascript',['-l','JavaScript','-e',
  'ObjC.import("PDFKit");function run(a){const d=$.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(a[0]));return d.string.js+"\\n@@pages="+d.pageCount;}',file],{encoding:'utf8'});
 (async()=>{
@@ -48,7 +49,20 @@ const pdfTextRaw=file=>execFileSync('/usr/bin/osascript',['-l','JavaScript','-e'
    'data:image/png;base64,'+(await fs.readFile(png)).toString('base64'));
   assert.deepEqual(corner.slice(0,3),[255,255,255],'top-left corner is white, got '+corner.slice(0,3));
   assert.deepEqual(corner.slice(4,7),[255,255,255],'bottom-right corner is white, got '+corner.slice(4,7));
+  // The paid instalment's receipt prints which invoice it settles (PRD-INSTALLMENTS §2); the screen-only
+  // lineage and quotation progress still stay off the page.
+  const inv=await page.evaluate(async()=>{const inv=DB.documents.find(d=>d.type==='invoice');await setStatus(inv.id,'paid',{paidDate:todayISO(),fullPaymentConfirmed:true});const rec=await createReceipt(inv.id);viewDoc(rec.id);return {number:inv.number,quotation:DB.documents.find(d=>d.type==='quotation').number,receipt:rec.number};});
+  await page.locator('.paper .settled-reference').waitFor();
+  const receiptFile=path.join(root,'receipt.pdf');
+  await app.evaluate(({dialog},file)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:file});},receiptFile);
+  await page.evaluate(()=>savePDF());await fs.access(receiptFile);
+  const receiptText=pdfText(receiptFile);
+  assert.match(receiptText,/ใบเสร็จรับเงิน/);assert.ok(receiptText.includes(inv.receipt),'receipt number in PDF');
+  assert.match(receiptText,new RegExp('ชำระตามใบแจ้งหนี.? '+inv.number+' · งวดที.? 1/1 ของ '+inv.quotation),'settled-invoice line in the receipt PDF');
+  for(const screenOnly of ['นำไปออก','สร้างจาก','ตกลง ฿','รับแล้ว ฿','ออกแล้ว','พิมพ์'])
+   assert.ok(!receiptText.includes(screenOnly),'screen-only text in receipt PDF: '+screenOnly);
+  assert.match(receiptText,/@@pages=1\s*$/,'receipt is one A4 page');
   assert.deepEqual(errors,[]);
-  console.log('PASS: PDF contains only the paper — no lineage, instalment progress, status or actions; white page; one A4 page.');console.log('ARTIFACTS='+root);
+  console.log('PASS: PDF contains only the paper — no lineage, instalment progress, status or actions; white page; one A4 page; receipt PDF names the settled invoice.');console.log('ARTIFACTS='+root);
  }finally{await app.evaluate(({app})=>app.exit(0)).catch(()=>{});}
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
