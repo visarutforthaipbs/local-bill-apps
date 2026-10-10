@@ -1,6 +1,8 @@
 /* BillNgai fonts — HIG restyle 2026-10-09 (review/2026-10-09/design/HIG-RESTYLE-PLAN.md)
    Latin + ตัวเลข = system font (SF Pro บน Mac/iOS, Segoe UI บน Windows) ไม่ฝังตามข้อกำหนดของ Apple
-   ไทย = LINE Seed Sans TH (bundled, offline) — SF ไม่มีอักษรไทย จึง fallback มาที่นี่ทีละตัวอักษร
+   ไทย = LINE Seed Sans TH (bundled, offline) จำกัดด้วย unicode-range และวางไว้หน้าสุดของ --font
+   เหตุผล: บน iOS/WebKit ฟอนต์ระบบ (-apple-system) มีอักษรไทยในตัว (Thonburi) ถ้าวางไว้หน้า LINE Seed จะไม่ถูกใช้เลย
+   บน Mac/Chromium SF ไม่มีไทยจึง fallback มาที่ LINE Seed — การวาง LINE Seed ไว้หน้าสุด + unicode-range ทำให้สองแพลตฟอร์มตรงกัน (2026-10-10)
    น้ำหนักที่อนุญาต: 400 / 600 / 700 เท่านั้น (ห้าม thin) */
 
 /* LINE Seed Sans TH มีเฉพาะ Regular/Bold — น้ำหนัก 600–700 ใช้ Bold ร่วมกัน */
@@ -9,6 +11,7 @@
   font-style:normal;
   font-weight:400;
   font-display:swap;
+  unicode-range:U+0E01-0E3A,U+0E40-0E5B;   /* Thai letters, vowels, tone marks and digits only — ฿ (U+0E3F) and Latin stay on the system font */
   src:url('LINESeedSansTH_W_Rg.woff2') format('woff2');
 }
 @font-face{
@@ -16,5 +19,6 @@
   font-style:normal;
   font-weight:600 700;
   font-display:swap;
+  unicode-range:U+0E01-0E3A,U+0E40-0E5B;   /* Thai letters, vowels, tone marks and digits only — ฿ (U+0E3F) and Latin stay on the system font */
   src:url('LINESeedSansTH_W_Bd.woff2') format('woff2');
 }

@@ -105,8 +105,12 @@ Source updates do not replace installed app icons or publish marketing changes.
 ### Typography
 
 - System font for Latin and figures: `-apple-system` (SF Pro on Mac/iOS, Segoe UI on
-  Windows), never embedded. Thai: **LINE Seed Sans TH**, bundled in `fonts/` (SF has no
-  Thai glyphs, so Thai falls through to it per glyph). Inter is gone.
+  Windows), never embedded. Thai: **LINE Seed Sans TH**, bundled in `fonts/`, listed FIRST
+  in `--font` and limited to the Thai block with `unicode-range` (letters, marks and Thai
+  digits; `฿` stays on the system font). Reason (2026-10-10): on iOS the system font already
+  contains Thai (Thonburi), so a stack that starts with `-apple-system` never reaches LINE
+  Seed on iPhone/iPad, while Chromium on the Mac does fall through to it — the two looked
+  different. Keep the order and the range. Inter is gone.
 - Text-style tokens, macOS values on desktop: `--fs-title1 22` · `--fs-title2 17`
   (toolbar titles, sheet titles) · `--fs-title3 15` · `--fs-headline 13/700` ·
   `--fs-body 13` · `--fs-callout 12` · `--fs-subhead 12` · `--fs-caption 11` (floor —

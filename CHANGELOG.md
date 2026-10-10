@@ -28,6 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Windows beta: discontinued; no further Windows builds.
 
 ### Fixed
+- Thai text on iPhone and iPad now uses LINE Seed Sans TH like the Mac. The system font on iOS has its own Thai glyphs, so the bundled font was never reached; it is now first in the stack and limited to the Thai range (numbers and Latin stay on the system font).
 - Preserve both concurrent payment-review answers until an explicit successor resolves them; keep unresolved amounts separate from received income.
 - Retain correct receipt titles, immutable originals and separate installments during historical corrections.
 - Improve phone form containment and maximum accessibility text without squeezing the printed document layout; remove desktop audio from iPhone.

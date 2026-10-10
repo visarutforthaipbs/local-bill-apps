@@ -328,7 +328,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				BILLNGAI_GOOGLE_CLIENT_ID = "694292300424-n8h78pb86vccbjg60ugn1md1q1249fhc.apps.googleusercontent.com";
 				BILLNGAI_GOOGLE_CALLBACK_SCHEME = "com.googleusercontent.apps.694292300424-n8h78pb86vccbjg60ugn1md1q1249fhc";
 				BILLNGAI_SYNC_ORIGIN = "https://billngai-sync-coordinator.visarutforthaipbs.workers.dev";
@@ -353,7 +353,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				BILLNGAI_GOOGLE_CLIENT_ID = "694292300424-n8h78pb86vccbjg60ugn1md1q1249fhc.apps.googleusercontent.com";
 				BILLNGAI_GOOGLE_CALLBACK_SCHEME = "com.googleusercontent.apps.694292300424-n8h78pb86vccbjg60ugn1md1q1249fhc";
 				BILLNGAI_SYNC_ORIGIN = "https://billngai-sync-coordinator.visarutforthaipbs.workers.dev";

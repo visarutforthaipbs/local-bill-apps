@@ -25,7 +25,7 @@ working reference so every later change stays on the same path.
 
 | Topic | Rule | File |
 |---|---|---|
-| Typography | System font via `-apple-system`; never embed SF. macOS body 13 pt (min 10), iOS body 17 pt (min 11). Avoid light weights. Thai needs the bundled LINE Seed Sans TH and a caption floor of 11 px. | `hig/typography.md` |
+| Typography | System font via `-apple-system`; never embed SF. macOS body 13 pt (min 10), iOS body 17 pt (min 11). Avoid light weights. Thai needs the bundled LINE Seed Sans TH placed first in `--font` with a Thai `unicode-range` (iOS's system font has its own Thai and would otherwise win) and a caption floor of 11 px. | `hig/typography.md` |
 | Colour | Semantic colours with light, dark and increased-contrast variants; accent on the prominent action, sidebar icons and selection; don't colour multiple controls; colour never the only signal. | `hig/color.md`, `hig/dark-mode.md` |
 | Layout | 44 × 44 pt hit regions; align and group; progressive disclosure; macOS: nothing critical at the bottom of a window; size classes decide layout on iPad, not device type. | `hig/layout.md`, `hig/designing-for-ipados.md` |
 | Buttons | One or two prominent buttons per view; style, not size, distinguishes options; default button answers Return; destructive never default; trailing ellipsis when a button opens another view; always a pressed state. | `hig/buttons.md` |
