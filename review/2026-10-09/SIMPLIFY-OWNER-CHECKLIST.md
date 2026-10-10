@@ -39,12 +39,12 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
 
 ## Phase 1 — Mac App Store package (owner runs this: needs the Apple Distribution identities in Keychain)
 
-- [ ] 1.1 Set the MAS build number (`mas.bundleVersion`) above the highest previously uploaded build. Transporter rejected `2.0.15` as already used; the corrected MAS build is `2.0.16` while the visible version remains `2.0.15`. Then build
+- [x] 1.1 Set the MAS build number (`mas.bundleVersion`) above the highest previously uploaded build. Transporter rejected `2.0.15` as already used; the corrected MAS build is `2.0.16` while the visible version remains `2.0.15`. Then build
   ```sh
   npm run dist:mas
   ```
   Output: `dist/mas-universal/BillNgai-2.0.15-universal.pkg` (the `.app` sits next to it).
-- [ ] 1.2 Entitlements and signature (PRD §8.3) — expect `app-sandbox` and `network.server` = true
+- [x] 1.2 Entitlements and signature (PRD §8.3) — expect `app-sandbox` and `network.server` = true
   ```sh
   codesign -dvv --entitlements :- "dist/mas-universal/BillNgai.app" 2>&1 | grep -E "app-sandbox|network.server|network.client|Authority"
   pkgutil --check-signature "dist/mas-universal/BillNgai-2.0.15-universal.pkg"
@@ -56,20 +56,20 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
   grep -rln "lin\.ee\|Early Bird\|ซื้อ Pro\|TOR → Invoice\|playAppSfx" "$TMPDIR/asar" || echo "clean"
   ```
   The intentional `e-Tax` disclaimer/stub exception from 0.4 also applies here. The signed MAS app cannot be runtime-smoked outside App Store distribution on this Mac; complete the packaged runtime check on the processed TestFlight build in Phase 3.
-- [ ] 1.4 Packaged source matches the release commit
+- [x] 1.4 Packaged source matches the release commit
   ```sh
   node scripts/verify-packaged-source.cjs "dist/mas-universal/BillNgai.app/Contents/Resources/app.asar" .git "$(git rev-parse HEAD)"
   ```
-- [ ] 1.5 Record SHA-256 and size in the release notes before delivery
+- [x] 1.5 Record SHA-256 and size in the release notes before delivery
   ```sh
   shasum -a 256 "dist/mas-universal/BillNgai-2.0.15-universal.pkg"; stat -f %z "dist/mas-universal/BillNgai-2.0.15-universal.pkg"
   ```
-- [ ] 1.6 **Owner runs this:** open Transporter → Add → the `.pkg` → **Deliver**. Wait for the "Delivered" state; note the time.
+- [x] 1.6 **Owner runs this:** open Transporter → Add → the `.pkg` → **Deliver**. Delivered 2026-10-10 at 09:13 Asia/Bangkok; screenshot: `review/2026-10-10/mas-2.0.16-transporter-delivered.png`.
 
 ## Phase 2 — iOS archive (owner runs this: Apple Distribution + "iOS Team Store" profile)
 
 - [ ] 2.1 Raise `CURRENT_PROJECT_VERSION` in `mobile/ios/App/App.xcodeproj` above the last TestFlight build (2.0.14 used 3–5; 2.0.15 starts at 1 — check TestFlight first).
-- [ ] 2.2 **Owner runs this:** `cd mobile && npm run sync:ios && npm run ios:open` → Xcode → scheme App, destination "Any iOS Device (arm64)" → Product → Archive → Organizer → **Distribute App** → App Store Connect → Upload (keep "Upload symbols", manage version automatically off). Confirm "Validated App" before upload.
+- [x] 2.2 **Completed with Xcode command-line export/upload on 2026-10-10:** archive 2.0.15 (1) exported with App Store signing, verified, and uploaded successfully with symbols; see `review/2026-10-10/RELEASE-PREP-2.0.15.md` for IPA hash and the required system-rsync `PATH` workaround.
 - [ ] 2.3 **Owner runs this:** App Store Connect → My Apps → BillNgai → TestFlight → wait for processing → add yourself as internal tester → install on iPhone and iPad.
 
 ## Phase 3 — TestFlight pass with a sandbox Apple account (owner taps, agent reads)

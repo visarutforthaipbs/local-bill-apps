@@ -1,6 +1,6 @@
 # BillNgai 2.0.15 release preparation — 2026-10-10
 
-Status: iOS **2.0.15 (1) uploaded to App Store Connect and processing**; the corrected Mac package (build 2.0.16) is ready for a Transporter retry after build 2.0.15 was rejected as a duplicate. Nothing submitted for App Review, notarized as the final direct DMG, published, or sent to customers. Version 2.0.15 was retained.
+Status: iOS **2.0.15 (1) uploaded to App Store Connect** (last observed processing); the corrected Mac package (build 2.0.16) was **Delivered** by Transporter at 09:13 Asia/Bangkok and shown as ready for internal testing after build 2.0.15 was rejected as a duplicate. Nothing submitted for App Review, notarized as the final direct DMG, published, or sent to customers. Version 2.0.15 was retained.
 
 ## Verified source and UI
 
@@ -15,7 +15,7 @@ Status: iOS **2.0.15 (1) uploaded to App Store Connect and processing**; the cor
 - Installer signature is trusted by Apple certificate chain; app `codesign --verify --deep --strict` passes. The app has `app-sandbox`, `network.client`, and `network.server` entitlements.
 - The literal-string sweep is **not clean** for `e-Tax`: one bookkeeping disclaimer and the intentionally inert `exportETaxXML` containment stub (with its Thai/English error) remain. No other searched retired string appeared. The owner checklist now records these explicit exceptions and checks the retired UI strings separately.
 - The signed MAS app did not launch through Playwright outside App Store distribution here, so its packaged runtime smoke is pending TestFlight. `spctl` rejected the local MAS app (Apple Distribution origin); this is not a Developer ID notarization result.
-- **Transporter retry pending.** Apple rejected the first 2.0.15 package with error `-19232`: bundle version `2.0.15` was already uploaded. That rejected package and app were preserved in `/private/tmp/BillNgai-rejected-mas-build-2.0.15-2026-10-10/`. The new package uses MAS build 2.0.16. Its app signature and installer chain pass with full keychain access; expanded installer metadata confirms both version fields. The new package has not yet been delivered or processed by Apple.
+- **Transporter retry delivered.** Apple rejected the first 2.0.15 package with error `-19232`: bundle version `2.0.15` was already uploaded. That rejected package and app were preserved in `/private/tmp/BillNgai-rejected-mas-build-2.0.15-2026-10-10/`. The new package uses MAS build 2.0.16. Its app signature and installer chain pass with full keychain access; expanded installer metadata confirms both version fields. The owner-provided Transporter screenshot (`review/2026-10-10/mas-2.0.16-transporter-delivered.png`) shows the corrected **2.0.15 (2.0.16)** package **Delivered on 2026-10-10 at 09:13 Asia/Bangkok** and **ready for internal testing**. App Store Connect build-list availability and TestFlight installation remain to be checked.
 
 ## iOS archive and screenshots
 
@@ -34,7 +34,7 @@ Status: iOS **2.0.15 (1) uploaded to App Store Connect and processing**; the cor
 ## Next required actions
 
 1. Wait for the uploaded iOS 2.0.15 (1) build to finish App Store Connect processing, then add it to internal TestFlight and record Apple-side build ID/time.
-2. Deliver the corrected Mac `.pkg` (marketing version 2.0.15, build 2.0.16) through Transporter, then confirm Delivered and App Store Connect processing; record Apple-side build ID/time.
+2. Confirm the delivered Mac 2.0.15 (2.0.16) build appears in App Store Connect, add it to internal TestFlight, and record the Apple-side build ID/time.
 3. Complete the TestFlight free/Pro/restore/sync/migration and Mac window-reopen checks from the owner checklist. Compare Mac screenshot candidates with the processed store build; the synthetic listing content was approved on 2026-10-10.
 4. Enter both platforms' metadata and Review Notes, attach the existing Pro IAP, select processed builds, then submit for review with manual release.
 5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then create and deliver one free IAP Pro offer code per verified lifetime-key holder.
