@@ -8,6 +8,12 @@ Priority: **P0** = ข้อมูลลูกค้าเสี่ยงพั�
 
 ## Active
 
+### Next release after the store launch — 2026-10-10
+
+| Priority | Work | Status / boundary |
+|---|---|---|
+| P1 | Installment payments: receipt per paid installment invoice, receipts print the settled invoice, unpaid installments in receivables, quotation progress line, numbers reserved only on successful save | Spec `PRD-INSTALLMENTS.md`; branch `codex/installment-receipts`; owner's accountant confirms the receipt-per-installment practice before release |
+
 ### 2.0.3 containment follow-up — 2026-09-23
 
 The owner authorized Direct macOS audit/release and website updates, not completion
