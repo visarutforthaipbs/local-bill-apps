@@ -40,3 +40,24 @@ Status: iOS **2.0.15 (1) uploaded to App Store Connect** (last observed processi
 5. After both platforms are approved and released, build/notarize the final direct DMG, verify its public R2 checksum and landing page, then create and deliver one free IAP Pro offer code per verified lifetime-key holder.
 
 Current Apple references: [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications), [upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/), [IAP offer codes](https://developer.apple.com/help/app-store-connect/manage-in-app-purchases/create-offer-codes-for-in-app-purchases).
+
+---
+
+## 2.1.0 — builds of 2026-10-10 (afternoon), branch `codex/installment-receipts` @ a7c352c
+
+Version renamed to 2.1.0 (2.0.15 stays TestFlight-only). Contents: simplified app, installment payments
+(`PRD-INSTALLMENTS.md`), iPhone/iPad Thai font fix. Not submitted for review — the owner's accountant check
+on installment receipts is still open.
+
+- **iOS 2.1.0 (1)**: archived with `xcodebuild … DEVELOPMENT_TEAM=79QFYKTJMN CODE_SIGN_STYLE=Automatic archive`
+  (the project file carries no team; pass it on the command line), exported with method `app-store-connect`,
+  destination `upload`, system `PATH` to avoid the Homebrew rsync issue. Xcode reported "Upload succeeded" at
+  12:26 Asia/Bangkok. Archive kept in the session scratchpad only.
+- **Mac App Store 2.1.0 (build 2.1.0)**: `npm run dist:mas` → `dist/mas-universal/BillNgai-2.1.0-universal.pkg`,
+  225,931,719 bytes, SHA-256 `bfd56ba06b51fa9929f85a79c277240bc2f06a084c831f157dec34bc40717d69`. `codesign --verify
+  --deep --strict` passes; entitlements app-sandbox, network.client, network.server; retired-string sweep 0;
+  installment code present. Opened in Transporter — **owner presses Deliver** (no API-key upload path is used
+  from this session).
+
+Next: add both processed builds to internal TestFlight, run the owner checklist's TestFlight checks on the
+2.1.0 builds, then submit after the accountant answer.
