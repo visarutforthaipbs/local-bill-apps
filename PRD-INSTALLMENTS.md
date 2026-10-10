@@ -1,6 +1,6 @@
 # PRD — Installment payments: one quotation, many payments (owner-approved 2026-10-10)
 
-Target: first release after the 2.0.15 store launch (owner names the version at release time; the Mac
+Target: 2.1.0, the first store release (decided 2026-10-10; 2.0.15 stays TestFlight-only; the Mac
 App Store build number 2.0.16 is already used). Branch `codex/installment-receipts` from
 `codex/simplify-2.0.15` @ bbf6a38. Companion: `PRD-SIMPLIFY-2026-10.md` (unchanged), `BRAND.md`,
 `.claude/skills/apple-platform-design/`.

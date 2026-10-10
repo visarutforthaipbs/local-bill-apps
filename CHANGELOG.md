@@ -3,21 +3,14 @@
 All notable changes to บิลง่าย / BillNgai (formerly Billiong) are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [Unreleased] — installment payments (PRD-INSTALLMENTS.md)
+## [2.1.0] - Unreleased candidate
+
+2.0.14 and 2.0.15 reached TestFlight only (2.0.15: iOS build 1, Mac App Store package 2.0.16, nothing submitted for review). Their changes ship in 2.1.0 together with the Apple HIG restyle, the simplification and installment payments.
 
 ### Changed
 - A paid installment invoice (one created by แบ่งงวด) can now record its payment and issue its receipt, like any other invoice. The payment dialog names the installment and asks to confirm that this invoice was paid in full; the receipt is for exactly the installment amount, withholding per payment. The "full payment only, not deposits or instalments" refusal is gone.
 - Ordinary receipts print the invoice they settle under the title block: "ชำระตามใบแจ้งหนี้ INV-… · งวดที่ 3/3 ของ QT-…" (English and bilingual wording via the document language), leaving out parts that do not exist. The reference is stored on the receipt at issue time (`settles`) and frozen with its snapshot; receipts issued earlier and corrected receipts are unchanged.
 - The quotation view shows installment progress in the lineage area: agreed, received (receipts / installments) and outstanding, counted from receipts linked to the installment invoices (voided excluded). Screen only, never printed.
-
-### Verified
-- Unpaid installment invoices already counted toward the dashboard's ยอดค้างรับ and overdue count, and document numbers were already reserved only after validation with rollback on failed storage; `test/installments.test.cjs` now pins both.
-
-## [2.0.15] - Unreleased candidate
-
-2.0.14 reached TestFlight only (iOS builds 3–5, Mac App Store package delivered, nothing submitted for review); its changes ship in 2.0.15 together with the Apple HIG restyle.
-
-### Changed
 - App interface restyled to Apple's Human Interface Guidelines (macOS and iOS/iPadOS) while keeping the orange accent: system font for Latin and figures with LINE Seed Sans TH for Thai, light and dark appearance following the OS, capsule controls, grouped 12 px containers, hidden title bar with a translucent sidebar on macOS, iOS text sizes and switch rows on iPhone/iPad. Printed documents and PDFs are unchanged.
 - The receipt-correction dialog's three confirmation checkboxes render inline with their labels (they were styled as text fields).
 - Distribution: App Store only (Mac, iPhone, iPad); final direct DMG carries the guided export.
@@ -36,6 +29,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow 
 - Direct-purchase and licence-entry screens: the "ซื้อ Pro" dialog (PromptPay, LINE, launch price) and the "มีรหัส Pro แล้ว?" key field, plus the per-channel renderer stripping (`scripts/channel-renderer.cjs`). Store builds and the iOS bundle are now packaged from the plain `billing.html`. In the direct build, "upgrade" opens a notice that Pro is available only on the App Store and points to Settings → Data & backup; a licence key already in `config.json` is still honoured there and can still be removed from Settings.
 - e-Tax XML and new tax-invoice remnants: the "new tax invoices, tax estimates, e-Tax and cloud sync are paused" line in Settings → ข้อจำกัดการใช้งาน (now states that the app issues ordinary receipts only), the "tax payable/refund not yet calculated" banner on the income summary, the e-Tax XML export and 2.0.4-limits strings, the tax-invoice entry in the document editor's type list and the unused tax-invoice number-format setting. Existing tax-invoice records, their legacy review and the corrected-receipt (`receipt_reissue`) workflow are unchanged.
 - Windows beta: discontinued; no further Windows builds.
+
+### Verified
+- Unpaid installment invoices already counted toward the dashboard's ยอดค้างรับ and overdue count, and document numbers were already reserved only after validation with rollback on failed storage; `test/installments.test.cjs` now pins both.
 
 ### Fixed
 - Thai text on iPhone and iPad now uses LINE Seed Sans TH like the Mac. The system font on iOS has its own Thai glyphs, so the bundled font was never reached; it is now first in the stack and limited to the Thai range (numbers and Latin stay on the system font).

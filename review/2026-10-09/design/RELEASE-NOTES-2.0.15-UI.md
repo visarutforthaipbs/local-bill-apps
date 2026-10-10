@@ -179,3 +179,5 @@ The "Build numbers" section above predates the PRD. Current plan:
 - Windows: discontinued (PRD §0); no 2.0.15 Windows build.
 - The owner may rename 2.0.15 → 2.1.0 before submission (PRD §9); the copy above does not mention
   a version number, so it needs no change.
+
+> 2026-10-10: the store release is **2.1.0** (simplified app + installment payments + iPhone/iPad Thai font fix). Everything below written for "2.0.15" applies to 2.1.0; iOS uploads as 2.1.0 (1), Mac as 2.1.0 with its own build number.
