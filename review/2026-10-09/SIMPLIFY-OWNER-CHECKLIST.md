@@ -39,7 +39,7 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
 
 ## Phase 1 — Mac App Store package (owner runs this: needs the Apple Distribution identities in Keychain)
 
-- [ ] 1.1 Bump the MAS build number (`mas.bundleVersion` or the build counter used for 2.0.14) so it is higher than the last delivered 2.0.14 package, then build
+- [ ] 1.1 Set the MAS build number (`mas.bundleVersion`) above the highest previously uploaded build. Transporter rejected `2.0.15` as already used; the corrected MAS build is `2.0.16` while the visible version remains `2.0.15`. Then build
   ```sh
   npm run dist:mas
   ```
@@ -48,6 +48,7 @@ If the owner renames 2.0.15 → 2.1.0 (PRD §9), replace the version in every pa
   ```sh
   codesign -dvv --entitlements :- "dist/mas-universal/BillNgai.app" 2>&1 | grep -E "app-sandbox|network.server|network.client|Authority"
   pkgutil --check-signature "dist/mas-universal/BillNgai-2.0.15-universal.pkg"
+  /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "dist/mas-universal/BillNgai.app/Contents/Info.plist"  # 2.0.16
   ```
 - [ ] 1.3 Packaged bundle contains none of the retired purchase, sound or invoice-conversion strings (expect "clean")
   ```sh
