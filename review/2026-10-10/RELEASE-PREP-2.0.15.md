@@ -77,3 +77,5 @@ App Store Connect API with the new team key `4F2K2YA5NH` (role App Manager; the 
   Review submission `91f7770c-b54f-4291-a121-ba00e24e34b9`.
 - Release type: after approval (manual release not used). Pro IAP `com.visarut.billngai.pro` already approved.
 - Listing change to note: description and keywords no longer claim tax invoices, VAT, e-Tax XML or tax estimates.
+
+- 2026-10-11 14:0x Asia/Bangkok: **iOS 2.1.0 approved** (submission 6e162161 complete, version READY_FOR_DISTRIBUTION, auto-release after approval). macOS 2.1.0 still WAITING_FOR_REVIEW.
