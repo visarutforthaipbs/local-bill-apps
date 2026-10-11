@@ -61,3 +61,19 @@ on installment receipts is still open.
 
 Next: add both processed builds to internal TestFlight, run the owner checklist's TestFlight checks on the
 2.1.0 builds, then submit after the accountant answer.
+
+## 2.1.0 submitted for review — 2026-10-11
+
+Owner confirmed the accountant check and TestFlight testing on 2026-10-11 and said "ship it". Done through the
+App Store Connect API with the new team key `4F2K2YA5NH` (role App Manager; the Developer-role key
+`22HTPG5RR2` can upload but not edit versions). Metadata source: `review/2026-10-11/store-metadata-2.1.0.json`.
+
+- iOS: the app's first version record ("1.0", never released) renamed to 2.1.0; build 2.1.0 (1) attached; Thai
+  description/keywords/promo/support URL set; What's New omitted (Apple does not allow it on a first version);
+  9 iPhone 6.9" + 9 iPad 13" screenshots uploaded and processed; review notes 2,024 chars; contact set.
+  Review submission `6e162161-64c2-49b7-948e-da9294f1aff6`.
+- macOS: new version 2.1.0 created; build 2.1.0 attached; same listing plus What's New; the six 2.0.1 screenshots
+  it inherited were deleted and replaced by six 1440×900 captures of the new UI; review notes as above.
+  Review submission `91f7770c-b54f-4291-a121-ba00e24e34b9`.
+- Release type: after approval (manual release not used). Pro IAP `com.visarut.billngai.pro` already approved.
+- Listing change to note: description and keywords no longer claim tax invoices, VAT, e-Tax XML or tax estimates.
