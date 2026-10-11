@@ -1,7 +1,7 @@
 # บิลง่าย / BillNgai — agent hand-off
 
-**Current direction (2026-10-09):** `PRD-SIMPLIFY-2026-10.md` on branch `codex/simplify-2.0.15` — App Store only (Mac App Store + iPhone/iPad, universal Pro IAP); local AI, sounds, direct-purchase/licence screens and e-Tax remnants removed; one final direct DMG carries the guided export; Windows ended. Installed locally: unsigned direct 2.0.15 from `codex/hig-restyle` (see `HIG-UI-VERIFICATION.md`).
-Historical line: signed/notarized 2.0.12 (Google Drive sync for Pro) on branch `release/2.0.10`.
+**Current state (2026-10-12):** read `HANDOFF-2026-10-12.md` first. Shipped line is branch `codex/installment-receipts` (2.1.0): App Store only (Mac App Store + iPhone/iPad, universal Pro IAP); AI, sounds, direct purchase, e-Tax remnants and Windows removed; installment payments; iOS 2.1.0 approved 2026-10-11, macOS 2.1.0 in review. App Store Connect automation in `scripts/asc/` (team keys in `~/.private_keys`, never committed). Installed locally: unsigned direct 2.1.0 on `~/Library/Application Support/BillNgai`.
+Historical line: signed/notarized 2.0.12 (Google Drive sync for Pro) on branch `release/2.0.10`; `main` is stale at 2.0.3.
 Read `INSTALL-2.0.12.md`, `SYNC-V3-PILOT.md` and `INSTALL-2.0.11.md` for actual build, notarization and installation status, and
 `PREPUBLISH-FIXES-VERIFICATION.md` for what changed since 2.0.9. Sync v3 ships in 2.0.12; production coordinator `billngai-sync-coordinator` (Cloudflare).
 Start with `FINTECH-UI-VERIFICATION.md`, `AUDIT-FIXES-VERIFICATION.md`, `BRAND.md`, and `INSTALL-2.0.8.md`.
@@ -73,7 +73,7 @@ Two independent systems:
   3. Bump `version` in `package.json` (SemVer — it names the DMG)
   4. Stage only reviewed release files and commit; tag the verified release commit as `v<version>`.
   5. Release packaging:
-     - Store release (the normal path): `npm run dist:mas` → Transporter → App Store Connect; iOS via Xcode archive from `mobile/ios/App`. Review Notes template in `review/2026-10-09/design/RELEASE-NOTES-2.0.15-UI.md`.
+     - Store release (the normal path): `npm run dist:mas` (bump `mas.bundleVersion`) → `xcrun altool --upload-package` or Transporter; iOS via `xcodebuild archive` + `-exportArchive` upload from `mobile/ios/App` (team id on the command line). Listing + submission through `scripts/asc/submit.cjs` with a metadata JSON like `review/2026-10-11/store-metadata-2.1.0.json`. Details in `HANDOFF-2026-10-12.md`.
      - Unsigned direct build (local testing, and the one final direct DMG): `npm run dist:unsigned` → `dist/BillNgai-<version>-universal.dmg`
      - Signed & Notarized direct DMG (final direct release only): use the existing Keychain identity or CI certificate, validate packaged OAuth configuration, and follow `DEPLOYMENT.md`. `APPLE_API_KEY` is the .p8 path; verify notarization, stapling and final downloaded bytes.
   6. Push the reviewed release branch and its specific tag after verification.

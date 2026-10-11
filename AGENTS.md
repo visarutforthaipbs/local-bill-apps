@@ -8,6 +8,11 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 ## Rules
 
+- Current product scope (since 2026-10-09): App Store only, non-VAT ordinary receipts, no AI/sounds/licence screens/e-Tax. Do not reintroduce removed features or copy. Installment invoices get receipts per paid installment (2.1.0).
+- After any change to `billing.html` or `mobile/web/*`, build AND launch the iOS simulator app (`cd mobile && npm run build:simulator`, then run it): a successful compile does not prove the iPhone host still boots.
+- Fonts: keep `"LINE Seed Sans TH"` first in `--font` with the Thai `unicode-range` in `fonts/fonts.css`; otherwise iOS renders Thai in the system font.
+- Never run tests or scripts against the owner's real profile (`~/Library/Application Support/BillNgai`, `~/Library/Containers/com.visarut.billngai`); copy it to a scratch profile first.
+
 - Design tokens live in the `:root` block of `billing.html`. **Never hardcode
   hex colors, radii, or shadows in new code** — use `var(--…)`. If a token is
   missing, add it to `:root` and document it in BRAND.md.
@@ -27,7 +32,10 @@ React, no Tailwind, no bundler, no build step. Do not introduce them.
 
 ## Cross-references
 
-- `../handoff.md` — latest development checkpoint and sync v3 continuation.
+- `HANDOFF-2026-10-12.md` — **latest checkpoint**: 2.1.0 shipped line, App Review state, data folders, keys, release commands, open items. Read it before anything else.
+- `PRD-SIMPLIFY-2026-10.md`, `PRD-INSTALLMENTS.md` — the two plans behind 2.1.0; `review/2026-10-10/SIMPLIFY-VERIFICATION.md` — gates that passed.
+- `scripts/asc/` — App Store Connect API scripts. Keys live only in `~/.private_keys`; never commit, print or paste a `.p8`.
+- `../handoff.md` — older development checkpoint and sync v3 continuation (historical).
 
 - `INSTALL-2.0.12.md` — latest release (Google Drive sync for Pro); `INSTALL-2.0.11.md` — clean PDF output; `INSTALL-2.0.10.md` — previous private direct-macOS release, artifact verification, cleanup and rollback.
 
