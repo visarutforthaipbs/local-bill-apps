@@ -20,7 +20,7 @@ Status: iOS **2.0.15 (1) uploaded to App Store Connect** (last observed processi
 ## iOS archive and screenshots
 
 - Final release archive after the 44-point fix: `/private/tmp/BillNgai-2.0.15-b1-2026-10-10.xcarchive`, version **2.0.15 (1)**, 17 MB; no UI-audit scripts in the release bundle. App executable SHA-256 `0fb921713f663e51d0ac5b442591a8183d1ff4e1473e15d32f5bab1209f9ca2c`.
-- The archive first succeeded with **Apple Development** signing. App Store export initially failed with `No Accounts` and `No profiles for 'com.visarut.billngai'`. After the owner completed Xcode sign-in, automatic provisioning downloaded an App Store distribution profile. A first export failed because Xcode invoked Apple `/usr/bin/rsync` with Homebrew `rsync` on `PATH`; retrying with `PATH=/usr/bin:/bin:/usr/sbin:/sbin` succeeded. The exported IPA is `/private/tmp/BillNgai-2.0.15-b1-ASC-export-system-rsync/BillNgai.ipa`, SHA-256 `2bb74e8b7ea00035c1f09857ec50fde4f4b6932629d417df7b01741f41c6dae2`. Its 2.0.15 (1) signature verifies for team `79QFYKTJMN`, `get-task-allow=false`, and `beta-reports-active=true`. `xcodebuild` uploaded the archive successfully on 2026-10-10 at 08:51 Asia/Bangkok; App Store Connect reported **processing**. TestFlight availability is still pending.
+- The archive first succeeded with **Apple Development** signing. App Store export initially failed with `No Accounts` and `No profiles for 'com.visarut.billngai'`. After the owner completed Xcode sign-in, automatic provisioning downloaded an App Store distribution profile. A first export failed because Xcode invoked Apple `/usr/bin/rsync` with Homebrew `rsync` on `PATH`; retrying with `PATH=/usr/bin:/bin:/usr/sbin:/sbin` succeeded. The exported IPA is `/private/tmp/BillNgai-2.0.15-b1-ASC-export-system-rsync/BillNgai.ipa`, SHA-256 `2bb74e8b7ea00035c1f09857ec50fde4f4b6932629d417df7b01741f41c6dae2`. Its 2.0.15 (1) signature verifies for team `<team ID>`, `get-task-allow=false`, and `beta-reports-active=true`. `xcodebuild` uploaded the archive successfully on 2026-10-10 at 08:51 Asia/Bangkok; App Store Connect reported **processing**. TestFlight availability is still pending.
 - 48 opaque RGB JPEG screenshot candidates (no alpha channel) are under `review/2026-10-10/design/store-screens/`. iPhone 18 Pro Max captures are 1320 × 2868; 13-inch iPad captures are 2064 × 2752. All 36 mobile captures passed the project UI audit. The 12 Mac captures are real native-window screenshots at Apple's 1440 × 900 size; the desktop source UI smoke passed. **Owner approved the synthetic sample content on 2026-10-10.**
 - Mac captures came from the shared source Electron UI because the signed MAS app could not be launched locally before App Store distribution. Compare them with the processed Mac build in TestFlight before upload. The previous `review/2026-10-09/screenshots-store/` set predates the simplification and is not a final source.
 
@@ -49,7 +49,7 @@ Version renamed to 2.1.0 (2.0.15 stays TestFlight-only). Contents: simplified ap
 (`PRD-INSTALLMENTS.md`), iPhone/iPad Thai font fix. Not submitted for review — the owner's accountant check
 on installment receipts is still open.
 
-- **iOS 2.1.0 (1)**: archived with `xcodebuild … DEVELOPMENT_TEAM=79QFYKTJMN CODE_SIGN_STYLE=Automatic archive`
+- **iOS 2.1.0 (1)**: archived with `xcodebuild … DEVELOPMENT_TEAM=<team ID> CODE_SIGN_STYLE=Automatic archive`
   (the project file carries no team; pass it on the command line), exported with method `app-store-connect`,
   destination `upload`, system `PATH` to avoid the Homebrew rsync issue. Xcode reported "Upload succeeded" at
   12:26 Asia/Bangkok. Archive kept in the session scratchpad only.
@@ -65,8 +65,8 @@ Next: add both processed builds to internal TestFlight, run the owner checklist'
 ## 2.1.0 submitted for review — 2026-10-11
 
 Owner confirmed the accountant check and TestFlight testing on 2026-10-11 and said "ship it". Done through the
-App Store Connect API with the new team key `4F2K2YA5NH` (role App Manager; the Developer-role key
-`22HTPG5RR2` can upload but not edit versions). Metadata source: `review/2026-10-11/store-metadata-2.1.0.json`.
+App Store Connect API with the new team key `<release key ID — private layer>` (role App Manager; the Developer-role key
+`<notarization key ID — private layer>` can upload but not edit versions). Metadata source: `review/2026-10-11/store-metadata-2.1.0.json`.
 
 - iOS: the app's first version record ("1.0", never released) renamed to 2.1.0; build 2.1.0 (1) attached; Thai
   description/keywords/promo/support URL set; What's New omitted (Apple does not allow it on a first version);

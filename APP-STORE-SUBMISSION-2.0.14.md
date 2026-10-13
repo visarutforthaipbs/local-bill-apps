@@ -1,13 +1,26 @@
 # BillNgai 2.0.14 — App Store submission preparation (2026-10-07)
 
-Status (2026-10-07 16:00): **iOS 2.0.14 (3) is "Ready to Submit" in TestFlight. macOS 2.0.14 was
+Status (2026-10-13): **CYCLE CLOSED ON APPLE'S SIDE — all platforms approved at version 2.1.0.**
+iOS 2.1.0 was approved 2026-10-11 (11 ต.ค. 2569) and has been live since then. macOS 2.1.0 was
+accepted 2026-10-13 (13 ต.ค. 2569): submitted 2026-10-11 00:02 PDT via API Key, Submission ID
+`91f7770c-b54f-4291-a121-ba00e24e34b9`, "Number of items submitted: 1", accepted items: App Version
+2.1.0 for macOS. iPhone, iPad and Mac are all covered (two separate approvals, same version).
+Apple notes it can take up to 24 hours after release for items to become publicly available —
+@billngai-release verifies the live listing before any announcement goes out.
+
+Still open (not Apple-blocking): (1) the redaction-breach decision (see handoff-M5 2026-10-13
+entry) gates every tag/release/publish from this tree; (2) the launch announcement package is
+prepared from `drafts/mas-launch-announcement-approved.md` only after the listing is verified
+visible; social drafts are fed from @billngai-sync's redacted summaries, never raw configs.
+
+Historical status (2026-10-07 16:00): **iOS 2.0.14 (3) is "Ready to Submit" in TestFlight. macOS 2.0.14 was
 delivered through Transporter at 15:32 and is also "Ready to Submit" in TestFlight; the delivered
 package is b2 (SHA `fb8c638b…6f88`). No missing-compliance flag was shown for it.
 The production sync service runs the new coordinator with the purchase-verification secrets.
 Nothing is submitted for review.**
 
 The existing Apple record is kept: app `6789503350`, SKU `billngai-mas`, bundle
-`com.visarut.billngai`, non-consumable `com.visarut.billngai.pro`, team `79QFYKTJMN`.
+`com.visarut.billngai`, non-consumable `com.visarut.billngai.pro`, team `[REDACTED — team ID in the private layer]`.
 iOS is a platform added to that record; there is no new SKU or purchase.
 
 ## Candidate packages (built from the same uncommitted source)
@@ -73,7 +86,7 @@ Sources: Electron's Mac App Store Submission Guide, Apple's App Review Guideline
 3. **Owner + agent:** on the TestFlight builds, with a sandbox Apple account: buy Pro, restore,
    cancel a purchase, connect Google Drive, sync between the Mac and the iPhone. The agent can read
    the coordinator's behaviour and fix what fails; the taps and the Apple account are the owner's.
-4. Done 2026-10-07: the reviewer's Google account (sankhamphotography@gmail.com) is on production's
+4. Done 2026-10-07: the reviewer's Google account (address recorded in the private layer) is on production's
    sandbox list. **Owner:** make sure it is clean and has 2-Step Verification off, set a review-only
    password, sign in once on the TestFlight build and add two or three sample documents.
 5. Hands-on device checks still open: Files import, largest text with VoiceOver.
@@ -128,7 +141,8 @@ coordinator accurately. It still needs:
 > there is no account creation or deletion; "Stop syncing" in Settings disconnects the device and
 > keeps local data. To test sync, sign in with the test Google account below on two devices.
 >
-> Test Google account: sankhamphotography@gmail.com (password entered in App Review Information, not here)
+> Test Google account: the reviewer Google address is recorded in the private layer (password entered in
+> App Review Information, not here)
 > Sandbox Apple account: (reviewer's own)
 
 ## What's New (draft)
